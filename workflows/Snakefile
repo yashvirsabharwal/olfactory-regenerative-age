@@ -1,0 +1,78 @@
+configfile: "configs/gateway.yaml"
+
+rule all:
+    input:
+        "data/processed/cohort_manifest.tsv",
+        "data/processed/donor_cell_state_features.tsv",
+        "data/processed/ora_feature_matrix.tsv",
+        "data/processed/donor_module_features.tsv",
+        "results/tables/ora_model_performance.tsv",
+        "results/reports/mvp_report.md"
+
+rule download:
+    output:
+        "data/raw/gateway.h5ad"
+    shell:
+        "python scripts/download_cellxgene.py --config configs/gateway.yaml"
+
+rule inspect:
+    output:
+        "results/reports/h5ad_schema.json"
+    shell:
+        "python scripts/inspect_h5ad.py --config configs/gateway.yaml"
+
+rule cohort:
+    input:
+        "results/reports/h5ad_schema.json"
+    output:
+        "data/processed/cohort_manifest.tsv"
+    shell:
+        "python scripts/build_sample_manifest.py --config configs/gateway.yaml"
+
+rule aggregate:
+    input:
+        "data/processed/cohort_manifest.tsv"
+    output:
+        "data/processed/donor_cell_state_features.tsv"
+    shell:
+        "python scripts/aggregate_cell_counts.py --config configs/gateway.yaml"
+
+rule features:
+    input:
+        "data/processed/donor_cell_state_features.tsv"
+    output:
+        "data/processed/ora_feature_matrix.tsv"
+    shell:
+        "python scripts/build_feature_matrix.py --config configs/gateway.yaml"
+
+rule model:
+    input:
+        "data/processed/ora_feature_matrix.tsv",
+        "data/processed/cohort_manifest.tsv"
+    output:
+        "results/tables/ora_model_performance.tsv"
+    shell:
+        "python scripts/run_age_models.py --features {input[0]} --manifest {input[1]} --config configs/models.yaml"
+
+rule modules:
+    input:
+        "data/raw/gateway.h5ad"
+    output:
+        "results/tables/module_score_summary.tsv",
+        "results/tables/module_gene_coverage.tsv",
+        "data/processed/donor_module_features.tsv"
+    shell:
+        "python scripts/score_gene_sets.py --config configs/gateway.yaml --gene-sets configs/gene_sets.yaml"
+
+rule report:
+    input:
+        "data/processed/cohort_manifest.tsv",
+        "results/tables/cohort_summary.tsv",
+        "results/tables/age_cell_state_associations.tsv",
+        "results/tables/ora_model_performance.tsv",
+        "results/tables/donor_ora_scores.tsv",
+        "results/tables/ora_feature_importance.tsv"
+    output:
+        "results/reports/mvp_report.md"
+    shell:
+        "python scripts/generate_mvp_report.py --config configs/gateway.yaml"

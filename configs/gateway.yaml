@@ -1,0 +1,186 @@
+# Gateway 4M human olfactory epithelium atlas defaults.
+source:
+  name: "Gateway 4M human olfactory epithelium atlas"
+  doi: "10.64898/2026.06.10.731272"
+  collection_id: "8b35aa1f-6bcf-4a51-abc3-a3f336a44ae6"
+  collection_url: "https://cellxgene.cziscience.com/collections/8b35aa1f-6bcf-4a51-abc3-a3f336a44ae6"
+  dataset_id: "16c13603-a36e-467a-a8e8-3d118f2eef45"
+  dataset_version_id: "060f346b-c744-4845-9191-65595dd893b9"
+  direct_h5ad_url: "https://datasets.cellxgene.cziscience.com/060f346b-c744-4845-9191-65595dd893b9.h5ad"
+  h5ad_filesize_bytes: 27651770343
+  h5ad_path: "data/raw/gateway.h5ad"
+
+paper_defaults:
+  donors_total: 202
+  samples_total: 213
+  cells_total: 4028275
+  genes_total: 18127
+  healthy_donors: 192
+  ndd_donors: 10
+  ad_donors: 5
+  pd_donors: 5
+  healthy_missing_age: 5
+
+columns:
+  donor_id:
+    - "donor_id"
+    - "donor"
+    - "participant_id"
+  sample_id:
+    - "sample_id"
+    - "sample"
+    - "library_id"
+  age:
+    - "age"
+    - "age_years"
+    - "donor_age"
+    - "development_stage"
+  sex:
+    - "sex"
+    - "biological_sex"
+  race_ethnicity:
+    - "self_reported_ethnicity"
+    - "race_ethnicity"
+    - "race"
+    - "ethnicity"
+  disease:
+    - "disease_condition"
+    - "condition"
+    - "disease"
+    - "condition_grp"
+    - "diagnosis"
+  chemistry:
+    - "flex_version"
+    - "flex_chemistry_version"
+    - "chemistry"
+    - "assay_version"
+  collection_method:
+    - "device_guided"
+    - "device_usage"
+    - "collection_method"
+    - "method"
+  site:
+    - "site"
+    - "clinical_site"
+  coarse_cell_type:
+    - "coarse_celltype"
+    - "coarse_cell_type"
+    - "coarse_label"
+    - "cell_type"
+  fine_cell_type:
+    - "fine_celltype"
+    - "fine_cell_type"
+    - "fine_label"
+    - "cell_subtype"
+  n_counts:
+    - "nCount_RNA"
+    - "total_counts"
+    - "n_counts"
+  n_genes:
+    - "nFeature_RNA"
+    - "n_genes_by_counts"
+    - "n_genes"
+  percent_mito:
+    - "percent.mito"
+    - "pct_counts_mt"
+    - "percent_mito"
+  coarse_label_confidence:
+    - "coarse_label_confidence"
+    - "prediction.score.max"
+    - "transfer_score"
+
+healthy_values:
+  - "healthy"
+  - "control"
+  - "cognitively normal"
+  - "non-ndd"
+  - "normal"
+
+ndd_values:
+  ad:
+    - "ad"
+    - "alzheimer"
+    - "alzheimer's disease"
+    - "alzheimers disease"
+    - "alzheimer disease"
+  pd:
+    - "pd"
+    - "parkinson"
+    - "parkinson's disease"
+    - "parkinsons disease"
+    - "parkinson disease"
+
+qc_thresholds:
+  n_counts_min: 500
+  n_genes_min: 250
+  percent_mito_max: 20
+  coarse_label_confidence_min: 0.6
+
+cohorts:
+  min_total_lineage_cells: 50
+  min_mature_neurons: 50
+  min_lineage_cells_high_yield: 500
+
+collection_method_values:
+  device:
+    - "T"
+    - "true"
+    - "device"
+    - "gateway device"
+    - "gateway"
+  brush:
+    - "F"
+    - "false"
+    - "brush"
+    - "standalone brush"
+
+lineage_cell_types:
+  quiescent_hbc:
+    - "Quiescent HBC"
+    - "qHBC"
+  activated_hbc:
+    - "Activated HBC"
+    - "aHBC"
+  cycling_hbc:
+    - "Cycling HBC"
+  early_inp:
+    - "Early INP"
+  late_inp:
+    - "Late INP"
+  early_iosn:
+    - "Early iOSN"
+  late_iosn:
+    - "Late iOSN"
+  early_mature_mosn:
+    - "Early mature mOSN"
+    - "Early-mature mOSN"
+  fully_mature_mosn:
+    - "Fully mature mOSN"
+    - "Fully-mature mOSN"
+  stressed_mosn:
+    - "Stressed mOSN"
+
+embedding_priority:
+  - "X_scANVI"
+  - "X_scvi"
+  - "X_pca"
+  - "X_umap"
+
+outputs:
+  schema_json: "results/reports/h5ad_schema.json"
+  obs_columns_tsv: "data/metadata/gateway_obs_columns.tsv"
+  var_columns_tsv: "data/metadata/gateway_var_columns.tsv"
+  manifest_tsv: "data/processed/cohort_manifest.tsv"
+  cohort_summary_tsv: "results/tables/cohort_summary.tsv"
+  cell_counts_tsv: "data/processed/donor_cell_state_counts.tsv"
+  cell_features_tsv: "data/processed/donor_cell_state_features.tsv"
+  ora_feature_matrix_tsv: "data/processed/ora_feature_matrix.tsv"
+  age_associations_tsv: "results/tables/age_cell_state_associations.tsv"
+  model_performance_tsv: "results/tables/ora_model_performance.tsv"
+  donor_ora_scores_tsv: "results/tables/donor_ora_scores.tsv"
+  feature_importance_tsv: "results/tables/ora_feature_importance.tsv"
+  module_score_summary_tsv: "results/tables/module_score_summary.tsv"
+  module_gene_coverage_tsv: "results/tables/module_gene_coverage.tsv"
+  donor_module_features_tsv: "data/processed/donor_module_features.tsv"
+  mvp_report_md: "results/reports/mvp_report.md"
+  figure_dir: "results/figures"

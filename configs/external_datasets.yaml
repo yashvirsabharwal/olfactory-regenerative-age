@@ -1,0 +1,11 @@
+datasets:
+  durante_2020:
+    use: "lineage marker and trajectory-order validation"
+    path: null
+  oliva_2022:
+    use: "presbyosmia and aging validation"
+    path: null
+  danniballe_2026:
+    use: "Alzheimer's olfactory biopsy validation"
+    path: null
+

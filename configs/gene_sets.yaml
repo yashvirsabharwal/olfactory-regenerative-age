@@ -1,0 +1,37 @@
+score:
+  method: "mean_log1p_expression"
+  log1p: true
+  chunk_size: 1000
+  var_symbol_columns: ["feature_name", "gene_symbol", "gene_name", "symbol"]
+
+gene_sets:
+  hbc_identity:
+    description: "Horizontal basal cell identity"
+    genes: [TP63, KRT5, KRT14, KRT15]
+  hbc_activation_injury:
+    description: "Basal-cell activation and epithelial injury response"
+    genes: [TP63, SOX2, EGFR, KRT6A, KRT6B, KRT17]
+  progenitor_neuroblast:
+    description: "Neurogenic progenitor and cycling neuroblast program"
+    genes: [ASCL1, NEUROG1, NEUROD1, SOX2, MKI67, TOP2A]
+  immature_neuron:
+    description: "Immature olfactory sensory neuron program"
+    genes: [GAP43, STMN2, TUBB3, DCX]
+  mature_olfactory_neuron:
+    description: "Mature olfactory sensory neuron and transduction program"
+    genes: [OMP, ADCY3, GNAL, GNG13, CNGA2, RTP1, RTP2]
+  cilia_olfactory_transduction:
+    description: "Cilia and olfactory transduction markers"
+    genes: [FOXJ1, ADCY3, CNGA2]
+  neuroinflammation:
+    description: "Myeloid/complement neuroinflammatory response"
+    genes: [AIF1, C1QA, C1QB, C1QC, TREM2, TYROBP, LST1]
+  ad_amyloid_tau:
+    description: "Alzheimer-related amyloid/tau risk genes"
+    genes: [APP, PSEN1, PSEN2, MAPT, APOE]
+  pd_synuclein_mito:
+    description: "Parkinson-related synuclein/mitochondrial risk genes"
+    genes: [SNCA, LRRK2, PRKN, PINK1, PARK7, GBA1]
+  senescence_sasp:
+    description: "Cell-cycle arrest and SASP-like stress genes"
+    genes: [CDKN1A, CDKN2A, IL6, CXCL8, MMP3, SERPINE1]

@@ -1,0 +1,40 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Large or generated analysis data
+data/raw/
+data/external/
+data/interim/
+data/processed/
+results/*
+
+# Keep lightweight metadata and directory placeholders
+!data/metadata/
+data/metadata/*
+!data/metadata/.gitkeep
+!results/.gitkeep
+!results/tables/
+results/tables/*
+!results/tables/.gitkeep
+!results/figures/
+results/figures/*
+!results/figures/.gitkeep
+!results/models/
+results/models/*
+!results/models/.gitkeep
+!results/reports/
+results/reports/*
+!results/reports/.gitkeep
+!results/logs/
+results/logs/*
+!results/logs/.gitkeep
+
+# Local notebooks can be useful, but executed output is noisy.
+.ipynb_checkpoints/

@@ -1,0 +1,5 @@
+pseudocount: 0.5
+composition_prefix: "prop__"
+clr_prefix: "clr__"
+ratio_prefix: "ratio__"
+

@@ -1,0 +1,37 @@
+random_seed: 42
+outer_cv_folds: 5
+outer_cv_repeats: 1
+inner_cv_folds: 5
+
+age_bins:
+  young: [0, 49]
+  middle: [50, 69]
+  old: [70, 120]
+
+missingness_max_fraction: 0.30
+imputation: "median"
+scaling: "standard"
+
+exclude_from_biological_features:
+  - "total_cells"
+  - "total_umi"
+  - "log10_total_cells"
+  - "log10_total_umi"
+  - "chemistry"
+  - "collection_method"
+  - "site"
+
+models:
+  null:
+    enabled: true
+  elastic_net:
+    enabled: true
+    alphas: [0.01, 0.1, 1.0, 10.0]
+    l1_ratios: [0.1, 0.5, 0.9, 1.0]
+    max_iter: 50000
+    tol: 0.001
+    n_jobs: -1
+  random_forest:
+    enabled: true
+    n_estimators: 500
+    max_depth: 5

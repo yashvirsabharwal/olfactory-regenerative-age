@@ -1,0 +1,291 @@
+"""Donor-level ORA model training."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
+import numpy as np
+import pandas as pd
+
+
+TECHNICAL_PREFIXES = ("total_", "log10_total_")
+TECHNICAL_EXACT = {
+    "age",
+    "sex",
+    "race_ethnicity",
+    "disease",
+    "disease_group",
+    "chemistry",
+    "collection_method",
+    "site",
+    "sample_id",
+    "is_healthy",
+    "is_ndd",
+    "usable_for_ora_training",
+}
+
+
+@dataclass
+class ModelResult:
+    performance: pd.DataFrame
+    predictions: pd.DataFrame
+    feature_importance: pd.DataFrame
+
+
+def biological_feature_columns(features: pd.DataFrame, model_config: dict[str, Any] | None = None) -> list[str]:
+    """Return biological numeric features, excluding technical/yield columns."""
+
+    excluded = set(TECHNICAL_EXACT)
+    for item in (model_config or {}).get("exclude_from_biological_features", []):
+        excluded.add(str(item))
+    cols: list[str] = []
+    for col in features.columns:
+        if col in {"donor_id"} or col in excluded:
+            continue
+        if any(col.startswith(prefix) for prefix in TECHNICAL_PREFIXES):
+            continue
+        if pd.api.types.is_numeric_dtype(features[col]):
+            cols.append(col)
+    return cols
+
+
+def train_ora_models(
+    features: pd.DataFrame,
+    manifest: pd.DataFrame,
+    model_config: dict[str, Any] | None = None,
+) -> ModelResult:
+    """Train composition-MVP ORA models with donor-level folds."""
+
+    model_config = model_config or {}
+    donor_meta = (
+        manifest.sort_values(["donor_id", "sample_id"])
+        .drop_duplicates("donor_id")
+        .set_index("donor_id")
+    )
+    data = features.set_index("donor_id").join(donor_meta, how="inner", rsuffix="_meta").reset_index()
+    train = data[data["usable_for_ora_training"].astype(bool) & data["age"].notna()].copy()
+    train = train.reset_index(drop=True)
+    feature_cols = biological_feature_columns(train, model_config)
+    if not feature_cols:
+        raise ValueError("No biological numeric feature columns available for ORA modeling.")
+
+    max_missing = float(model_config.get("missingness_max_fraction", 0.30))
+    missing_fraction = train[feature_cols].isna().mean()
+    feature_cols = [col for col in feature_cols if missing_fraction[col] <= max_missing]
+    if not feature_cols:
+        raise ValueError("All feature columns exceeded the missingness threshold.")
+
+    y = train["age"].astype(float).to_numpy()
+    folds = donor_cv_folds(train, model_config)
+    predictions = []
+    importances = []
+    performance_rows = []
+
+    for model_name in ["null_model", "elastic_net", "random_forest"]:
+        pred = np.full(train.shape[0], np.nan, dtype=float)
+        fold_importances = []
+        for fold_id, (train_idx, test_idx) in enumerate(folds):
+            prep = fit_preprocessor(train.iloc[train_idx][feature_cols])
+            x_train = transform_preprocessor(train.iloc[train_idx][feature_cols], prep)
+            x_test = transform_preprocessor(train.iloc[test_idx][feature_cols], prep)
+            y_train = y[train_idx]
+            if model_name == "null_model":
+                fold_pred = np.full(test_idx.size, float(np.mean(y_train)))
+                coefs = np.zeros(len(feature_cols))
+            elif model_name == "elastic_net":
+                fold_pred, coefs = _fit_elastic_or_linear(x_train, y_train, x_test, model_config)
+            else:
+                fold_pred, coefs = _fit_random_forest_or_linear(x_train, y_train, x_test, model_config)
+            pred[test_idx] = fold_pred
+            if coefs is not None:
+                fold_importances.append(pd.DataFrame({"feature": feature_cols, "importance": coefs, "fold": fold_id}))
+        performance_rows.append(_performance_row(model_name, y, pred))
+        predictions.append(
+            pd.DataFrame(
+                {
+                    "donor_id": train["donor_id"].to_numpy(),
+                    "model": model_name,
+                    "chronological_age": y,
+                    "ora": pred,
+                }
+            )
+        )
+        if fold_importances:
+            imp = pd.concat(fold_importances, ignore_index=True)
+            summary = imp.groupby("feature", as_index=False).agg(
+                importance=("importance", "mean"),
+                stability=("importance", lambda s: float(np.mean(np.sign(s) == np.sign(np.mean(s))))),
+            )
+            summary.insert(0, "model", model_name)
+            importances.append(summary)
+
+    pred_table = pd.concat(predictions, ignore_index=True)
+    pred_table = add_oraa(pred_table, train)
+    perf = pd.DataFrame(performance_rows)
+    importance = pd.concat(importances, ignore_index=True) if importances else pd.DataFrame()
+    return ModelResult(performance=perf, predictions=pred_table, feature_importance=importance)
+
+
+def donor_cv_folds(data: pd.DataFrame, model_config: dict[str, Any] | None = None) -> list[tuple[np.ndarray, np.ndarray]]:
+    """Create deterministic donor-level folds stratified approximately by age bins."""
+
+    model_config = model_config or {}
+    n_splits = int(model_config.get("outer_cv_folds", 5))
+    random_seed = int(model_config.get("random_seed", 42))
+    n = data.shape[0]
+    if n < 2:
+        raise ValueError("At least two donors are required for cross-validation.")
+    n_splits = max(2, min(n_splits, n))
+    rng = np.random.default_rng(random_seed)
+    sortable = data[["donor_id", "age"]].copy()
+    sortable["_bin"] = _age_bins(sortable["age"], model_config)
+    fold_indices: list[list[int]] = [[] for _ in range(n_splits)]
+    for _, group in sortable.groupby("_bin", dropna=False):
+        indices = group.index.to_numpy()
+        rng.shuffle(indices)
+        for pos, idx in enumerate(indices):
+            fold_indices[pos % n_splits].append(int(idx))
+    folds = []
+    all_idx = np.arange(n)
+    for test in fold_indices:
+        test_idx = np.array(sorted(test), dtype=int)
+        train_idx = np.setdiff1d(all_idx, test_idx)
+        if test_idx.size and train_idx.size:
+            folds.append((train_idx, test_idx))
+    return folds
+
+
+def fit_preprocessor(frame: pd.DataFrame) -> dict[str, pd.Series]:
+    medians = frame.median(numeric_only=True).fillna(0)
+    filled = frame.fillna(medians)
+    means = filled.mean()
+    stds = filled.std(ddof=0).replace(0, 1).fillna(1)
+    return {"medians": medians, "means": means, "stds": stds}
+
+
+def transform_preprocessor(frame: pd.DataFrame, prep: dict[str, pd.Series]) -> np.ndarray:
+    filled = frame.fillna(prep["medians"])
+    scaled = (filled - prep["means"]) / prep["stds"]
+    return scaled.to_numpy(dtype=float)
+
+
+def add_oraa(predictions: pd.DataFrame, train_meta: pd.DataFrame) -> pd.DataFrame:
+    output = predictions.copy()
+    meta = train_meta[["donor_id", "age", "sex", "chemistry", "collection_method", "site"]].copy()
+    output = output.merge(meta, on="donor_id", how="left")
+    output["oraa"] = np.nan
+    for model, frame in output.groupby("model"):
+        idx = frame.index.to_numpy()
+        y = frame["ora"].to_numpy(dtype=float)
+        x_parts = [np.ones(frame.shape[0]), frame["age"].to_numpy(dtype=float)]
+        for cov in ["sex", "chemistry", "collection_method", "site"]:
+            if cov in frame and frame[cov].notna().nunique() > 1:
+                dummies = pd.get_dummies(frame[cov].astype(str), drop_first=True, dtype=float)
+                x_parts.extend(dummies[col].to_numpy(dtype=float) for col in dummies.columns)
+        x = np.vstack(x_parts).T
+        valid = np.isfinite(y) & np.isfinite(x).all(axis=1)
+        if valid.sum() <= x.shape[1]:
+            output.loc[idx, "oraa"] = y - frame["age"].to_numpy(dtype=float)
+            continue
+        coef, *_ = np.linalg.lstsq(x[valid], y[valid], rcond=None)
+        expected = x @ coef
+        output.loc[idx, "oraa"] = y - expected
+    return output
+
+
+def _fit_elastic_or_linear(
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    model_config: dict[str, Any],
+) -> tuple[np.ndarray, np.ndarray]:
+    try:
+        from sklearn.linear_model import ElasticNetCV  # type: ignore
+
+        params = model_config.get("models", {}).get("elastic_net", {})
+        model = ElasticNetCV(
+            alphas=params.get("alphas", [0.01, 0.1, 1.0]),
+            l1_ratio=params.get("l1_ratios", [0.1, 0.5, 0.9]),
+            cv=min(5, max(2, len(y_train) // 4)),
+            random_state=int(model_config.get("random_seed", 42)),
+            max_iter=int(params.get("max_iter", 50000)),
+            tol=float(params.get("tol", 1e-3)),
+            n_jobs=int(params.get("n_jobs", -1)),
+        )
+        model.fit(x_train, y_train)
+        return model.predict(x_test), np.asarray(model.coef_, dtype=float)
+    except ModuleNotFoundError:
+        coef, intercept = _ridge_closed_form(x_train, y_train)
+        return x_test @ coef + intercept, coef
+
+
+def _fit_random_forest_or_linear(
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    model_config: dict[str, Any],
+) -> tuple[np.ndarray, np.ndarray]:
+    try:
+        from sklearn.ensemble import RandomForestRegressor  # type: ignore
+
+        params = model_config.get("models", {}).get("random_forest", {})
+        model = RandomForestRegressor(
+            n_estimators=int(params.get("n_estimators", 500)),
+            max_depth=params.get("max_depth", 5),
+            random_state=int(model_config.get("random_seed", 42)),
+            n_jobs=-1,
+        )
+        model.fit(x_train, y_train)
+        return model.predict(x_test), np.asarray(model.feature_importances_, dtype=float)
+    except ModuleNotFoundError:
+        coef, intercept = _ridge_closed_form(x_train, y_train, alpha=10.0)
+        return x_test @ coef + intercept, np.abs(coef)
+
+
+def _ridge_closed_form(x: np.ndarray, y: np.ndarray, alpha: float = 1.0) -> tuple[np.ndarray, float]:
+    y_mean = float(np.mean(y))
+    centered_y = y - y_mean
+    penalty = alpha * np.eye(x.shape[1])
+    coef = np.linalg.pinv(x.T @ x + penalty) @ x.T @ centered_y
+    return coef, y_mean
+
+
+def _performance_row(model_name: str, y: np.ndarray, pred: np.ndarray) -> dict[str, float | str]:
+    valid = np.isfinite(y) & np.isfinite(pred)
+    yv = y[valid]
+    pv = pred[valid]
+    resid = yv - pv
+    mae = float(np.mean(np.abs(resid)))
+    rmse = float(np.sqrt(np.mean(resid**2)))
+    ss_res = float(np.sum(resid**2))
+    ss_tot = float(np.sum((yv - np.mean(yv)) ** 2))
+    r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else np.nan
+    corr = _spearman(yv, pv) if yv.size > 1 else np.nan
+    return {
+        "model": model_name,
+        "n": int(yv.size),
+        "mae": mae,
+        "rmse": rmse,
+        "r2": r2,
+        "spearman_r": corr,
+    }
+
+
+def _age_bins(age: pd.Series, model_config: dict[str, Any]) -> pd.Series:
+    bins_cfg = model_config.get("age_bins", {})
+    output = pd.Series("unknown", index=age.index, dtype=object)
+    for label, bounds in bins_cfg.items():
+        if len(bounds) != 2:
+            continue
+        low, high = bounds
+        output[(age >= low) & (age <= high)] = label
+    return output
+
+
+def _spearman(a: np.ndarray, b: np.ndarray) -> float:
+    ar = pd.Series(a).rank(method="average").to_numpy(dtype=float)
+    br = pd.Series(b).rank(method="average").to_numpy(dtype=float)
+    if np.std(ar) == 0 or np.std(br) == 0:
+        return np.nan
+    return float(np.corrcoef(ar, br)[0, 1])
