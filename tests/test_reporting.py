@@ -183,6 +183,18 @@ class ReportingTests(unittest.TestCase):
                 "fdr": [0.02, 0.03],
             }
         )
+        pseudobulk_genomewide_summary = pd.DataFrame(
+            {
+                "n_cells": [4000],
+                "n_genes": [6],
+                "n_groups_total": [4],
+                "n_groups_exported": [2],
+                "n_groups_failed_min_cells": [1],
+                "n_groups_failed_min_donors": [1],
+                "min_cells_per_group": [10],
+                "min_donors_per_cell_state": [3],
+            }
+        )
         ndd_projection = pd.DataFrame(
             {
                 "donor_id": ["d1", "d2", "d3", "d4"] * 2,
@@ -224,6 +236,7 @@ class ReportingTests(unittest.TestCase):
                 pseudobulk_coverage=pseudobulk_coverage,
                 pseudobulk_metadata=pseudobulk_metadata,
                 pseudobulk_covariate_de=pseudobulk_covariate_de,
+                pseudobulk_genomewide_summary=pseudobulk_genomewide_summary,
                 out_md=out,
                 figure_dir=figures,
                 source={"name": "test", "doi": "doi"},
@@ -237,6 +250,7 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("NDD ORA Projection", report_text)
             self.assertIn("Pseudobulk Differential Expression", report_text)
             self.assertIn("Covariate-Adjusted Pseudobulk DE", report_text)
+            self.assertIn("Genome-Wide Pseudobulk Export", report_text)
             self.assertIn("ad_vs_healthy", report_text)
             self.assertGreaterEqual(len(written), 6)
             self.assertTrue((figures / "mvp_model_performance.png").exists())

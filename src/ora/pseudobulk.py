@@ -626,7 +626,7 @@ def _aggregate_genomewide_csr_counts(
     from scipy import sparse
 
     n_groups = int(group_ids.max()) + 1 if group_ids.size else 0
-    counts = sparse.csr_matrix((n_groups, n_vars), dtype=np.float64)
+    counts = np.zeros((n_groups, n_vars), dtype=np.float64)
     with h5py.File(h5ad_path, "r") as handle:
         x_group = handle["X"]
         data_ds = x_group["data"]
@@ -640,18 +640,24 @@ def _aggregate_genomewide_csr_counts(
             indptr = np.asarray(indptr_ds[start : stop + 1], dtype=np.int64)
             data_start = int(indptr[0])
             data_stop = int(indptr[-1])
+            if data_stop == data_start:
+                continue
             local_indptr = indptr - data_start
             values = np.asarray(data_ds[data_start:data_stop], dtype=np.float64)
             gene_indices = np.asarray(indices_ds[data_start:data_stop], dtype=np.int64)
             x = sparse.csr_matrix((values, gene_indices, local_indptr), shape=(stop - start, n_vars))
-            x = x[keep, :]
+            if not keep.all():
+                x = x[keep, :]
             groups = group_ids[start:stop][keep]
-            indicator = sparse.csr_matrix(
-                (np.ones(groups.size, dtype=np.float64), (groups, np.arange(groups.size))),
-                shape=(n_groups, groups.size),
-            )
-            counts = counts + indicator @ x
-    return counts.tocsr()
+            if groups.size == 0:
+                continue
+            order = np.argsort(groups, kind="stable")
+            groups = groups[order]
+            x = x[order, :]
+            boundaries = np.flatnonzero(np.r_[True, groups[1:] != groups[:-1], True])
+            for begin, end in zip(boundaries[:-1], boundaries[1:]):
+                counts[int(groups[begin]), :] += np.asarray(x[begin:end, :].sum(axis=0)).ravel()
+    return counts
 
 
 def _write_sparse_genomewide_count_matrix(
@@ -668,7 +674,7 @@ def _write_sparse_genomewide_count_matrix(
         stop = min(start + int(gene_chunk_size), counts.shape[1])
         chunk = genes.iloc[start:stop][["gene_id", "gene_symbol", "gene_index"]].reset_index(drop=True)
         if export_group_idx.size:
-            count_frame = pd.DataFrame(counts[export_group_idx, start:stop].T.toarray(), columns=sample_columns)
+            count_frame = pd.DataFrame(counts[np.ix_(export_group_idx, np.arange(start, stop))].T, columns=sample_columns)
             chunk = pd.concat([chunk, count_frame], axis=1)
         mode = "wt" if not header_written else "at"
         chunk.to_csv(out_path, sep="\t", index=False, mode=mode, header=not header_written, float_format="%.6g")

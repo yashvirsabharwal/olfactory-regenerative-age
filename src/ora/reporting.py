@@ -48,6 +48,7 @@ def generate_mvp_report(
     pseudobulk_coverage: pd.DataFrame | None = None,
     pseudobulk_metadata: pd.DataFrame | None = None,
     pseudobulk_covariate_de: pd.DataFrame | None = None,
+    pseudobulk_genomewide_summary: pd.DataFrame | None = None,
     source: dict[str, Any] | None = None,
     paper_defaults: dict[str, Any] | None = None,
     schema: dict[str, Any] | None = None,
@@ -88,6 +89,7 @@ def generate_mvp_report(
         pseudobulk_coverage=pseudobulk_coverage,
         pseudobulk_metadata=pseudobulk_metadata,
         pseudobulk_covariate_de=pseudobulk_covariate_de,
+        pseudobulk_genomewide_summary=pseudobulk_genomewide_summary,
         out_md=out_md,
         figure_paths=figure_paths,
         source=source or {},
@@ -222,6 +224,7 @@ def render_mvp_markdown(
     pseudobulk_coverage: pd.DataFrame | None,
     pseudobulk_metadata: pd.DataFrame | None,
     pseudobulk_covariate_de: pd.DataFrame | None,
+    pseudobulk_genomewide_summary: pd.DataFrame | None,
     out_md: str | Path,
     figure_paths: dict[str, Path],
     source: dict[str, Any],
@@ -404,6 +407,30 @@ def render_mvp_markdown(
                 "",
             ]
         )
+    if pseudobulk_genomewide_summary is not None and not pseudobulk_genomewide_summary.empty:
+        lines.extend(
+            [
+                "## Genome-Wide Pseudobulk Export",
+                "",
+                _pseudobulk_genomewide_summary_sentence(pseudobulk_genomewide_summary),
+                "",
+                _markdown_table(
+                    pseudobulk_genomewide_summary,
+                    [
+                        "n_cells",
+                        "n_genes",
+                        "n_groups_total",
+                        "n_groups_exported",
+                        "n_groups_failed_min_cells",
+                        "n_groups_failed_min_donors",
+                        "min_cells_per_group",
+                        "min_donors_per_cell_state",
+                    ],
+                    max_rows=5,
+                ),
+                "",
+            ]
+        )
     lines.extend(
         [
         "## Age Associations",
@@ -431,7 +458,8 @@ def render_mvp_markdown(
         "- NDD ORA projections use frozen healthy-trained models; projected AD/PD donors are not included in training or cross-validation.",
         "- Module scores are average log1p expression over curated marker sets, summarized at donor and cell-state levels.",
         "- Pseudobulk DE includes both unadjusted donor-level logCPM Welch contrasts and targeted covariate-adjusted linear models.",
-        "- Trajectory density, Milo, cNMF, and genome-wide DE remain deferred commands.",
+        "- Genome-wide pseudobulk counts are exported for edgeR, limma-voom, and DESeq2; local R-side DE requires an R/Bioconductor runtime.",
+        "- Trajectory density, Milo, and cNMF remain deferred commands.",
         "- Chemistry, collection method, site, and yield are treated as covariates or sensitivity variables rather than biological ORA features.",
         "- AD/PD donors are excluded from ORA training and reserved for later frozen-model projection.",
         "",
@@ -891,6 +919,18 @@ def _pseudobulk_adjusted_summary_sentence(pseudobulk_de: pd.DataFrame | None) ->
     return (
         f"Covariate-adjusted targeted pseudobulk produced {_format_int(len(ok))} valid tests across "
         f"{contrasts} contrasts, {states} fine cell states, and {genes} genes. Covariates used where variable: {covariates}."
+    )
+
+
+def _pseudobulk_genomewide_summary_sentence(summary: pd.DataFrame | None) -> str:
+    if summary is None or summary.empty:
+        return "_No genome-wide pseudobulk export summary available._"
+    row = summary.iloc[0]
+    return (
+        f"Genome-wide pseudobulk export scanned {_format_int(row.get('n_cells'))} cells and "
+        f"{_format_int(row.get('n_genes'))} genes. It retained {_format_int(row.get('n_groups_exported'))} "
+        f"of {_format_int(row.get('n_groups_total'))} donor/sample/cell-state groups for downstream DE after "
+        f"minimum cell and donor filters."
     )
 
 

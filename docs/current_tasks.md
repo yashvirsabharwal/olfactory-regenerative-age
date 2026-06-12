@@ -43,7 +43,7 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [x] Add design formulas for disease, age, sex, chemistry, collection method, and site where available.
 - [x] Add minimum donor/cell count filters before export.
 - [x] Add smoke tests on toy AnnData for genome-wide export.
-- [ ] Add report section summarizing genome-wide DE readiness and outputs.
+- [x] Add report section summarizing genome-wide DE readiness and outputs.
 
 ## Phase 3: Sensitivity Analyses
 
@@ -107,4 +107,4 @@ This is the working task board for the olfactory-regenerative-age project. Check
 
 - 2026-06-12: Added this living task tracker.
 - 2026-06-12: Added external validation registry, donor-level feature contract, published gene-list coverage command, and tests. Initial curated gene lists resolve 36/36 genes in Gateway; external datasets remain file-pending.
-- 2026-06-12: Added genome-wide pseudobulk export CLI with gene chunking, sparse CSR aggregation, R DE hook templates, minimum group filters, and toy AnnData smoke coverage. Full Gateway genome-wide export is ready to run but not yet generated.
+- 2026-06-12: Added genome-wide pseudobulk export CLI with gene chunking, sparse CSR aggregation, R DE hook templates, minimum group filters, and toy AnnData smoke coverage. Full Gateway export completed: 4,028,275 cells, 18,127 genes, 15,193 total groups, and 6,509 DE-ready groups. Local R-side DE remains pending because `Rscript` is not installed in this environment.
