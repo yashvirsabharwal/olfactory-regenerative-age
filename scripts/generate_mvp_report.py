@@ -27,6 +27,8 @@ def main() -> None:
     parser.add_argument("--augmented-performance", default=None)
     parser.add_argument("--augmented-scores", default=None)
     parser.add_argument("--augmented-importance", default=None)
+    parser.add_argument("--ndd-projection", default=None)
+    parser.add_argument("--ndd-projection-summary", default=None)
     parser.add_argument("--module-summary", default=None)
     parser.add_argument("--module-coverage", default=None)
     parser.add_argument("--donor-module-features", default=None)
@@ -54,6 +56,9 @@ def main() -> None:
         or outputs.get("augmented_donor_ora_scores_tsv", "results/tables/augmented_donor_ora_scores.tsv"),
         "augmented_importance": args.augmented_importance
         or outputs.get("augmented_feature_importance_tsv", "results/tables/ora_augmented_feature_importance.tsv"),
+        "ndd_projection": args.ndd_projection or outputs.get("ndd_ora_projection_tsv", "results/tables/ndd_ora_projection.tsv"),
+        "ndd_projection_summary": args.ndd_projection_summary
+        or outputs.get("ndd_ora_projection_summary_tsv", "results/tables/ndd_ora_projection_summary.tsv"),
         "module_summary": args.module_summary
         or outputs.get("module_score_summary_tsv", "results/tables/module_score_summary.tsv"),
         "module_coverage": args.module_coverage
@@ -80,6 +85,8 @@ def main() -> None:
         augmented_performance=_read_optional_tsv(paths["augmented_performance"]),
         augmented_scores=_read_optional_tsv(paths["augmented_scores"]),
         augmented_importance=_read_optional_tsv(paths["augmented_importance"]),
+        ndd_projection=_read_optional_tsv(paths["ndd_projection"]),
+        ndd_projection_summary=_read_optional_tsv(paths["ndd_projection_summary"]),
         module_summary=_read_optional_tsv(paths["module_summary"]),
         module_coverage=_read_optional_tsv(paths["module_coverage"]),
         donor_module_features=_read_optional_tsv(paths["donor_module_features"]),
