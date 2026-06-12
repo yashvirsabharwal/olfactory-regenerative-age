@@ -40,6 +40,7 @@ def main() -> None:
         pseudobulk_metadata = tmp / "pseudobulk_metadata.tsv"
         pseudobulk_coverage = tmp / "pseudobulk_gene_coverage.tsv"
         pseudobulk_de = tmp / "pseudobulk_de.tsv"
+        pseudobulk_covariate_de = tmp / "pseudobulk_covariate_de.tsv"
         report = tmp / "mvp_report.md"
         figure_dir = tmp / "figures"
 
@@ -157,6 +158,25 @@ def main() -> None:
         _run(
             [
                 python,
+                "scripts/run_pseudobulk_covariate_de.py",
+                "--counts",
+                str(pseudobulk_counts),
+                "--metadata",
+                str(pseudobulk_metadata),
+                "--coverage",
+                str(pseudobulk_coverage),
+                "--manifest",
+                str(manifest),
+                "--out",
+                str(pseudobulk_covariate_de),
+                "--min-donors",
+                "2",
+            ],
+            root,
+        )
+        _run(
+            [
+                python,
                 "scripts/build_feature_matrix.py",
                 "--features",
                 str(cell_features),
@@ -237,6 +257,8 @@ def main() -> None:
                 str(pseudobulk_coverage),
                 "--pseudobulk-metadata",
                 str(pseudobulk_metadata),
+                "--pseudobulk-covariate-de",
+                str(pseudobulk_covariate_de),
                 "--schema",
                 str(schema),
                 "--out",

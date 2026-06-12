@@ -1,6 +1,6 @@
 PYTHON ?= python3
 
-.PHONY: setup test download-gateway download-info toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-augmented project-ndd report modules trajectory pseudobulk milo cnmf clean
+.PHONY: setup test download-gateway download-info toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-augmented project-ndd report modules trajectory pseudobulk pseudobulk-covariate-de milo cnmf clean
 
 setup:
 	$(PYTHON) -m pip install -e ".[dev]"
@@ -58,6 +58,9 @@ modules:
 
 pseudobulk:
 	$(PYTHON) scripts/aggregate_pseudobulk.py --config configs/gateway.yaml --gene-sets configs/gene_sets.yaml
+
+pseudobulk-covariate-de:
+	$(PYTHON) scripts/run_pseudobulk_covariate_de.py --config configs/gateway.yaml
 
 milo:
 	Rscript scripts/run_milo.R configs/gateway.yaml

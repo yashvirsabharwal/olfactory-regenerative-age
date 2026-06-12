@@ -13,6 +13,7 @@ rule all:
         "results/tables/ora_augmented_model_performance.tsv",
         "results/tables/ndd_ora_projection_summary.tsv",
         "results/tables/pseudobulk_de.tsv",
+        "results/tables/pseudobulk_covariate_de.tsv",
         "results/reports/mvp_report.md"
 
 rule download:
@@ -111,6 +112,17 @@ rule pseudobulk:
     shell:
         "python scripts/aggregate_pseudobulk.py --config configs/gateway.yaml --gene-sets configs/gene_sets.yaml"
 
+rule pseudobulk_covariate_de:
+    input:
+        "data/processed/pseudobulk_counts.tsv.gz",
+        "data/processed/pseudobulk_metadata.tsv",
+        "results/tables/pseudobulk_gene_coverage.tsv",
+        "data/processed/cohort_manifest.tsv"
+    output:
+        "results/tables/pseudobulk_covariate_de.tsv"
+    shell:
+        "python scripts/run_pseudobulk_covariate_de.py --config configs/gateway.yaml"
+
 rule report:
     input:
         "data/processed/cohort_manifest.tsv",
@@ -129,7 +141,8 @@ rule report:
         "data/processed/donor_module_features.tsv",
         "data/processed/pseudobulk_metadata.tsv",
         "results/tables/pseudobulk_gene_coverage.tsv",
-        "results/tables/pseudobulk_de.tsv"
+        "results/tables/pseudobulk_de.tsv",
+        "results/tables/pseudobulk_covariate_de.tsv"
     output:
         "results/reports/mvp_report.md"
     shell:

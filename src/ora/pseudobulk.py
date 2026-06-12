@@ -25,6 +25,7 @@ from .utils import normalize_token
 
 DEFAULT_GROUPBY = ("donor_id", "sample_id", "disease_group", "coarse_cell_type", "fine_cell_type")
 DEFAULT_CONTRASTS = ("ad:healthy", "pd:healthy")
+DEFAULT_COVARIATES = ("age", "sex", "chemistry", "collection_method")
 
 
 @dataclass
@@ -224,6 +225,121 @@ def run_pseudobulk_de(
     return result.sort_values(["status", "contrast", "fine_cell_type", "fdr", "p_value", "gene"], na_position="last")
 
 
+def run_covariate_pseudobulk_de(
+    counts_long: pd.DataFrame,
+    metadata: pd.DataFrame,
+    manifest: pd.DataFrame,
+    *,
+    genes: list[str] | None = None,
+    contrasts: list[tuple[str, str]] | None = None,
+    covariates: list[str] | tuple[str, ...] = DEFAULT_COVARIATES,
+    min_donors: int = 3,
+    pseudocount: float = 0.5,
+) -> pd.DataFrame:
+    """Run donor-level covariate-adjusted linear models on targeted pseudobulk logCPM."""
+
+    contrasts = contrasts or parse_contrasts(DEFAULT_CONTRASTS)
+    if metadata.empty:
+        return pd.DataFrame()
+    genes = genes or sorted(counts_long["gene"].dropna().astype(str).unique().tolist())
+    if not genes:
+        return pd.DataFrame()
+    donor_state = _donor_state_table(counts_long, metadata, manifest, genes)
+    if donor_state.empty:
+        return pd.DataFrame()
+    gene_cols = [f"__gene_{gene}" for gene in genes]
+    library = donor_state["sum_n_counts"].to_numpy(dtype=float)
+    selected_library = donor_state[gene_cols].sum(axis=1).to_numpy(dtype=float)
+    library = np.where(library > 0, library, selected_library)
+    logcpm = np.log2(((donor_state[gene_cols].to_numpy(dtype=float) + pseudocount) / (library[:, None] + pseudocount * len(genes))) * 1_000_000 + 1)
+
+    rows = []
+    for case, control in contrasts:
+        for cell_state, state_idx in donor_state.groupby("fine_cell_type", observed=True).groups.items():
+            idx = np.asarray(list(state_idx), dtype=int)
+            state = donor_state.iloc[idx].reset_index(drop=True)
+            disease = state["disease_group"].astype(str).map(lambda x: normalize_token(x).replace(" ", "_"))
+            contrast_mask = disease.isin([case, control]).to_numpy()
+            if not contrast_mask.any():
+                continue
+            state = state.loc[contrast_mask].reset_index(drop=True)
+            y_state = logcpm[idx[contrast_mask], :]
+            disease = disease[contrast_mask].reset_index(drop=True)
+            case_mask_all = disease.eq(case).to_numpy()
+            control_mask_all = disease.eq(control).to_numpy()
+            for gene_idx, gene in enumerate(genes):
+                y = y_state[:, gene_idx]
+                valid_y = np.isfinite(y)
+                frame = state.loc[valid_y].reset_index(drop=True)
+                y_valid = y[valid_y]
+                disease_valid = disease[valid_y].reset_index(drop=True)
+                case_mask = disease_valid.eq(case).to_numpy()
+                control_mask = disease_valid.eq(control).to_numpy()
+                n_case = int(frame.loc[case_mask, "donor_id"].nunique())
+                n_control = int(frame.loc[control_mask, "donor_id"].nunique())
+                if n_case < min_donors or n_control < min_donors:
+                    rows.append(_empty_adjusted_de_row(case, control, cell_state, gene, n_case, n_control, "too_few_donors"))
+                    continue
+                design, used_covariates, design_valid = _covariate_design(frame, disease_valid, case, covariates)
+                if design.shape[1] < 2 or not design_valid.any():
+                    rows.append(_empty_adjusted_de_row(case, control, cell_state, gene, n_case, n_control, "invalid_design"))
+                    continue
+                y_model = y_valid[design_valid]
+                frame_model = frame.loc[design_valid].reset_index(drop=True)
+                disease_model = disease_valid[design_valid].reset_index(drop=True)
+                n_case_model = int(frame_model.loc[disease_model.eq(case), "donor_id"].nunique())
+                n_control_model = int(frame_model.loc[disease_model.eq(control), "donor_id"].nunique())
+                if n_case_model < min_donors or n_control_model < min_donors:
+                    rows.append(
+                        _empty_adjusted_de_row(
+                            case,
+                            control,
+                            cell_state,
+                            gene,
+                            n_case_model,
+                            n_control_model,
+                            "too_few_covariate_complete_donors",
+                        )
+                    )
+                    continue
+                fit = _ols_case_effect(y_model, design[design_valid, :])
+                if fit is None:
+                    rows.append(_empty_adjusted_de_row(case, control, cell_state, gene, n_case_model, n_control_model, "insufficient_df"))
+                    continue
+                case_values = y_model[disease_model.eq(case).to_numpy()]
+                control_values = y_model[disease_model.eq(control).to_numpy()]
+                rows.append(
+                    {
+                        "contrast": f"{case}_vs_{control}",
+                        "case_group": case,
+                        "control_group": control,
+                        "fine_cell_type": cell_state,
+                        "gene": gene,
+                        "n_case": n_case_model,
+                        "n_control": n_control_model,
+                        "n_total": int(y_model.size),
+                        "mean_logcpm_case": float(np.mean(case_values)),
+                        "mean_logcpm_control": float(np.mean(control_values)),
+                        "log2fc_unadjusted": float(np.mean(case_values) - np.mean(control_values)),
+                        "log2fc_adjusted": fit["beta"],
+                        "t_stat": fit["t_stat"],
+                        "p_value": fit["p_value"],
+                        "df_resid": fit["df_resid"],
+                        "covariates": ",".join(used_covariates),
+                        "status": "ok",
+                    }
+                )
+    result = pd.DataFrame(rows)
+    if result.empty:
+        return result
+    result["fdr"] = np.nan
+    ok = result["status"].eq("ok")
+    for _, idx in result[ok].groupby(["contrast", "fine_cell_type"], observed=True).groups.items():
+        idx_array = np.asarray(list(idx), dtype=int)
+        result.loc[idx_array, "fdr"] = bh_fdr(result.loc[idx_array, "p_value"].to_numpy(dtype=float))
+    return result.sort_values(["status", "contrast", "fine_cell_type", "fdr", "p_value", "gene"], na_position="last")
+
+
 def _aggregate_counts(
     *,
     h5ad_path: Path,
@@ -364,6 +480,157 @@ def _empty_de_row(case: str, control: str, cell_state: str, gene: str, n_case: i
         "p_value": np.nan,
         "status": status,
     }
+
+
+def _empty_adjusted_de_row(case: str, control: str, cell_state: str, gene: str, n_case: int, n_control: int, status: str) -> dict[str, object]:
+    return {
+        "contrast": f"{case}_vs_{control}",
+        "case_group": case,
+        "control_group": control,
+        "fine_cell_type": cell_state,
+        "gene": gene,
+        "n_case": n_case,
+        "n_control": n_control,
+        "n_total": n_case + n_control,
+        "mean_logcpm_case": np.nan,
+        "mean_logcpm_control": np.nan,
+        "log2fc_unadjusted": np.nan,
+        "log2fc_adjusted": np.nan,
+        "t_stat": np.nan,
+        "p_value": np.nan,
+        "df_resid": np.nan,
+        "covariates": "",
+        "status": status,
+    }
+
+
+def _donor_state_table(
+    counts_long: pd.DataFrame,
+    metadata: pd.DataFrame,
+    manifest: pd.DataFrame,
+    genes: list[str],
+) -> pd.DataFrame:
+    meta_required = {"donor_id", "disease_group", "fine_cell_type", "n_cells", "sum_n_counts"}
+    if not meta_required.issubset(metadata.columns):
+        missing = sorted(meta_required.difference(metadata.columns))
+        raise KeyError(f"Pseudobulk metadata is missing required columns: {missing}")
+    donor_state = (
+        metadata.groupby(["donor_id", "disease_group", "fine_cell_type"], observed=True, dropna=False)
+        .agg(n_cells=("n_cells", "sum"), sum_n_counts=("sum_n_counts", "sum"))
+        .reset_index()
+    )
+    gene_cols = [f"__gene_{gene}" for gene in genes]
+    for col in gene_cols:
+        donor_state[col] = 0.0
+    if not counts_long.empty:
+        count_required = {"donor_id", "disease_group", "fine_cell_type", "gene", "count"}
+        if not count_required.issubset(counts_long.columns):
+            missing = sorted(count_required.difference(counts_long.columns))
+            raise KeyError(f"Pseudobulk counts are missing required columns: {missing}")
+        counts = (
+            counts_long[counts_long["gene"].isin(genes)]
+            .groupby(["donor_id", "disease_group", "fine_cell_type", "gene"], observed=True, dropna=False)["count"]
+            .sum()
+            .reset_index()
+        )
+        if not counts.empty:
+            wide = counts.pivot_table(
+                index=["donor_id", "disease_group", "fine_cell_type"],
+                columns="gene",
+                values="count",
+                fill_value=0,
+                aggfunc="sum",
+            )
+            wide.columns = [f"__gene_{gene}" for gene in wide.columns]
+            wide = wide.reset_index()
+            donor_state = donor_state.drop(columns=gene_cols).merge(
+                wide,
+                on=["donor_id", "disease_group", "fine_cell_type"],
+                how="left",
+            )
+            for col in gene_cols:
+                if col not in donor_state:
+                    donor_state[col] = 0.0
+                donor_state[col] = pd.to_numeric(donor_state[col], errors="coerce").fillna(0.0)
+    manifest_cols = ["donor_id", "age", "sex", "race_ethnicity", "chemistry", "collection_method", "site"]
+    available = [col for col in manifest_cols if col in manifest.columns]
+    donor_meta = manifest[available].drop_duplicates("donor_id") if available else pd.DataFrame({"donor_id": []})
+    if not donor_meta.empty:
+        donor_state = donor_state.merge(donor_meta, on="donor_id", how="left", suffixes=("", "_manifest"))
+    donor_state["disease_group"] = donor_state["disease_group"].astype(str).map(lambda x: normalize_token(x).replace(" ", "_"))
+    return donor_state
+
+
+def _covariate_design(
+    frame: pd.DataFrame,
+    disease: pd.Series,
+    case: str,
+    covariates: list[str] | tuple[str, ...],
+) -> tuple[np.ndarray, list[str], np.ndarray]:
+    pieces = [
+        pd.Series(1.0, index=frame.index, name="intercept"),
+        disease.eq(case).astype(float).rename("case"),
+    ]
+    used: list[str] = []
+    for covariate in covariates:
+        if covariate not in frame:
+            continue
+        values = frame[covariate]
+        if pd.api.types.is_numeric_dtype(values):
+            numeric = pd.to_numeric(values, errors="coerce")
+            if numeric.notna().sum() < 2 or numeric.nunique(dropna=True) < 2:
+                continue
+            pieces.append(numeric.rename(covariate))
+            used.append(covariate)
+            continue
+        categorical = values.fillna("unknown").astype(str)
+        if categorical.nunique(dropna=False) < 2:
+            continue
+        dummies = pd.get_dummies(categorical, prefix=covariate, drop_first=True, dtype=float)
+        if dummies.empty:
+            continue
+        pieces.append(dummies)
+        used.append(covariate)
+    design_frame = pd.concat(pieces, axis=1)
+    design_frame = design_frame.loc[:, design_frame.nunique(dropna=False) > 1]
+    if "case" not in design_frame:
+        return np.empty((frame.shape[0], 0)), used, np.zeros(frame.shape[0], dtype=bool)
+    if "intercept" not in design_frame:
+        design_frame.insert(0, "intercept", 1.0)
+    valid = np.isfinite(design_frame.to_numpy(dtype=float)).all(axis=1)
+    return design_frame.to_numpy(dtype=float), used, valid
+
+
+def _ols_case_effect(y: np.ndarray, design: np.ndarray) -> dict[str, float] | None:
+    if design.shape[0] <= design.shape[1]:
+        return None
+    rank = int(np.linalg.matrix_rank(design))
+    if rank < design.shape[1]:
+        return None
+    coef, *_ = np.linalg.lstsq(design, y, rcond=None)
+    resid = y - design @ coef
+    df_resid = int(design.shape[0] - rank)
+    if df_resid <= 0:
+        return None
+    rss = float(np.sum(resid**2))
+    sigma2 = rss / df_resid
+    cov = sigma2 * np.linalg.pinv(design.T @ design)
+    se = float(np.sqrt(max(cov[1, 1], 0.0)))
+    if se == 0 or not np.isfinite(se):
+        return None
+    beta = float(coef[1])
+    t_stat = beta / se
+    p_value = _t_two_sided_p_value(t_stat, df_resid)
+    return {"beta": beta, "t_stat": float(t_stat), "p_value": float(p_value), "df_resid": float(df_resid)}
+
+
+def _t_two_sided_p_value(t_stat: float, df_resid: int) -> float:
+    try:
+        from scipy import stats
+
+        return float(2 * stats.t.sf(abs(t_stat), df=df_resid))
+    except ModuleNotFoundError:
+        return float(np.nan)
 
 
 def _h5ad_x_is_csr(path: str | Path) -> bool:

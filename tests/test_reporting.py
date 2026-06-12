@@ -7,7 +7,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from ora.reporting import generate_mvp_report, rank_associations, rank_pseudobulk_de
+from ora.reporting import generate_mvp_report, rank_associations, rank_pseudobulk_covariate_de, rank_pseudobulk_de
 
 
 class ReportingTests(unittest.TestCase):
@@ -42,6 +42,25 @@ class ReportingTests(unittest.TestCase):
         )
 
         ranked = rank_pseudobulk_de(de, top_n=3)
+
+        self.assertEqual(ranked["gene"].tolist(), ["SNCA", "OMP", "TP63"])
+
+    def test_rank_pseudobulk_covariate_de_sorts_ok_rows(self):
+        de = pd.DataFrame(
+            {
+                "contrast": ["ad_vs_healthy", "pd_vs_healthy", "ad_vs_healthy", "ad_vs_healthy"],
+                "fine_cell_type": ["qHBC", "mOSN", "qHBC", "qHBC"],
+                "gene": ["TP63", "SNCA", "OMP", "BAD"],
+                "n_case": [5, 5, 5, 1],
+                "n_control": [10, 10, 10, 10],
+                "log2fc_adjusted": [1.0, -2.0, 0.5, 0.0],
+                "p_value": [0.01, 0.001, 0.02, None],
+                "fdr": [0.03, 0.01, 0.02, None],
+                "status": ["ok", "ok", "ok", "too_few_donors"],
+            }
+        )
+
+        ranked = rank_pseudobulk_covariate_de(de, top_n=3)
 
         self.assertEqual(ranked["gene"].tolist(), ["SNCA", "OMP", "TP63"])
 
@@ -142,6 +161,28 @@ class ReportingTests(unittest.TestCase):
                 "sum_n_counts": [1000, 800],
             }
         )
+        pseudobulk_covariate_de = pd.DataFrame(
+            {
+                "contrast": ["ad_vs_healthy", "pd_vs_healthy"],
+                "case_group": ["ad", "pd"],
+                "control_group": ["healthy", "healthy"],
+                "fine_cell_type": ["qHBC", "mOSN"],
+                "gene": ["TP63", "SNCA"],
+                "n_case": [5, 5],
+                "n_control": [4, 4],
+                "n_total": [9, 9],
+                "mean_logcpm_case": [4.0, 2.0],
+                "mean_logcpm_control": [2.0, 4.0],
+                "log2fc_unadjusted": [2.0, -2.0],
+                "log2fc_adjusted": [1.5, -1.5],
+                "t_stat": [3.0, -3.0],
+                "p_value": [0.01, 0.02],
+                "df_resid": [5, 5],
+                "covariates": ["age,sex", "age,sex"],
+                "status": ["ok", "ok"],
+                "fdr": [0.02, 0.03],
+            }
+        )
         ndd_projection = pd.DataFrame(
             {
                 "donor_id": ["d1", "d2", "d3", "d4"] * 2,
@@ -182,6 +223,7 @@ class ReportingTests(unittest.TestCase):
                 pseudobulk_de=pseudobulk_de,
                 pseudobulk_coverage=pseudobulk_coverage,
                 pseudobulk_metadata=pseudobulk_metadata,
+                pseudobulk_covariate_de=pseudobulk_covariate_de,
                 out_md=out,
                 figure_dir=figures,
                 source={"name": "test", "doi": "doi"},
@@ -194,11 +236,13 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("Gateway ORA MVP Report", report_text)
             self.assertIn("NDD ORA Projection", report_text)
             self.assertIn("Pseudobulk Differential Expression", report_text)
+            self.assertIn("Covariate-Adjusted Pseudobulk DE", report_text)
             self.assertIn("ad_vs_healthy", report_text)
             self.assertGreaterEqual(len(written), 6)
             self.assertTrue((figures / "mvp_model_performance.png").exists())
             self.assertTrue((figures / "mvp_ndd_projection.png").exists())
             self.assertTrue((figures / "mvp_pseudobulk_de.png").exists())
+            self.assertTrue((figures / "mvp_pseudobulk_covariate_de.png").exists())
 
 
 if __name__ == "__main__":
