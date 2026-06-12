@@ -34,6 +34,10 @@ def main() -> None:
         module_summary = tmp / "module_score_summary.tsv"
         module_coverage = tmp / "module_gene_coverage.tsv"
         donor_module_features = tmp / "donor_module_features.tsv"
+        pseudobulk_counts = tmp / "pseudobulk_counts.tsv.gz"
+        pseudobulk_metadata = tmp / "pseudobulk_metadata.tsv"
+        pseudobulk_coverage = tmp / "pseudobulk_gene_coverage.tsv"
+        pseudobulk_de = tmp / "pseudobulk_de.tsv"
         report = tmp / "mvp_report.md"
         figure_dir = tmp / "figures"
 
@@ -124,6 +128,27 @@ def main() -> None:
                 str(donor_module_features),
                 "--chunk-size",
                 "10",
+            ],
+            root,
+        )
+        _run(
+            [
+                python,
+                "scripts/aggregate_pseudobulk.py",
+                "--h5ad",
+                str(h5ad),
+                "--counts-out",
+                str(pseudobulk_counts),
+                "--metadata-out",
+                str(pseudobulk_metadata),
+                "--coverage-out",
+                str(pseudobulk_coverage),
+                "--de-out",
+                str(pseudobulk_de),
+                "--chunk-size",
+                "10",
+                "--min-donors",
+                "2",
             ],
             root,
         )

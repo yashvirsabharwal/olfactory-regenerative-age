@@ -54,7 +54,7 @@ modules:
 	$(PYTHON) scripts/score_gene_sets.py --config configs/gateway.yaml --gene-sets configs/gene_sets.yaml
 
 pseudobulk:
-	$(PYTHON) scripts/aggregate_pseudobulk.py --config configs/gateway.yaml
+	$(PYTHON) scripts/aggregate_pseudobulk.py --config configs/gateway.yaml --gene-sets configs/gene_sets.yaml
 
 milo:
 	Rscript scripts/run_milo.R configs/gateway.yaml
