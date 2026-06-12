@@ -30,6 +30,9 @@ def main() -> None:
     parser.add_argument("--module-summary", default=None)
     parser.add_argument("--module-coverage", default=None)
     parser.add_argument("--donor-module-features", default=None)
+    parser.add_argument("--pseudobulk-de", default=None)
+    parser.add_argument("--pseudobulk-coverage", default=None)
+    parser.add_argument("--pseudobulk-metadata", default=None)
     parser.add_argument("--schema", default=None)
     parser.add_argument("--out", default=None)
     parser.add_argument("--figure-dir", default=None)
@@ -57,6 +60,11 @@ def main() -> None:
         or outputs.get("module_gene_coverage_tsv", "results/tables/module_gene_coverage.tsv"),
         "donor_module_features": args.donor_module_features
         or outputs.get("donor_module_features_tsv", "data/processed/donor_module_features.tsv"),
+        "pseudobulk_de": args.pseudobulk_de or outputs.get("pseudobulk_de_tsv", "results/tables/pseudobulk_de.tsv"),
+        "pseudobulk_coverage": args.pseudobulk_coverage
+        or outputs.get("pseudobulk_gene_coverage_tsv", "results/tables/pseudobulk_gene_coverage.tsv"),
+        "pseudobulk_metadata": args.pseudobulk_metadata
+        or outputs.get("pseudobulk_metadata_tsv", "data/processed/pseudobulk_metadata.tsv"),
         "schema": args.schema or outputs.get("schema_json", "results/reports/h5ad_schema.json"),
         "out": args.out or outputs.get("mvp_report_md", "results/reports/mvp_report.md"),
         "figure_dir": args.figure_dir or outputs.get("figure_dir", "results/figures"),
@@ -75,6 +83,9 @@ def main() -> None:
         module_summary=_read_optional_tsv(paths["module_summary"]),
         module_coverage=_read_optional_tsv(paths["module_coverage"]),
         donor_module_features=_read_optional_tsv(paths["donor_module_features"]),
+        pseudobulk_de=_read_optional_tsv(paths["pseudobulk_de"]),
+        pseudobulk_coverage=_read_optional_tsv(paths["pseudobulk_coverage"]),
+        pseudobulk_metadata=_read_optional_tsv(paths["pseudobulk_metadata"]),
         schema=load_schema(paths["schema"]),
         source=config.get("source", {}),
         paper_defaults=config.get("paper_defaults", {}),

@@ -20,6 +20,7 @@ FIGURE_NAMES = {
     "predictions": "mvp_predicted_vs_age.png",
     "importance": "mvp_feature_importance.png",
     "module_scores": "mvp_module_scores.png",
+    "pseudobulk_de": "mvp_pseudobulk_de.png",
 }
 
 
@@ -39,6 +40,9 @@ def generate_mvp_report(
     module_summary: pd.DataFrame | None = None,
     module_coverage: pd.DataFrame | None = None,
     donor_module_features: pd.DataFrame | None = None,
+    pseudobulk_de: pd.DataFrame | None = None,
+    pseudobulk_coverage: pd.DataFrame | None = None,
+    pseudobulk_metadata: pd.DataFrame | None = None,
     source: dict[str, Any] | None = None,
     paper_defaults: dict[str, Any] | None = None,
     schema: dict[str, Any] | None = None,
@@ -56,6 +60,7 @@ def generate_mvp_report(
         importance=importance,
         augmented_performance=augmented_performance,
         module_summary=module_summary,
+        pseudobulk_de=pseudobulk_de,
         figure_dir=figure_path,
         top_n=top_n,
     )
@@ -70,6 +75,9 @@ def generate_mvp_report(
         module_summary=module_summary,
         module_coverage=module_coverage,
         donor_module_features=donor_module_features,
+        pseudobulk_de=pseudobulk_de,
+        pseudobulk_coverage=pseudobulk_coverage,
+        pseudobulk_metadata=pseudobulk_metadata,
         out_md=out_md,
         figure_paths=figure_paths,
         source=source or {},
@@ -103,6 +111,29 @@ def rank_associations(associations: pd.DataFrame, top_n: int = 12) -> pd.DataFra
     frame["beta_per_10_years"] = pd.to_numeric(frame["beta_per_10_years"], errors="coerce")
     frame = frame[np.isfinite(frame["p_value"]) & np.isfinite(frame["fdr"])]
     return frame.sort_values(["fdr", "p_value", "feature"]).head(top_n).reset_index(drop=True)
+
+
+def rank_pseudobulk_de(pseudobulk_de: pd.DataFrame | None, top_n: int = 12) -> pd.DataFrame:
+    """Return the top pseudobulk DE rows by FDR, then p-value."""
+
+    required = {
+        "contrast",
+        "fine_cell_type",
+        "gene",
+        "n_case",
+        "n_control",
+        "log2fc",
+        "p_value",
+        "fdr",
+        "status",
+    }
+    if pseudobulk_de is None or pseudobulk_de.empty or not required.issubset(pseudobulk_de.columns):
+        return pd.DataFrame(columns=list(required))
+    frame = pseudobulk_de[pseudobulk_de["status"].eq("ok")].copy()
+    for col in ["n_case", "n_control", "log2fc", "p_value", "fdr"]:
+        frame[col] = pd.to_numeric(frame[col], errors="coerce")
+    frame = frame[np.isfinite(frame["p_value"]) & np.isfinite(frame["fdr"])]
+    return frame.sort_values(["fdr", "p_value", "contrast", "fine_cell_type", "gene"]).head(top_n).reset_index(drop=True)
 
 
 def best_predictive_model(performance: pd.DataFrame) -> pd.Series:
@@ -152,6 +183,9 @@ def render_mvp_markdown(
     module_summary: pd.DataFrame | None,
     module_coverage: pd.DataFrame | None,
     donor_module_features: pd.DataFrame | None,
+    pseudobulk_de: pd.DataFrame | None,
+    pseudobulk_coverage: pd.DataFrame | None,
+    pseudobulk_metadata: pd.DataFrame | None,
     out_md: str | Path,
     figure_paths: dict[str, Path],
     source: dict[str, Any],
@@ -163,6 +197,7 @@ def render_mvp_markdown(
 
     report_path = Path(out_md)
     top_assoc = rank_associations(associations, top_n=top_n)
+    top_pseudobulk = rank_pseudobulk_de(pseudobulk_de, top_n=top_n)
     best_model = best_predictive_model(performance)
     combined_perf = combined_performance(performance, augmented_performance)
     healthy_train = _usable_training_donors(manifest)
@@ -253,6 +288,35 @@ def render_mvp_markdown(
                 "",
             ]
         )
+    if _has_pseudobulk_tables(pseudobulk_de, pseudobulk_coverage, pseudobulk_metadata):
+        lines.extend(
+            [
+                "## Pseudobulk Differential Expression",
+                "",
+                _pseudobulk_summary_sentence(pseudobulk_de, pseudobulk_metadata),
+                "",
+                _markdown_table(
+                    pseudobulk_coverage if pseudobulk_coverage is not None else pd.DataFrame(),
+                    ["module", "n_requested", "n_present", "coverage_fraction", "missing_genes"],
+                    max_rows=20,
+                ),
+                "",
+                _markdown_table(
+                    _pseudobulk_metadata_summary(pseudobulk_metadata),
+                    ["disease_group", "groups", "cells"],
+                    max_rows=10,
+                ),
+                "",
+                _markdown_table(
+                    top_pseudobulk,
+                    ["contrast", "fine_cell_type", "gene", "n_case", "n_control", "log2fc", "p_value", "fdr"],
+                    max_rows=top_n,
+                ),
+                "",
+                _figure_link(report_path, figure_paths.get("pseudobulk_de"), "Top pseudobulk DE hits"),
+                "",
+            ]
+        )
     lines.extend(
         [
         "## Age Associations",
@@ -278,7 +342,8 @@ def render_mvp_markdown(
         "",
         "- The composition baseline and module-augmented ORA models are trained only on healthy donors with valid age.",
         "- Module scores are average log1p expression over curated marker sets, summarized at donor and cell-state levels.",
-        "- Pseudobulk DE, trajectory density, Milo, and cNMF remain deferred commands.",
+        "- Pseudobulk DE is a targeted curated-gene first pass using donor-level logCPM Welch contrasts; treat hits as prioritization until a full covariate-aware model is added.",
+        "- Trajectory density, Milo, cNMF, and genome-wide covariate-aware DE remain deferred commands.",
         "- Chemistry, collection method, site, and yield are treated as covariates or sensitivity variables rather than biological ORA features.",
         "- AD/PD donors are excluded from ORA training and reserved for later frozen-model projection.",
         "",
@@ -296,6 +361,7 @@ def _write_figures(
     importance: pd.DataFrame,
     augmented_performance: pd.DataFrame | None,
     module_summary: pd.DataFrame | None,
+    pseudobulk_de: pd.DataFrame | None,
     figure_dir: Path,
     top_n: int,
 ) -> dict[str, Path]:
@@ -322,6 +388,10 @@ def _write_figures(
         _plot_module_scores(module_summary, paths["module_scores"], plt)
     else:
         paths.pop("module_scores", None)
+    if pseudobulk_de is not None and not pseudobulk_de.empty:
+        _plot_pseudobulk_de(pseudobulk_de, paths["pseudobulk_de"], plt, top_n=top_n)
+    else:
+        paths.pop("pseudobulk_de", None)
     return paths
 
 
@@ -502,6 +572,30 @@ def _plot_module_scores(module_summary: pd.DataFrame, path: Path, plt: Any) -> N
     plt.close(fig)
 
 
+def _plot_pseudobulk_de(pseudobulk_de: pd.DataFrame, path: Path, plt: Any, top_n: int) -> None:
+    top = rank_pseudobulk_de(pseudobulk_de, top_n=top_n)
+    if top.empty:
+        _blank_figure(path, plt, "No pseudobulk DE hits available")
+        return
+    frame = top.copy()
+    frame["fdr"] = pd.to_numeric(frame["fdr"], errors="coerce").clip(lower=np.finfo(float).tiny)
+    frame["log2fc"] = pd.to_numeric(frame["log2fc"], errors="coerce")
+    frame["neg_log10_fdr"] = -np.log10(frame["fdr"])
+    frame = frame.sort_values("neg_log10_fdr")
+    labels = [
+        f"{row.gene} | {str(row.fine_cell_type).replace('_', ' ')} | {str(row.contrast).replace('_', ' ')}"
+        for row in frame.itertuples()
+    ]
+    colors = np.where(frame["log2fc"] >= 0, "#287c8e", "#c2674f")
+    fig, ax = plt.subplots(figsize=(9.5, max(4, 0.34 * len(frame))), constrained_layout=True)
+    ax.barh(labels, frame["neg_log10_fdr"], color=colors)
+    ax.set_xlabel("-log10 FDR")
+    ax.set_title("Top Targeted Pseudobulk DE Hits")
+    ax.spines[["top", "right"]].set_visible(False)
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+
+
 def _top_importance(importance: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
     if importance.empty or not {"model", "feature", "importance"}.issubset(importance.columns):
         return pd.DataFrame(columns=["model", "feature", "importance", "stability"])
@@ -543,6 +637,50 @@ def _has_module_tables(
     donor_module_features: pd.DataFrame | None,
 ) -> bool:
     return any(frame is not None and not frame.empty for frame in [module_summary, module_coverage, donor_module_features])
+
+
+def _has_pseudobulk_tables(
+    pseudobulk_de: pd.DataFrame | None,
+    pseudobulk_coverage: pd.DataFrame | None,
+    pseudobulk_metadata: pd.DataFrame | None,
+) -> bool:
+    return any(frame is not None and not frame.empty for frame in [pseudobulk_de, pseudobulk_coverage, pseudobulk_metadata])
+
+
+def _pseudobulk_summary_sentence(
+    pseudobulk_de: pd.DataFrame | None,
+    pseudobulk_metadata: pd.DataFrame | None,
+) -> str:
+    if pseudobulk_de is None or pseudobulk_de.empty:
+        return "_No pseudobulk DE rows available._"
+    ok = pseudobulk_de[pseudobulk_de["status"].eq("ok")].copy() if "status" in pseudobulk_de else pseudobulk_de.copy()
+    contrasts = _format_int(ok["contrast"].nunique()) if "contrast" in ok else "not recorded"
+    genes = _format_int(ok["gene"].nunique()) if "gene" in ok else "not recorded"
+    states = _format_int(ok["fine_cell_type"].nunique()) if "fine_cell_type" in ok else "not recorded"
+    groups = _format_int(len(pseudobulk_metadata)) if pseudobulk_metadata is not None and not pseudobulk_metadata.empty else "not recorded"
+    cells = (
+        _format_int(pd.to_numeric(pseudobulk_metadata.get("n_cells"), errors="coerce").sum())
+        if pseudobulk_metadata is not None and not pseudobulk_metadata.empty and "n_cells" in pseudobulk_metadata
+        else "not recorded"
+    )
+    return (
+        f"Targeted pseudobulk produced {_format_int(len(ok))} valid tests across {contrasts} contrasts, "
+        f"{states} fine cell states, and {genes} genes. Aggregated groups: {groups}; cells represented: {cells}."
+    )
+
+
+def _pseudobulk_metadata_summary(pseudobulk_metadata: pd.DataFrame | None) -> pd.DataFrame:
+    if pseudobulk_metadata is None or pseudobulk_metadata.empty or "disease_group" not in pseudobulk_metadata:
+        return pd.DataFrame(columns=["disease_group", "groups", "cells"])
+    frame = pseudobulk_metadata.copy()
+    frame["n_cells"] = pd.to_numeric(frame.get("n_cells"), errors="coerce").fillna(0)
+    summary = (
+        frame.groupby("disease_group", observed=True)["n_cells"]
+        .agg(groups="size", cells="sum")
+        .reset_index()
+        .sort_values("cells", ascending=False)
+    )
+    return summary
 
 
 def _blank_figure(path: Path, plt: Any, message: str) -> None:

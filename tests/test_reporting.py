@@ -7,7 +7,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from ora.reporting import generate_mvp_report, rank_associations
+from ora.reporting import generate_mvp_report, rank_associations, rank_pseudobulk_de
 
 
 class ReportingTests(unittest.TestCase):
@@ -25,6 +25,25 @@ class ReportingTests(unittest.TestCase):
         ranked = rank_associations(associations, top_n=3)
 
         self.assertEqual(ranked["feature"].tolist(), ["c", "a", "b"])
+
+    def test_rank_pseudobulk_de_sorts_ok_rows(self):
+        de = pd.DataFrame(
+            {
+                "contrast": ["ad_vs_healthy", "pd_vs_healthy", "ad_vs_healthy", "ad_vs_healthy"],
+                "fine_cell_type": ["qHBC", "mOSN", "qHBC", "qHBC"],
+                "gene": ["TP63", "SNCA", "OMP", "BAD"],
+                "n_case": [5, 5, 5, 1],
+                "n_control": [10, 10, 10, 10],
+                "log2fc": [1.0, -2.0, 0.5, 0.0],
+                "p_value": [0.01, 0.001, 0.02, None],
+                "fdr": [0.03, 0.01, 0.02, None],
+                "status": ["ok", "ok", "ok", "too_few_donors"],
+            }
+        )
+
+        ranked = rank_pseudobulk_de(de, top_n=3)
+
+        self.assertEqual(ranked["gene"].tolist(), ["SNCA", "OMP", "TP63"])
 
     def test_generate_mvp_report_writes_markdown_and_figures(self):
         manifest = pd.DataFrame(
@@ -85,6 +104,44 @@ class ReportingTests(unittest.TestCase):
                 "stability": [1.0, 0.8, 1.0, 1.0],
             }
         )
+        pseudobulk_de = pd.DataFrame(
+            {
+                "contrast": ["ad_vs_healthy", "pd_vs_healthy"],
+                "case_group": ["ad", "pd"],
+                "control_group": ["healthy", "healthy"],
+                "fine_cell_type": ["qHBC", "mOSN"],
+                "gene": ["TP63", "SNCA"],
+                "n_case": [5, 5],
+                "n_control": [4, 4],
+                "mean_logcpm_case": [4.0, 2.0],
+                "mean_logcpm_control": [2.0, 4.0],
+                "log2fc": [2.0, -2.0],
+                "t_stat": [3.0, -3.0],
+                "p_value": [0.01, 0.02],
+                "status": ["ok", "ok"],
+                "fdr": [0.02, 0.03],
+            }
+        )
+        pseudobulk_coverage = pd.DataFrame(
+            {
+                "module": ["targeted_pseudobulk"],
+                "n_requested": [2],
+                "n_present": [2],
+                "coverage_fraction": [1.0],
+                "missing_genes": [""],
+            }
+        )
+        pseudobulk_metadata = pd.DataFrame(
+            {
+                "donor_id": ["d1", "d2"],
+                "sample_id": ["s1", "s2"],
+                "disease_group": ["healthy", "ad"],
+                "coarse_cell_type": ["HBC", "HBC"],
+                "fine_cell_type": ["qHBC", "qHBC"],
+                "n_cells": [100, 80],
+                "sum_n_counts": [1000, 800],
+            }
+        )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             out = Path(tmpdir) / "reports" / "mvp.md"
@@ -96,6 +153,9 @@ class ReportingTests(unittest.TestCase):
                 performance=performance,
                 scores=scores,
                 importance=importance,
+                pseudobulk_de=pseudobulk_de,
+                pseudobulk_coverage=pseudobulk_coverage,
+                pseudobulk_metadata=pseudobulk_metadata,
                 out_md=out,
                 figure_dir=figures,
                 source={"name": "test", "doi": "doi"},
@@ -104,9 +164,13 @@ class ReportingTests(unittest.TestCase):
             )
 
             self.assertTrue(out.exists())
-            self.assertIn("Gateway ORA MVP Report", out.read_text(encoding="utf-8"))
+            report_text = out.read_text(encoding="utf-8")
+            self.assertIn("Gateway ORA MVP Report", report_text)
+            self.assertIn("Pseudobulk Differential Expression", report_text)
+            self.assertIn("ad_vs_healthy", report_text)
             self.assertGreaterEqual(len(written), 6)
             self.assertTrue((figures / "mvp_model_performance.png").exists())
+            self.assertTrue((figures / "mvp_pseudobulk_de.png").exists())
 
 
 if __name__ == "__main__":
