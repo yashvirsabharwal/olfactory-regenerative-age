@@ -8,7 +8,13 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from ora.pseudobulk import aggregate_targeted_pseudobulk_h5ad, run_covariate_pseudobulk_de, run_pseudobulk_de
+from ora import pseudobulk
+from ora.pseudobulk import (
+    aggregate_targeted_pseudobulk_h5ad,
+    export_genomewide_pseudobulk_h5ad,
+    run_covariate_pseudobulk_de,
+    run_pseudobulk_de,
+)
 
 
 def gateway_like_config():
@@ -150,6 +156,65 @@ class PseudobulkTests(unittest.TestCase):
         self.assertTrue(np.isfinite(row["p_value"]))
         self.assertGreater(row["log2fc_adjusted"], 0)
         self.assertIn("age", row["covariates"])
+
+    def test_genomewide_pseudobulk_exports_gene_by_group_matrix_without_dense_fallback(self):
+        try:
+            import anndata as ad
+            from scipy import sparse
+        except ModuleNotFoundError:
+            self.skipTest("anndata/scipy are not installed in this runtime")
+
+        obs = pd.DataFrame(
+            {
+                "donor_id": ["h1", "h1", "a1"],
+                "sample_id": ["s1", "s1", "s2"],
+                "age": [40, 40, 75],
+                "disease": ["healthy", "healthy", "ad"],
+                "coarse_cell_type": ["HBC", "HBC", "HBC"],
+                "fine_cell_type": ["qHBC", "qHBC", "qHBC"],
+                "nCount_RNA": [10, 20, 30],
+            },
+            index=["c1", "c2", "c3"],
+        )
+        var = pd.DataFrame({"feature_name": ["TP63", "OMP", "SNCA"]}, index=["ENSG1", "ENSG2", "ENSG3"])
+        x = sparse.csr_matrix(np.array([[1, 0, 3], [2, 5, 0], [4, 6, 8]], dtype=float))
+
+        original_as_dense = pseudobulk._as_dense
+
+        def fail_dense(_matrix):
+            raise AssertionError("genome-wide CSR export should not densify matrix chunks")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "toy.h5ad"
+            counts_out = Path(tmpdir) / "counts.tsv.gz"
+            metadata_out = Path(tmpdir) / "metadata.tsv"
+            genes_out = Path(tmpdir) / "genes.tsv"
+            ad.AnnData(X=x, obs=obs, var=var).write_h5ad(path)
+            pseudobulk._as_dense = fail_dense
+            try:
+                result = export_genomewide_pseudobulk_h5ad(
+                    path,
+                    gateway_like_config(),
+                    counts_out=counts_out,
+                    metadata_out=metadata_out,
+                    genes_out=genes_out,
+                    chunk_size=2,
+                    gene_chunk_size=2,
+                    min_cells_per_group=1,
+                    min_donors_per_cell_state=1,
+                )
+            finally:
+                pseudobulk._as_dense = original_as_dense
+            counts = pd.read_csv(counts_out, sep="\t")
+            metadata = pd.read_csv(metadata_out, sep="\t")
+            genes = pd.read_csv(genes_out, sep="\t")
+
+        self.assertEqual(result.summary.loc[0, "n_groups_exported"], 2)
+        self.assertEqual(counts["gene_symbol"].tolist(), ["TP63", "OMP", "SNCA"])
+        self.assertEqual(metadata["pseudobulk_id"].tolist(), ["PB000001", "PB000002"])
+        self.assertEqual(genes["gene_id"].tolist(), ["ENSG1", "ENSG2", "ENSG3"])
+        h1_col = metadata.loc[metadata["donor_id"].eq("h1"), "pseudobulk_id"].iloc[0]
+        self.assertEqual(float(counts.loc[counts["gene_symbol"].eq("TP63"), h1_col].iloc[0]), 3.0)
 
 
 if __name__ == "__main__":
