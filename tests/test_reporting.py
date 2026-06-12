@@ -195,6 +195,36 @@ class ReportingTests(unittest.TestCase):
                 "min_donors_per_cell_state": [3],
             }
         )
+        pseudobulk_genomewide_qc_summary = pd.DataFrame(
+            {
+                "n_genes": [6],
+                "n_groups": [2],
+                "metadata_rows": [2],
+                "matrix_columns_match_metadata": [True],
+                "matrix_total_counts": [1000],
+                "metadata_total_counts": [1000],
+                "median_group_detected_genes": [5],
+                "median_gene_detected_group_fraction": [0.8],
+            }
+        )
+        pseudobulk_genomewide_gene_qc = pd.DataFrame(
+            {
+                "gene_symbol": ["BPIFA1", "OMP"],
+                "total_count": [1000, 500],
+                "detected_group_fraction": [1.0, 0.5],
+                "variance_log1p": [8.0, 2.0],
+            }
+        )
+        pseudobulk_genomewide_disease_summary = pd.DataFrame(
+            {
+                "disease_group": ["healthy", "ad"],
+                "groups": [10, 2],
+                "donors": [4, 1],
+                "cells": [3000, 1000],
+                "matrix_total_count": [700, 300],
+                "median_detected_genes": [5, 6],
+            }
+        )
         ndd_projection = pd.DataFrame(
             {
                 "donor_id": ["d1", "d2", "d3", "d4"] * 2,
@@ -237,6 +267,9 @@ class ReportingTests(unittest.TestCase):
                 pseudobulk_metadata=pseudobulk_metadata,
                 pseudobulk_covariate_de=pseudobulk_covariate_de,
                 pseudobulk_genomewide_summary=pseudobulk_genomewide_summary,
+                pseudobulk_genomewide_qc_summary=pseudobulk_genomewide_qc_summary,
+                pseudobulk_genomewide_gene_qc=pseudobulk_genomewide_gene_qc,
+                pseudobulk_genomewide_disease_summary=pseudobulk_genomewide_disease_summary,
                 out_md=out,
                 figure_dir=figures,
                 source={"name": "test", "doi": "doi"},
@@ -251,6 +284,8 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("Pseudobulk Differential Expression", report_text)
             self.assertIn("Covariate-Adjusted Pseudobulk DE", report_text)
             self.assertIn("Genome-Wide Pseudobulk Export", report_text)
+            self.assertIn("BPIFA1", report_text)
+            self.assertIn("Matrix total counts", report_text)
             self.assertIn("ad_vs_healthy", report_text)
             self.assertGreaterEqual(len(written), 6)
             self.assertTrue((figures / "mvp_model_performance.png").exists())

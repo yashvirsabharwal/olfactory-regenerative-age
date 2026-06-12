@@ -49,6 +49,9 @@ def generate_mvp_report(
     pseudobulk_metadata: pd.DataFrame | None = None,
     pseudobulk_covariate_de: pd.DataFrame | None = None,
     pseudobulk_genomewide_summary: pd.DataFrame | None = None,
+    pseudobulk_genomewide_qc_summary: pd.DataFrame | None = None,
+    pseudobulk_genomewide_gene_qc: pd.DataFrame | None = None,
+    pseudobulk_genomewide_disease_summary: pd.DataFrame | None = None,
     source: dict[str, Any] | None = None,
     paper_defaults: dict[str, Any] | None = None,
     schema: dict[str, Any] | None = None,
@@ -90,6 +93,9 @@ def generate_mvp_report(
         pseudobulk_metadata=pseudobulk_metadata,
         pseudobulk_covariate_de=pseudobulk_covariate_de,
         pseudobulk_genomewide_summary=pseudobulk_genomewide_summary,
+        pseudobulk_genomewide_qc_summary=pseudobulk_genomewide_qc_summary,
+        pseudobulk_genomewide_gene_qc=pseudobulk_genomewide_gene_qc,
+        pseudobulk_genomewide_disease_summary=pseudobulk_genomewide_disease_summary,
         out_md=out_md,
         figure_paths=figure_paths,
         source=source or {},
@@ -225,6 +231,9 @@ def render_mvp_markdown(
     pseudobulk_metadata: pd.DataFrame | None,
     pseudobulk_covariate_de: pd.DataFrame | None,
     pseudobulk_genomewide_summary: pd.DataFrame | None,
+    pseudobulk_genomewide_qc_summary: pd.DataFrame | None,
+    pseudobulk_genomewide_gene_qc: pd.DataFrame | None,
+    pseudobulk_genomewide_disease_summary: pd.DataFrame | None,
     out_md: str | Path,
     figure_paths: dict[str, Path],
     source: dict[str, Any],
@@ -414,6 +423,8 @@ def render_mvp_markdown(
                 "",
                 _pseudobulk_genomewide_summary_sentence(pseudobulk_genomewide_summary),
                 "",
+                _pseudobulk_genomewide_qc_sentence(pseudobulk_genomewide_qc_summary),
+                "",
                 _markdown_table(
                     pseudobulk_genomewide_summary,
                     [
@@ -427,6 +438,18 @@ def render_mvp_markdown(
                         "min_donors_per_cell_state",
                     ],
                     max_rows=5,
+                ),
+                "",
+                _markdown_table(
+                    pseudobulk_genomewide_disease_summary if pseudobulk_genomewide_disease_summary is not None else pd.DataFrame(),
+                    ["disease_group", "groups", "donors", "cells", "matrix_total_count", "median_detected_genes"],
+                    max_rows=10,
+                ),
+                "",
+                _markdown_table(
+                    _top_genomewide_variable_genes(pseudobulk_genomewide_gene_qc, top_n=10),
+                    ["gene_symbol", "total_count", "detected_group_fraction", "variance_log1p"],
+                    max_rows=10,
                 ),
                 "",
             ]
@@ -932,6 +955,31 @@ def _pseudobulk_genomewide_summary_sentence(summary: pd.DataFrame | None) -> str
         f"of {_format_int(row.get('n_groups_total'))} donor/sample/cell-state groups for downstream DE after "
         f"minimum cell and donor filters."
     )
+
+
+def _pseudobulk_genomewide_qc_sentence(summary: pd.DataFrame | None) -> str:
+    if summary is None or summary.empty:
+        return "_No genome-wide pseudobulk QC summary available._"
+    row = summary.iloc[0]
+    metadata_total = float(row.get("metadata_total_counts", np.nan))
+    matrix_total = float(row.get("matrix_total_counts", np.nan))
+    ratio = matrix_total / metadata_total if metadata_total else np.nan
+    return (
+        f"QC confirmed matrix/metadata column alignment: {row.get('matrix_columns_match_metadata')}. "
+        f"Median detected genes per pseudobulk group: {_format_int(row.get('median_group_detected_genes'))}; "
+        f"median gene detected-group fraction: {_format_table_value(row.get('median_gene_detected_group_fraction'))}. "
+        f"Matrix total counts / metadata total counts: {_format_table_value(ratio)}."
+    )
+
+
+def _top_genomewide_variable_genes(gene_qc: pd.DataFrame | None, top_n: int) -> pd.DataFrame:
+    columns = ["gene_symbol", "total_count", "detected_group_fraction", "variance_log1p"]
+    if gene_qc is None or gene_qc.empty or not set(columns).issubset(gene_qc.columns):
+        return pd.DataFrame(columns=columns)
+    frame = gene_qc.copy()
+    frame["variance_log1p"] = pd.to_numeric(frame["variance_log1p"], errors="coerce")
+    frame["total_count"] = pd.to_numeric(frame["total_count"], errors="coerce")
+    return frame.sort_values(["variance_log1p", "total_count"], ascending=[False, False]).head(top_n)[columns].reset_index(drop=True)
 
 
 def _pseudobulk_metadata_summary(pseudobulk_metadata: pd.DataFrame | None) -> pd.DataFrame:

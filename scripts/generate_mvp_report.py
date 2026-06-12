@@ -37,6 +37,9 @@ def main() -> None:
     parser.add_argument("--pseudobulk-metadata", default=None)
     parser.add_argument("--pseudobulk-covariate-de", default=None)
     parser.add_argument("--pseudobulk-genomewide-summary", default=None)
+    parser.add_argument("--pseudobulk-genomewide-qc-summary", default=None)
+    parser.add_argument("--pseudobulk-genomewide-gene-qc", default=None)
+    parser.add_argument("--pseudobulk-genomewide-disease-summary", default=None)
     parser.add_argument("--schema", default=None)
     parser.add_argument("--out", default=None)
     parser.add_argument("--figure-dir", default=None)
@@ -76,6 +79,12 @@ def main() -> None:
         or outputs.get("pseudobulk_covariate_de_tsv", "results/tables/pseudobulk_covariate_de.tsv"),
         "pseudobulk_genomewide_summary": args.pseudobulk_genomewide_summary
         or outputs.get("pseudobulk_genomewide_summary_tsv", "results/tables/pseudobulk_genomewide_summary.tsv"),
+        "pseudobulk_genomewide_qc_summary": args.pseudobulk_genomewide_qc_summary
+        or outputs.get("pseudobulk_genomewide_qc_summary_tsv", "results/tables/pseudobulk_genomewide_qc_summary.tsv"),
+        "pseudobulk_genomewide_gene_qc": args.pseudobulk_genomewide_gene_qc
+        or outputs.get("pseudobulk_genomewide_gene_qc_tsv", "results/tables/pseudobulk_genomewide_gene_qc.tsv"),
+        "pseudobulk_genomewide_disease_summary": args.pseudobulk_genomewide_disease_summary
+        or outputs.get("pseudobulk_genomewide_disease_summary_tsv", "results/tables/pseudobulk_genomewide_disease_summary.tsv"),
         "schema": args.schema or outputs.get("schema_json", "results/reports/h5ad_schema.json"),
         "out": args.out or outputs.get("mvp_report_md", "results/reports/mvp_report.md"),
         "figure_dir": args.figure_dir or outputs.get("figure_dir", "results/figures"),
@@ -101,6 +110,9 @@ def main() -> None:
         pseudobulk_metadata=_read_optional_tsv(paths["pseudobulk_metadata"]),
         pseudobulk_covariate_de=_read_optional_tsv(paths["pseudobulk_covariate_de"]),
         pseudobulk_genomewide_summary=_read_optional_tsv(paths["pseudobulk_genomewide_summary"]),
+        pseudobulk_genomewide_qc_summary=_read_optional_tsv(paths["pseudobulk_genomewide_qc_summary"]),
+        pseudobulk_genomewide_gene_qc=_read_optional_tsv(paths["pseudobulk_genomewide_gene_qc"]),
+        pseudobulk_genomewide_disease_summary=_read_optional_tsv(paths["pseudobulk_genomewide_disease_summary"]),
         schema=load_schema(paths["schema"]),
         source=config.get("source", {}),
         paper_defaults=config.get("paper_defaults", {}),
