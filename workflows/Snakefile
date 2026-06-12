@@ -11,6 +11,7 @@ rule all:
         "data/processed/pseudobulk_metadata.tsv",
         "results/tables/ora_model_performance.tsv",
         "results/tables/ora_augmented_model_performance.tsv",
+        "results/tables/ndd_ora_projection_summary.tsv",
         "results/tables/pseudobulk_de.tsv",
         "results/reports/mvp_report.md"
 
@@ -79,6 +80,16 @@ rule model_augmented:
     shell:
         "python scripts/run_age_models.py --features {input[0]} --manifest {input[1]} --config configs/models.yaml --performance-out {output[0]} --scores-out {output[1]} --importance-out {output[2]}"
 
+rule project_ndd:
+    input:
+        "data/processed/ora_augmented_feature_matrix.tsv",
+        "data/processed/cohort_manifest.tsv"
+    output:
+        "results/tables/ndd_ora_projection.tsv",
+        "results/tables/ndd_ora_projection_summary.tsv"
+    shell:
+        "python scripts/project_ndd_ora.py --gateway-config configs/gateway.yaml --model-config configs/models.yaml"
+
 rule modules:
     input:
         "data/raw/gateway.h5ad"
@@ -111,6 +122,8 @@ rule report:
         "results/tables/ora_augmented_model_performance.tsv",
         "results/tables/augmented_donor_ora_scores.tsv",
         "results/tables/ora_augmented_feature_importance.tsv",
+        "results/tables/ndd_ora_projection.tsv",
+        "results/tables/ndd_ora_projection_summary.tsv",
         "results/tables/module_score_summary.tsv",
         "results/tables/module_gene_coverage.tsv",
         "data/processed/donor_module_features.tsv",

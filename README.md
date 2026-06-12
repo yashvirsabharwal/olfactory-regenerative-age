@@ -6,7 +6,7 @@ Primary source: **Gateway: patient olfactory neurons for large-scale discovery i
 
 ## MVP Scope
 
-The initial implementation focuses on memory-safe metadata inspection, healthy-donor cohort definition, cell-state composition features, age associations, composition-only ORA modeling, reporting, chunked average-expression module scoring, and targeted curated-gene pseudobulk DE. Heavier analyses such as exact rank-based UCell scoring, genome-wide covariate-aware pseudobulk differential expression, pseudotime density, Milo, and cNMF remain exposed as explicit deferred commands.
+The initial implementation focuses on memory-safe metadata inspection, healthy-donor cohort definition, cell-state composition features, age associations, composition-only and module-augmented ORA modeling, frozen healthy-trained AD/PD projection, reporting, chunked average-expression module scoring, and targeted curated-gene pseudobulk DE. Heavier analyses such as exact rank-based UCell scoring, genome-wide covariate-aware pseudobulk differential expression, pseudotime density, Milo, and cNMF remain exposed as explicit deferred commands.
 
 ## Quickstart
 
@@ -30,6 +30,7 @@ make model-ora
 make modules
 make features-augmented
 make model-ora-augmented
+make project-ndd
 make pseudobulk
 make report
 ```
@@ -62,6 +63,8 @@ Generated data and analysis outputs are intentionally ignored by Git:
 - `results/tables/ora_augmented_model_performance.tsv`
 - `results/tables/augmented_donor_ora_scores.tsv`
 - `results/tables/ora_augmented_feature_importance.tsv`
+- `results/tables/ndd_ora_projection.tsv`
+- `results/tables/ndd_ora_projection_summary.tsv`
 - `results/tables/module_score_summary.tsv`
 - `results/tables/module_gene_coverage.tsv`
 - `data/processed/pseudobulk_counts.tsv.gz`

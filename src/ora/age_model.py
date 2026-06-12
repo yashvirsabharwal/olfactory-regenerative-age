@@ -20,9 +20,13 @@ TECHNICAL_EXACT = {
     "collection_method",
     "site",
     "sample_id",
+    "has_age",
     "is_healthy",
     "is_ndd",
+    "is_training_donor",
     "usable_for_ora_training",
+    "lineage_cells",
+    "mature_neurons",
 }
 
 
@@ -31,6 +35,12 @@ class ModelResult:
     performance: pd.DataFrame
     predictions: pd.DataFrame
     feature_importance: pd.DataFrame
+
+
+@dataclass
+class ProjectionResult:
+    predictions: pd.DataFrame
+    summary: pd.DataFrame
 
 
 def biological_feature_columns(features: pd.DataFrame, model_config: dict[str, Any] | None = None) -> list[str]:
@@ -64,7 +74,8 @@ def train_ora_models(
         .set_index("donor_id")
     )
     data = features.set_index("donor_id").join(donor_meta, how="inner", rsuffix="_meta").reset_index()
-    train = data[data["usable_for_ora_training"].astype(bool) & data["age"].notna()].copy()
+    train_mask = _boolean_series(data["usable_for_ora_training"]) & data["age"].notna()
+    train = data[train_mask].copy()
     train = train.reset_index(drop=True)
     feature_cols = biological_feature_columns(train, model_config)
     if not feature_cols:
@@ -125,6 +136,56 @@ def train_ora_models(
     perf = pd.DataFrame(performance_rows)
     importance = pd.concat(importances, ignore_index=True) if importances else pd.DataFrame()
     return ModelResult(performance=perf, predictions=pred_table, feature_importance=importance)
+
+
+def project_ora_models(
+    features: pd.DataFrame,
+    manifest: pd.DataFrame,
+    model_config: dict[str, Any] | None = None,
+) -> ProjectionResult:
+    """Train frozen ORA models on healthy donors and project all donors with features."""
+
+    model_config = model_config or {}
+    donor_meta = (
+        manifest.sort_values(["donor_id", "sample_id"])
+        .drop_duplicates("donor_id")
+        .set_index("donor_id")
+    )
+    data = features.set_index("donor_id").join(donor_meta, how="inner", rsuffix="_meta").reset_index()
+    data["is_training_donor"] = _boolean_series(data["usable_for_ora_training"]) & data["age"].notna()
+    train = data[data["is_training_donor"]].copy().reset_index(drop=True)
+    project = data.copy().reset_index(drop=True)
+    if train.shape[0] < 2:
+        raise ValueError("At least two healthy age-known donors are required for frozen ORA projection.")
+
+    feature_cols = biological_feature_columns(train, model_config)
+    if not feature_cols:
+        raise ValueError("No biological numeric feature columns available for ORA projection.")
+    max_missing = float(model_config.get("missingness_max_fraction", 0.30))
+    missing_fraction = train[feature_cols].isna().mean()
+    feature_cols = [col for col in feature_cols if missing_fraction[col] <= max_missing]
+    if not feature_cols:
+        raise ValueError("All feature columns exceeded the missingness threshold.")
+
+    prep = fit_preprocessor(train[feature_cols])
+    x_train = transform_preprocessor(train[feature_cols], prep)
+    x_project = transform_preprocessor(project[feature_cols], prep)
+    y_train = train["age"].astype(float).to_numpy()
+    rows = []
+    for model_name in ["null_model", "elastic_net", "random_forest"]:
+        if model_name == "null_model":
+            pred = np.full(project.shape[0], float(np.mean(y_train)))
+        elif model_name == "elastic_net":
+            pred, _ = _fit_elastic_or_linear(x_train, y_train, x_project, model_config)
+        else:
+            pred, _ = _fit_random_forest_or_linear(x_train, y_train, x_project, model_config)
+        frame = _projection_frame(project, model_name, pred, train.shape[0], len(feature_cols))
+        rows.append(frame)
+
+    predictions = pd.concat(rows, ignore_index=True)
+    predictions = add_frozen_oraa(predictions)
+    summary = summarize_projection(predictions)
+    return ProjectionResult(predictions=predictions, summary=summary)
 
 
 def donor_cv_folds(data: pd.DataFrame, model_config: dict[str, Any] | None = None) -> list[tuple[np.ndarray, np.ndarray]]:
@@ -192,6 +253,62 @@ def add_oraa(predictions: pd.DataFrame, train_meta: pd.DataFrame) -> pd.DataFram
         expected = x @ coef
         output.loc[idx, "oraa"] = y - expected
     return output
+
+
+def add_frozen_oraa(predictions: pd.DataFrame) -> pd.DataFrame:
+    """Residualize projected ORA against age/covariates using healthy training donors only."""
+
+    output = predictions.copy()
+    output["oraa"] = np.nan
+    for model, frame in output.groupby("model", sort=False):
+        idx = frame.index.to_numpy()
+        age = pd.to_numeric(frame.get("chronological_age"), errors="coerce")
+        ora = pd.to_numeric(frame.get("ora"), errors="coerce")
+        train_mask = _boolean_series(frame.get("is_training_donor", pd.Series(False, index=frame.index)))
+        valid_ref = train_mask & age.notna() & ora.notna()
+        if valid_ref.sum() < 2:
+            valid = age.notna() & ora.notna()
+            output.loc[idx[valid.to_numpy()], "oraa"] = ora[valid] - age[valid]
+            continue
+        ref = frame.loc[valid_ref].copy()
+        x_ref, columns = _expected_ora_design(ref)
+        y_ref = pd.to_numeric(ref["ora"], errors="coerce").to_numpy(dtype=float)
+        valid_design = np.isfinite(x_ref).all(axis=1) & np.isfinite(y_ref)
+        if valid_design.sum() <= x_ref.shape[1]:
+            valid = age.notna() & ora.notna()
+            output.loc[idx[valid.to_numpy()], "oraa"] = ora[valid] - age[valid]
+            continue
+        coef, *_ = np.linalg.lstsq(x_ref[valid_design], y_ref[valid_design], rcond=None)
+        x_all, _ = _expected_ora_design(frame, columns=columns)
+        valid_all = age.notna().to_numpy() & ora.notna().to_numpy() & np.isfinite(x_all).all(axis=1)
+        output.loc[idx[valid_all], "oraa"] = ora.to_numpy(dtype=float)[valid_all] - x_all[valid_all] @ coef
+    return output
+
+
+def summarize_projection(predictions: pd.DataFrame) -> pd.DataFrame:
+    """Summarize projected ORA and ORAA by model and disease group."""
+
+    if predictions.empty:
+        return pd.DataFrame()
+    frame = predictions.copy()
+    for col in ["chronological_age", "ora", "oraa"]:
+        frame[col] = pd.to_numeric(frame.get(col), errors="coerce")
+    group_cols = ["model", "disease_group"]
+    summary = (
+        frame.groupby(group_cols, observed=True, dropna=False)
+        .agg(
+            donors=("donor_id", "nunique"),
+            training_donors=("is_training_donor", lambda s: int(_boolean_series(s).sum())),
+            ndd_donors=("is_ndd", lambda s: int(_boolean_series(s).sum())),
+            mean_age=("chronological_age", "mean"),
+            mean_ora=("ora", "mean"),
+            mean_oraa=("oraa", "mean"),
+            sd_oraa=("oraa", lambda s: float(pd.to_numeric(s, errors="coerce").std(ddof=0))),
+        )
+        .reset_index()
+        .sort_values(["model", "disease_group"])
+    )
+    return summary
 
 
 def _fit_elastic_or_linear(
@@ -289,3 +406,78 @@ def _spearman(a: np.ndarray, b: np.ndarray) -> float:
     if np.std(ar) == 0 or np.std(br) == 0:
         return np.nan
     return float(np.corrcoef(ar, br)[0, 1])
+
+
+def _projection_frame(
+    project: pd.DataFrame,
+    model_name: str,
+    pred: np.ndarray,
+    training_n: int,
+    n_features: int,
+) -> pd.DataFrame:
+    meta_cols = [
+        "donor_id",
+        "age",
+        "disease",
+        "disease_group",
+        "sex",
+        "race_ethnicity",
+        "chemistry",
+        "collection_method",
+        "site",
+        "total_cells",
+        "is_healthy",
+        "is_ndd",
+        "usable_for_ora_training",
+        "is_training_donor",
+    ]
+    available = [col for col in meta_cols if col in project.columns]
+    frame = project[available].copy()
+    frame.insert(1, "model", model_name)
+    frame["chronological_age"] = pd.to_numeric(frame.get("age"), errors="coerce")
+    frame["ora"] = pred
+    frame["training_n"] = training_n
+    frame["n_features"] = n_features
+    if "disease_group" not in frame:
+        frame["disease_group"] = "unknown"
+    if "is_ndd" not in frame:
+        frame["is_ndd"] = frame["disease_group"].astype(str).isin(["ad", "pd"])
+    return frame
+
+
+def _expected_ora_design(
+    frame: pd.DataFrame,
+    columns: list[str] | None = None,
+) -> tuple[np.ndarray, list[str]]:
+    pieces = [pd.Series(1.0, index=frame.index, name="intercept")]
+    pieces.append(pd.to_numeric(frame.get("chronological_age"), errors="coerce").rename("chronological_age"))
+    if columns is None:
+        dummy_pieces = []
+        for cov in ["sex", "chemistry", "collection_method", "site"]:
+            if cov in frame and frame[cov].notna().nunique() > 1:
+                dummy_pieces.append(pd.get_dummies(frame[cov].fillna("unknown").astype(str), prefix=cov, drop_first=True, dtype=float))
+        design = pd.concat([*pieces, *dummy_pieces], axis=1)
+        return design.to_numpy(dtype=float), list(design.columns)
+    design = pd.concat(pieces, axis=1)
+    for col in columns:
+        if col in design.columns:
+            continue
+        design[col] = 0.0
+        for cov in ["sex", "chemistry", "collection_method", "site"]:
+            prefix = f"{cov}_"
+            if col.startswith(prefix) and cov in frame:
+                value = col[len(prefix):]
+                design[col] = (frame[cov].fillna("unknown").astype(str) == value).astype(float)
+                break
+    design = design.reindex(columns=columns, fill_value=0.0)
+    return design.to_numpy(dtype=float), columns
+
+
+def _boolean_series(values: Any) -> pd.Series:
+    series = values if isinstance(values, pd.Series) else pd.Series(values)
+    if pd.api.types.is_bool_dtype(series):
+        return series.fillna(False).astype(bool)
+    if pd.api.types.is_numeric_dtype(series):
+        return series.fillna(0).astype(float).ne(0)
+    normalized = series.fillna("").astype(str).str.strip().str.lower()
+    return normalized.isin({"1", "true", "t", "yes", "y"})

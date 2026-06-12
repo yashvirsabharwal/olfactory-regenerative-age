@@ -142,6 +142,30 @@ class ReportingTests(unittest.TestCase):
                 "sum_n_counts": [1000, 800],
             }
         )
+        ndd_projection = pd.DataFrame(
+            {
+                "donor_id": ["d1", "d2", "d3", "d4"] * 2,
+                "model": ["elastic_net"] * 4 + ["random_forest"] * 4,
+                "disease_group": ["healthy", "healthy", "ad", "pd"] * 2,
+                "chronological_age": [40, 50, 70, 75] * 2,
+                "ora": [41, 49, 80, 82, 42, 48, 78, 81],
+                "oraa": [0.1, -0.2, 5.0, 4.0, 0.2, -0.1, 4.5, 3.5],
+                "is_training_donor": [True, True, False, False] * 2,
+            }
+        )
+        ndd_projection_summary = pd.DataFrame(
+            {
+                "model": ["elastic_net", "elastic_net"],
+                "disease_group": ["healthy", "ad"],
+                "donors": [2, 1],
+                "training_donors": [2, 0],
+                "ndd_donors": [0, 1],
+                "mean_age": [45, 70],
+                "mean_ora": [45, 80],
+                "mean_oraa": [0, 5],
+                "sd_oraa": [0.2, 0],
+            }
+        )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             out = Path(tmpdir) / "reports" / "mvp.md"
@@ -153,6 +177,8 @@ class ReportingTests(unittest.TestCase):
                 performance=performance,
                 scores=scores,
                 importance=importance,
+                ndd_projection=ndd_projection,
+                ndd_projection_summary=ndd_projection_summary,
                 pseudobulk_de=pseudobulk_de,
                 pseudobulk_coverage=pseudobulk_coverage,
                 pseudobulk_metadata=pseudobulk_metadata,
@@ -166,10 +192,12 @@ class ReportingTests(unittest.TestCase):
             self.assertTrue(out.exists())
             report_text = out.read_text(encoding="utf-8")
             self.assertIn("Gateway ORA MVP Report", report_text)
+            self.assertIn("NDD ORA Projection", report_text)
             self.assertIn("Pseudobulk Differential Expression", report_text)
             self.assertIn("ad_vs_healthy", report_text)
             self.assertGreaterEqual(len(written), 6)
             self.assertTrue((figures / "mvp_model_performance.png").exists())
+            self.assertTrue((figures / "mvp_ndd_projection.png").exists())
             self.assertTrue((figures / "mvp_pseudobulk_de.png").exists())
 
 

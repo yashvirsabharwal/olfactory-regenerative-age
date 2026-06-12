@@ -19,6 +19,7 @@ FIGURE_NAMES = {
     "associations": "mvp_top_age_associations.png",
     "predictions": "mvp_predicted_vs_age.png",
     "importance": "mvp_feature_importance.png",
+    "ndd_projection": "mvp_ndd_projection.png",
     "module_scores": "mvp_module_scores.png",
     "pseudobulk_de": "mvp_pseudobulk_de.png",
 }
@@ -37,6 +38,8 @@ def generate_mvp_report(
     augmented_performance: pd.DataFrame | None = None,
     augmented_scores: pd.DataFrame | None = None,
     augmented_importance: pd.DataFrame | None = None,
+    ndd_projection: pd.DataFrame | None = None,
+    ndd_projection_summary: pd.DataFrame | None = None,
     module_summary: pd.DataFrame | None = None,
     module_coverage: pd.DataFrame | None = None,
     donor_module_features: pd.DataFrame | None = None,
@@ -59,6 +62,7 @@ def generate_mvp_report(
         scores=scores,
         importance=importance,
         augmented_performance=augmented_performance,
+        ndd_projection=ndd_projection,
         module_summary=module_summary,
         pseudobulk_de=pseudobulk_de,
         figure_dir=figure_path,
@@ -72,6 +76,8 @@ def generate_mvp_report(
         importance=importance,
         augmented_performance=augmented_performance,
         augmented_importance=augmented_importance,
+        ndd_projection=ndd_projection,
+        ndd_projection_summary=ndd_projection_summary,
         module_summary=module_summary,
         module_coverage=module_coverage,
         donor_module_features=donor_module_features,
@@ -180,6 +186,8 @@ def render_mvp_markdown(
     importance: pd.DataFrame,
     augmented_performance: pd.DataFrame | None,
     augmented_importance: pd.DataFrame | None,
+    ndd_projection: pd.DataFrame | None,
+    ndd_projection_summary: pd.DataFrame | None,
     module_summary: pd.DataFrame | None,
     module_coverage: pd.DataFrame | None,
     donor_module_features: pd.DataFrame | None,
@@ -267,6 +275,29 @@ def render_mvp_markdown(
                     "",
                 ]
             )
+    if _has_ndd_projection(ndd_projection, ndd_projection_summary):
+        lines.extend(
+            [
+                "## NDD ORA Projection",
+                "",
+                _ndd_projection_summary_sentence(ndd_projection),
+                "",
+                _markdown_table(
+                    ndd_projection_summary if ndd_projection_summary is not None else pd.DataFrame(),
+                    ["model", "disease_group", "donors", "training_donors", "ndd_donors", "mean_age", "mean_ora", "mean_oraa", "sd_oraa"],
+                    max_rows=30,
+                ),
+                "",
+                _markdown_table(
+                    _top_ndd_projection_rows(ndd_projection, top_n=10),
+                    ["donor_id", "model", "disease_group", "chronological_age", "ora", "oraa"],
+                    max_rows=10,
+                ),
+                "",
+                _figure_link(report_path, figure_paths.get("ndd_projection"), "NDD ORA projection"),
+                "",
+            ]
+        )
     if _has_module_tables(module_summary, module_coverage, donor_module_features):
         lines.extend(
             [
@@ -341,6 +372,7 @@ def render_mvp_markdown(
         "## Interpretation Notes",
         "",
         "- The composition baseline and module-augmented ORA models are trained only on healthy donors with valid age.",
+        "- NDD ORA projections use frozen healthy-trained models; projected AD/PD donors are not included in training or cross-validation.",
         "- Module scores are average log1p expression over curated marker sets, summarized at donor and cell-state levels.",
         "- Pseudobulk DE is a targeted curated-gene first pass using donor-level logCPM Welch contrasts; treat hits as prioritization until a full covariate-aware model is added.",
         "- Trajectory density, Milo, cNMF, and genome-wide covariate-aware DE remain deferred commands.",
@@ -360,6 +392,7 @@ def _write_figures(
     scores: pd.DataFrame,
     importance: pd.DataFrame,
     augmented_performance: pd.DataFrame | None,
+    ndd_projection: pd.DataFrame | None,
     module_summary: pd.DataFrame | None,
     pseudobulk_de: pd.DataFrame | None,
     figure_dir: Path,
@@ -384,6 +417,10 @@ def _write_figures(
     _plot_associations(rank_associations(associations, top_n=top_n), paths["associations"], plt)
     _plot_predictions(scores, paths["predictions"], plt)
     _plot_importance(importance, paths["importance"], plt)
+    if ndd_projection is not None and not ndd_projection.empty:
+        _plot_ndd_projection(ndd_projection, paths["ndd_projection"], plt)
+    else:
+        paths.pop("ndd_projection", None)
     if module_summary is not None and not module_summary.empty:
         _plot_module_scores(module_summary, paths["module_scores"], plt)
     else:
@@ -533,6 +570,52 @@ def _plot_importance(importance: pd.DataFrame, path: Path, plt: Any) -> None:
     plt.close(fig)
 
 
+def _plot_ndd_projection(projection: pd.DataFrame, path: Path, plt: Any) -> None:
+    required = {"model", "disease_group", "oraa"}
+    if projection.empty or not required.issubset(projection.columns):
+        _blank_figure(path, plt, "No NDD projection available")
+        return
+    frame = projection[projection["model"].isin(["elastic_net", "random_forest"])].copy()
+    if frame.empty:
+        frame = projection.copy()
+    frame["oraa"] = pd.to_numeric(frame["oraa"], errors="coerce")
+    frame = frame[frame["oraa"].notna()]
+    if frame.empty:
+        _blank_figure(path, plt, "No NDD projection ORAA available")
+        return
+    order = [group for group in ["healthy", "ad", "pd"] if group in set(frame["disease_group"].astype(str))]
+    if not order:
+        order = sorted(frame["disease_group"].astype(str).unique())
+    models = list(frame["model"].drop_duplicates())
+    fig, axes = plt.subplots(1, len(models), figsize=(4.5 * len(models), 4), squeeze=False, constrained_layout=True)
+    colors = {"healthy": "#4d7fb8", "ad": "#c2674f", "pd": "#7a9f45"}
+    for ax, model in zip(axes.ravel(), models):
+        sub = frame[frame["model"].eq(model)].copy()
+        values = [sub[sub["disease_group"].astype(str).eq(group)]["oraa"].to_numpy(dtype=float) for group in order]
+        positions = np.arange(len(order))
+        for pos, group_values, group in zip(positions, values, order):
+            if group_values.size == 0:
+                continue
+            jitter = np.linspace(-0.08, 0.08, group_values.size) if group_values.size > 1 else np.array([0.0])
+            ax.scatter(
+                np.full(group_values.size, pos) + jitter,
+                group_values,
+                s=24,
+                alpha=0.72,
+                color=colors.get(group, "#666666"),
+                edgecolor="none",
+            )
+            ax.hlines(np.nanmean(group_values), pos - 0.22, pos + 0.22, color="#222222", linewidth=1.1)
+        ax.axhline(0, color="#555555", linewidth=0.8, linestyle="--")
+        ax.set_xticks(positions, [group.upper() if group in {"ad", "pd"} else group for group in order])
+        ax.set_title(str(model).replace("_", " "))
+        ax.set_ylabel("ORA acceleration")
+        ax.spines[["top", "right"]].set_visible(False)
+    fig.suptitle("Frozen Healthy-Trained ORA Projection")
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+
+
 def _plot_module_scores(module_summary: pd.DataFrame, path: Path, plt: Any) -> None:
     required = {"donor_id", "sample_id", "coarse_cell_type", "fine_cell_type", "module", "n_cells", "mean_score"}
     if module_summary.empty or not required.issubset(module_summary.columns):
@@ -637,6 +720,49 @@ def _has_module_tables(
     donor_module_features: pd.DataFrame | None,
 ) -> bool:
     return any(frame is not None and not frame.empty for frame in [module_summary, module_coverage, donor_module_features])
+
+
+def _has_ndd_projection(
+    ndd_projection: pd.DataFrame | None,
+    ndd_projection_summary: pd.DataFrame | None,
+) -> bool:
+    return any(frame is not None and not frame.empty for frame in [ndd_projection, ndd_projection_summary])
+
+
+def _ndd_projection_summary_sentence(ndd_projection: pd.DataFrame | None) -> str:
+    if ndd_projection is None or ndd_projection.empty:
+        return "_No frozen ORA projection rows available._"
+    frame = ndd_projection.copy()
+    n_donors = frame["donor_id"].nunique() if "donor_id" in frame else None
+    n_train = (
+        frame.loc[frame["is_training_donor"].astype(bool), "donor_id"].nunique()
+        if {"donor_id", "is_training_donor"}.issubset(frame.columns)
+        else None
+    )
+    n_ndd = (
+        frame.loc[frame["disease_group"].astype(str).isin(["ad", "pd"]), "donor_id"].nunique()
+        if {"donor_id", "disease_group"}.issubset(frame.columns)
+        else None
+    )
+    return (
+        f"Frozen ORA models were trained on {_format_int(n_train)} healthy age-known donors "
+        f"and projected onto {_format_int(n_donors)} donors total, including {_format_int(n_ndd)} AD/PD donors."
+    )
+
+
+def _top_ndd_projection_rows(ndd_projection: pd.DataFrame | None, top_n: int) -> pd.DataFrame:
+    columns = ["donor_id", "model", "disease_group", "chronological_age", "ora", "oraa"]
+    if ndd_projection is None or ndd_projection.empty or not set(columns).issubset(ndd_projection.columns):
+        return pd.DataFrame(columns=columns)
+    frame = ndd_projection[
+        ndd_projection["disease_group"].astype(str).isin(["ad", "pd"])
+        & ndd_projection["model"].isin(["elastic_net", "random_forest"])
+    ].copy()
+    if frame.empty:
+        return pd.DataFrame(columns=columns)
+    frame["abs_oraa"] = pd.to_numeric(frame["oraa"], errors="coerce").abs()
+    frame = frame[frame["abs_oraa"].notna()]
+    return frame.sort_values(["abs_oraa", "model"], ascending=[False, True]).head(top_n)[columns].reset_index(drop=True)
 
 
 def _has_pseudobulk_tables(

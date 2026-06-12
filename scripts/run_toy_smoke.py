@@ -31,6 +31,8 @@ def main() -> None:
         augmented_performance = tmp / "ora_augmented_performance.tsv"
         augmented_scores = tmp / "augmented_ora_scores.tsv"
         augmented_importance = tmp / "augmented_importance.tsv"
+        ndd_projection = tmp / "ndd_ora_projection.tsv"
+        ndd_projection_summary = tmp / "ndd_ora_projection_summary.tsv"
         module_summary = tmp / "module_score_summary.tsv"
         module_coverage = tmp / "module_gene_coverage.tsv"
         donor_module_features = tmp / "donor_module_features.tsv"
@@ -185,6 +187,21 @@ def main() -> None:
         _run(
             [
                 python,
+                "scripts/project_ndd_ora.py",
+                "--features",
+                str(augmented_matrix),
+                "--manifest",
+                str(manifest),
+                "--scores-out",
+                str(ndd_projection),
+                "--summary-out",
+                str(ndd_projection_summary),
+            ],
+            root,
+        )
+        _run(
+            [
+                python,
                 "scripts/generate_mvp_report.py",
                 "--manifest",
                 str(manifest),
@@ -204,6 +221,10 @@ def main() -> None:
                 str(augmented_scores),
                 "--augmented-importance",
                 str(augmented_importance),
+                "--ndd-projection",
+                str(ndd_projection),
+                "--ndd-projection-summary",
+                str(ndd_projection_summary),
                 "--module-summary",
                 str(module_summary),
                 "--module-coverage",

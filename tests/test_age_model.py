@@ -7,7 +7,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from ora.age_model import biological_feature_columns, donor_cv_folds, train_ora_models
+from ora.age_model import biological_feature_columns, donor_cv_folds, project_ora_models, train_ora_models
 
 
 class AgeModelTests(unittest.TestCase):
@@ -16,6 +16,10 @@ class AgeModelTests(unittest.TestCase):
             {
                 "donor_id": ["d1"],
                 "total_cells": [100],
+                "lineage_cells": [20],
+                "mature_neurons": [5],
+                "has_age": [True],
+                "is_training_donor": [True],
                 "chemistry": ["v2"],
                 "prop__hbc": [0.2],
                 "clr__mosn": [0.1],
@@ -69,6 +73,47 @@ class AgeModelTests(unittest.TestCase):
         self.assertEqual(set(result.performance["model"]), {"null_model", "elastic_net", "random_forest"})
         self.assertEqual(set(result.predictions["donor_id"]), set(donors[:10]))
         self.assertTrue(result.predictions["oraa"].notna().all())
+
+    def test_project_models_scores_ndd_without_training_on_them(self):
+        donors = [f"d{i}" for i in range(14)]
+        ages = np.linspace(35, 82, 14)
+        features = pd.DataFrame(
+            {
+                "donor_id": donors,
+                "prop__young_feature": np.linspace(1, 0, 14),
+                "clr__old_feature": np.linspace(0, 1, 14),
+                "module_score__stress": np.linspace(0.2, 1.2, 14),
+                "total_cells": np.arange(14) + 100,
+            }
+        )
+        manifest = pd.DataFrame(
+            {
+                "donor_id": donors,
+                "sample_id": [f"s{i}" for i in range(14)],
+                "age": ages,
+                "sex": ["F", "M"] * 7,
+                "race_ethnicity": ["reported"] * 14,
+                "disease_group": ["healthy"] * 11 + ["ad", "pd", "healthy"],
+                "disease": ["Healthy"] * 11 + ["AD", "PD", "Healthy"],
+                "chemistry": ["v2"] * 14,
+                "collection_method": ["device"] * 14,
+                "site": ["site1"] * 14,
+                "total_cells": np.arange(14) + 100,
+                "is_ndd": [False] * 11 + [True, True, False],
+                "usable_for_ora_training": [True] * 11 + [False, False, "False"],
+            }
+        )
+
+        result = project_ora_models(features, manifest, {"outer_cv_folds": 5, "random_seed": 1})
+        ndd = result.predictions[result.predictions["disease_group"].isin(["ad", "pd"])]
+        missing_age_healthy = result.predictions[result.predictions["donor_id"].eq("d13")]
+
+        self.assertEqual(set(ndd["donor_id"]), {"d11", "d12"})
+        self.assertFalse(ndd["is_training_donor"].astype(bool).any())
+        self.assertFalse(missing_age_healthy["is_training_donor"].astype(bool).any())
+        self.assertTrue(ndd["ora"].notna().all())
+        self.assertTrue(ndd["oraa"].notna().all())
+        self.assertIn("ad", set(result.summary["disease_group"]))
 
 
 if __name__ == "__main__":
