@@ -6,7 +6,7 @@ Primary source: **Gateway: patient olfactory neurons for large-scale discovery i
 
 ## MVP Scope
 
-The initial implementation focuses on memory-safe metadata inspection, healthy-donor cohort definition, cell-state composition features, age associations, composition-only ORA modeling, reporting, and chunked average-expression module scoring. Heavier analyses such as exact rank-based UCell scoring, pseudobulk differential expression, pseudotime density, Milo, and cNMF remain exposed as explicit deferred commands.
+The initial implementation focuses on memory-safe metadata inspection, healthy-donor cohort definition, cell-state composition features, age associations, composition-only ORA modeling, reporting, chunked average-expression module scoring, and targeted curated-gene pseudobulk DE. Heavier analyses such as exact rank-based UCell scoring, genome-wide covariate-aware pseudobulk differential expression, pseudotime density, Milo, and cNMF remain exposed as explicit deferred commands.
 
 ## Quickstart
 
@@ -30,8 +30,8 @@ make model-ora
 make modules
 make features-augmented
 make model-ora-augmented
-make report
 make pseudobulk
+make report
 ```
 
 If you do not have the real Gateway file yet, run the smoke workflow against a temporary toy H5AD:

@@ -113,7 +113,10 @@ rule report:
         "results/tables/ora_augmented_feature_importance.tsv",
         "results/tables/module_score_summary.tsv",
         "results/tables/module_gene_coverage.tsv",
-        "data/processed/donor_module_features.tsv"
+        "data/processed/donor_module_features.tsv",
+        "data/processed/pseudobulk_metadata.tsv",
+        "results/tables/pseudobulk_gene_coverage.tsv",
+        "results/tables/pseudobulk_de.tsv"
     output:
         "results/reports/mvp_report.md"
     shell:
