@@ -20,7 +20,7 @@ from .modules import (
     resolve_gene_sets,
 )
 from .stats import bh_fdr
-from .utils import normalize_token
+from .utils import ensure_parent, normalize_token
 
 
 DEFAULT_GROUPBY = ("donor_id", "sample_id", "disease_group", "coarse_cell_type", "fine_cell_type")
@@ -34,6 +34,13 @@ class PseudobulkResult:
     metadata: pd.DataFrame
     coverage: pd.DataFrame
     de: pd.DataFrame
+
+
+@dataclass
+class GenomeWidePseudobulkResult:
+    metadata: pd.DataFrame
+    genes: pd.DataFrame
+    summary: pd.DataFrame
 
 
 def genes_from_gene_sets(gene_set_config: dict[str, Any]) -> list[str]:
@@ -123,6 +130,82 @@ def aggregate_targeted_pseudobulk_h5ad(
             min_donors=min_donors,
         )
         return PseudobulkResult(counts=counts_long, metadata=group_meta, coverage=coverage, de=de)
+    finally:
+        close = getattr(adata, "file", None)
+        if close is not None:
+            close.close()
+
+
+def export_genomewide_pseudobulk_h5ad(
+    h5ad_path: str | Path,
+    gateway_config: dict[str, Any],
+    *,
+    counts_out: str | Path,
+    metadata_out: str | Path,
+    genes_out: str | Path,
+    groupby: list[str] | tuple[str, ...] = DEFAULT_GROUPBY,
+    chunk_size: int = 1_000,
+    gene_chunk_size: int = 500,
+    layer: str | None = None,
+    apply_qc: bool = False,
+    min_cells_per_group: int = 10,
+    min_donors_per_cell_state: int = 3,
+    symbol_columns: list[str] | tuple[str, ...] = DEFAULT_SYMBOL_COLUMNS,
+) -> GenomeWidePseudobulkResult:
+    """Export an all-gene pseudobulk count matrix for external R DE workflows."""
+
+    adata = read_h5ad_backed(h5ad_path)
+    try:
+        columns = resolve_columns(list(adata.obs.columns), gateway_config)
+        metadata = build_score_metadata(adata.obs, columns, gateway_config)
+        metadata["n_counts"] = (
+            pd.to_numeric(adata.obs[columns.n_counts], errors="coerce").fillna(0).to_numpy(dtype=float)
+            if columns.n_counts
+            else 0.0
+        )
+        missing = [col for col in groupby if col not in metadata.columns]
+        if missing:
+            raise KeyError(f"Unknown pseudobulk grouping columns: {missing}")
+        qc_mask = build_qc_mask(adata.obs, columns, gateway_config) if apply_qc else np.ones(adata.n_obs, dtype=bool)
+        group_frame = _group_frame(metadata, list(groupby))
+        group_ids, group_meta = _group_ids_and_metadata(group_frame, metadata["n_counts"], list(groupby))
+        group_meta = _annotate_genomewide_groups(group_meta, min_cells_per_group, min_donors_per_cell_state)
+        export_group_idx = group_meta.index[group_meta["include_for_de"]].to_numpy(dtype=np.int64)
+        export_meta = group_meta.loc[export_group_idx].reset_index(drop=True)
+        export_meta.insert(0, "pseudobulk_id", [f"PB{i + 1:06d}" for i in range(export_meta.shape[0])])
+
+        genes = _gene_annotation_table(adata.var, pd.Index(adata.var_names.astype(str)), symbol_columns)
+        export_meta.to_csv(ensure_parent(metadata_out), sep="\t", index=False)
+        genes.to_csv(ensure_parent(genes_out), sep="\t", index=False)
+        _write_genomewide_count_matrix(
+            h5ad_path=Path(h5ad_path),
+            adata=adata,
+            counts_out=counts_out,
+            genes=genes,
+            export_meta=export_meta,
+            export_group_idx=export_group_idx,
+            group_ids=group_ids,
+            qc_mask=qc_mask,
+            chunk_size=chunk_size,
+            gene_chunk_size=gene_chunk_size,
+            layer=layer,
+        )
+        summary = pd.DataFrame(
+            [
+                {
+                    "n_cells": int(adata.n_obs),
+                    "n_genes": int(adata.n_vars),
+                    "n_groups_total": int(group_meta.shape[0]),
+                    "n_groups_exported": int(export_meta.shape[0]),
+                    "n_groups_failed_min_cells": int((~group_meta["passes_min_cells"]).sum()),
+                    "n_groups_failed_min_donors": int((group_meta["passes_min_cells"] & ~group_meta["passes_min_donors_per_state"]).sum()),
+                    "min_cells_per_group": int(min_cells_per_group),
+                    "min_donors_per_cell_state": int(min_donors_per_cell_state),
+                    "apply_qc": bool(apply_qc),
+                }
+            ]
+        )
+        return GenomeWidePseudobulkResult(metadata=export_meta, genes=genes, summary=summary)
     finally:
         close = getattr(adata, "file", None)
         if close is not None:
@@ -440,6 +523,156 @@ def _group_ids_and_metadata(group_frame: pd.DataFrame, n_counts: pd.Series, grou
     sum_n_counts = n_counts.groupby(group_ids).sum().rename("sum_n_counts").reset_index(drop=True)
     meta["sum_n_counts"] = sum_n_counts
     return group_ids, meta
+
+
+def _annotate_genomewide_groups(
+    group_meta: pd.DataFrame,
+    min_cells_per_group: int,
+    min_donors_per_cell_state: int,
+) -> pd.DataFrame:
+    meta = group_meta.copy()
+    meta["passes_min_cells"] = meta["n_cells"].ge(int(min_cells_per_group))
+    donor_counts = (
+        meta.loc[meta["passes_min_cells"]]
+        .groupby(["fine_cell_type", "disease_group"], observed=True, dropna=False)["donor_id"]
+        .nunique()
+        .rename("donors_in_state_group")
+        .reset_index()
+    )
+    meta = meta.merge(donor_counts, on=["fine_cell_type", "disease_group"], how="left")
+    meta["donors_in_state_group"] = meta["donors_in_state_group"].fillna(0).astype(int)
+    meta["passes_min_donors_per_state"] = meta["donors_in_state_group"].ge(int(min_donors_per_cell_state))
+    meta["include_for_de"] = meta["passes_min_cells"] & meta["passes_min_donors_per_state"]
+    return meta
+
+
+def _gene_annotation_table(
+    var: pd.DataFrame,
+    var_names: pd.Index,
+    symbol_columns: list[str] | tuple[str, ...],
+) -> pd.DataFrame:
+    frame = pd.DataFrame({"gene_index": np.arange(len(var_names), dtype=int), "gene_id": var_names.astype(str)})
+    symbol = pd.Series(var_names.astype(str), index=var.index, dtype="string")
+    for col in symbol_columns:
+        if col not in var:
+            continue
+        values = var[col].astype("string")
+        symbol = values.where(values.notna() & values.ne(""), symbol)
+        break
+    frame["gene_symbol"] = symbol.reset_index(drop=True).astype(str)
+    return frame
+
+
+def _write_genomewide_count_matrix(
+    *,
+    h5ad_path: Path,
+    adata: Any,
+    counts_out: str | Path,
+    genes: pd.DataFrame,
+    export_meta: pd.DataFrame,
+    export_group_idx: np.ndarray,
+    group_ids: np.ndarray,
+    qc_mask: np.ndarray,
+    chunk_size: int,
+    gene_chunk_size: int,
+    layer: str | None,
+) -> None:
+    out_path = ensure_parent(counts_out)
+    if layer is None and _h5ad_x_is_csr(h5ad_path):
+        counts = _aggregate_genomewide_csr_counts(
+            h5ad_path=h5ad_path,
+            n_obs=int(adata.n_obs),
+            n_vars=int(adata.n_vars),
+            group_ids=group_ids,
+            qc_mask=qc_mask,
+            chunk_size=chunk_size,
+        )
+        _write_sparse_genomewide_count_matrix(out_path, counts, genes, export_meta, export_group_idx, gene_chunk_size)
+        return
+
+    header_written = False
+    sample_columns = export_meta["pseudobulk_id"].astype(str).tolist()
+    for start in range(0, int(adata.n_vars), int(gene_chunk_size)):
+        stop = min(start + int(gene_chunk_size), int(adata.n_vars))
+        selected_indices = list(range(start, stop))
+        counts = _aggregate_counts(
+            h5ad_path=h5ad_path,
+            adata=adata,
+            selected_indices=selected_indices,
+            group_ids=group_ids,
+            qc_mask=qc_mask,
+            chunk_size=chunk_size,
+            layer=layer,
+        )
+        chunk = genes.iloc[start:stop][["gene_id", "gene_symbol", "gene_index"]].reset_index(drop=True)
+        if export_group_idx.size:
+            count_frame = pd.DataFrame(counts[export_group_idx, :].T, columns=sample_columns)
+            chunk = pd.concat([chunk, count_frame], axis=1)
+        mode = "wt" if not header_written else "at"
+        chunk.to_csv(out_path, sep="\t", index=False, mode=mode, header=not header_written, float_format="%.6g")
+        header_written = True
+
+
+def _aggregate_genomewide_csr_counts(
+    *,
+    h5ad_path: Path,
+    n_obs: int,
+    n_vars: int,
+    group_ids: np.ndarray,
+    qc_mask: np.ndarray,
+    chunk_size: int,
+) -> Any:
+    import h5py
+    from scipy import sparse
+
+    n_groups = int(group_ids.max()) + 1 if group_ids.size else 0
+    counts = sparse.csr_matrix((n_groups, n_vars), dtype=np.float64)
+    with h5py.File(h5ad_path, "r") as handle:
+        x_group = handle["X"]
+        data_ds = x_group["data"]
+        indices_ds = x_group["indices"]
+        indptr_ds = x_group["indptr"]
+        for start in range(0, n_obs, chunk_size):
+            stop = min(start + chunk_size, n_obs)
+            keep = qc_mask[start:stop]
+            if not keep.any():
+                continue
+            indptr = np.asarray(indptr_ds[start : stop + 1], dtype=np.int64)
+            data_start = int(indptr[0])
+            data_stop = int(indptr[-1])
+            local_indptr = indptr - data_start
+            values = np.asarray(data_ds[data_start:data_stop], dtype=np.float64)
+            gene_indices = np.asarray(indices_ds[data_start:data_stop], dtype=np.int64)
+            x = sparse.csr_matrix((values, gene_indices, local_indptr), shape=(stop - start, n_vars))
+            x = x[keep, :]
+            groups = group_ids[start:stop][keep]
+            indicator = sparse.csr_matrix(
+                (np.ones(groups.size, dtype=np.float64), (groups, np.arange(groups.size))),
+                shape=(n_groups, groups.size),
+            )
+            counts = counts + indicator @ x
+    return counts.tocsr()
+
+
+def _write_sparse_genomewide_count_matrix(
+    out_path: Path,
+    counts: Any,
+    genes: pd.DataFrame,
+    export_meta: pd.DataFrame,
+    export_group_idx: np.ndarray,
+    gene_chunk_size: int,
+) -> None:
+    header_written = False
+    sample_columns = export_meta["pseudobulk_id"].astype(str).tolist()
+    for start in range(0, counts.shape[1], int(gene_chunk_size)):
+        stop = min(start + int(gene_chunk_size), counts.shape[1])
+        chunk = genes.iloc[start:stop][["gene_id", "gene_symbol", "gene_index"]].reset_index(drop=True)
+        if export_group_idx.size:
+            count_frame = pd.DataFrame(counts[export_group_idx, start:stop].T.toarray(), columns=sample_columns)
+            chunk = pd.concat([chunk, count_frame], axis=1)
+        mode = "wt" if not header_written else "at"
+        chunk.to_csv(out_path, sep="\t", index=False, mode=mode, header=not header_written, float_format="%.6g")
+        header_written = True
 
 
 def _present_gene_tokens(coverage: pd.DataFrame) -> set[str]:
