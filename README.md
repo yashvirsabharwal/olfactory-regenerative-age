@@ -28,6 +28,8 @@ make features
 make age-associations
 make model-ora
 make modules
+make features-augmented
+make model-ora-augmented
 make report
 ```
 
@@ -50,10 +52,15 @@ Generated data and analysis outputs are intentionally ignored by Git:
 - `data/processed/cohort_manifest.tsv`
 - `data/processed/donor_cell_state_counts.tsv`
 - `data/processed/donor_cell_state_features.tsv`
+- `data/processed/donor_module_features.tsv`
 - `data/processed/ora_feature_matrix.tsv`
+- `data/processed/ora_augmented_feature_matrix.tsv`
 - `results/tables/age_cell_state_associations.tsv`
 - `results/tables/ora_model_performance.tsv`
 - `results/tables/donor_ora_scores.tsv`
+- `results/tables/ora_augmented_model_performance.tsv`
+- `results/tables/augmented_donor_ora_scores.tsv`
+- `results/tables/ora_augmented_feature_importance.tsv`
 - `results/tables/module_score_summary.tsv`
 - `results/tables/module_gene_coverage.tsv`
 - `results/reports/mvp_report.md`

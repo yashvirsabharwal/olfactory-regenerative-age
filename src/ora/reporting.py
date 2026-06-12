@@ -15,9 +15,11 @@ from ora.utils import ensure_parent
 FIGURE_NAMES = {
     "cohort": "mvp_cohort_overview.png",
     "performance": "mvp_model_performance.png",
+    "performance_comparison": "mvp_model_comparison.png",
     "associations": "mvp_top_age_associations.png",
     "predictions": "mvp_predicted_vs_age.png",
     "importance": "mvp_feature_importance.png",
+    "module_scores": "mvp_module_scores.png",
 }
 
 
@@ -31,6 +33,12 @@ def generate_mvp_report(
     importance: pd.DataFrame,
     out_md: str | Path,
     figure_dir: str | Path,
+    augmented_performance: pd.DataFrame | None = None,
+    augmented_scores: pd.DataFrame | None = None,
+    augmented_importance: pd.DataFrame | None = None,
+    module_summary: pd.DataFrame | None = None,
+    module_coverage: pd.DataFrame | None = None,
+    donor_module_features: pd.DataFrame | None = None,
     source: dict[str, Any] | None = None,
     paper_defaults: dict[str, Any] | None = None,
     schema: dict[str, Any] | None = None,
@@ -46,6 +54,8 @@ def generate_mvp_report(
         performance=performance,
         scores=scores,
         importance=importance,
+        augmented_performance=augmented_performance,
+        module_summary=module_summary,
         figure_dir=figure_path,
         top_n=top_n,
     )
@@ -55,6 +65,11 @@ def generate_mvp_report(
         associations=associations,
         performance=performance,
         importance=importance,
+        augmented_performance=augmented_performance,
+        augmented_importance=augmented_importance,
+        module_summary=module_summary,
+        module_coverage=module_coverage,
+        donor_module_features=donor_module_features,
         out_md=out_md,
         figure_paths=figure_paths,
         source=source or {},
@@ -105,6 +120,26 @@ def best_predictive_model(performance: pd.DataFrame) -> pd.Series:
     return candidates.sort_values(["mae", "model"]).iloc[0]
 
 
+def combined_performance(
+    performance: pd.DataFrame,
+    augmented_performance: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Combine baseline and module-augmented performance tables."""
+
+    pieces = []
+    if performance is not None and not performance.empty:
+        base = performance.copy()
+        base.insert(0, "feature_set", "composition")
+        pieces.append(base)
+    if augmented_performance is not None and not augmented_performance.empty:
+        aug = augmented_performance.copy()
+        aug.insert(0, "feature_set", "composition_plus_modules")
+        pieces.append(aug)
+    if not pieces:
+        return pd.DataFrame()
+    return pd.concat(pieces, ignore_index=True)
+
+
 def render_mvp_markdown(
     *,
     manifest: pd.DataFrame,
@@ -112,6 +147,11 @@ def render_mvp_markdown(
     associations: pd.DataFrame,
     performance: pd.DataFrame,
     importance: pd.DataFrame,
+    augmented_performance: pd.DataFrame | None,
+    augmented_importance: pd.DataFrame | None,
+    module_summary: pd.DataFrame | None,
+    module_coverage: pd.DataFrame | None,
+    donor_module_features: pd.DataFrame | None,
     out_md: str | Path,
     figure_paths: dict[str, Path],
     source: dict[str, Any],
@@ -124,6 +164,7 @@ def render_mvp_markdown(
     report_path = Path(out_md)
     top_assoc = rank_associations(associations, top_n=top_n)
     best_model = best_predictive_model(performance)
+    combined_perf = combined_performance(performance, augmented_performance)
     healthy_train = _usable_training_donors(manifest)
     lines = [
         "# Gateway ORA MVP Report",
@@ -160,6 +201,60 @@ def render_mvp_markdown(
         "",
         _figure_link(report_path, figure_paths.get("predictions"), "Predicted age versus chronological age"),
         "",
+    ]
+    if augmented_performance is not None and not augmented_performance.empty:
+        lines.extend(
+            [
+                "## Module-Augmented ORA",
+                "",
+                _augmented_summary_sentence(performance, augmented_performance),
+                "",
+                _markdown_table(
+                    combined_perf,
+                    ["feature_set", "model", "n", "mae", "rmse", "r2", "spearman_r"],
+                    max_rows=20,
+                ),
+                "",
+                _figure_link(report_path, figure_paths.get("performance_comparison"), "ORA model comparison"),
+                "",
+            ]
+        )
+        if augmented_importance is not None and not augmented_importance.empty:
+            lines.extend(
+                [
+                    "### Augmented Feature Importance",
+                    "",
+                    _markdown_table(
+                        _top_importance(augmented_importance, top_n=10),
+                        ["model", "feature", "importance", "stability"],
+                        max_rows=20,
+                    ),
+                    "",
+                ]
+            )
+    if _has_module_tables(module_summary, module_coverage, donor_module_features):
+        lines.extend(
+            [
+                "## Module Scores",
+                "",
+                _markdown_table(
+                    module_coverage if module_coverage is not None else pd.DataFrame(),
+                    ["module", "n_requested", "n_present", "coverage_fraction", "missing_genes"],
+                    max_rows=20,
+                ),
+                "",
+                _markdown_table(
+                    _module_feature_summary(donor_module_features),
+                    ["module", "mean", "sd", "min", "max"],
+                    max_rows=20,
+                ),
+                "",
+                _figure_link(report_path, figure_paths.get("module_scores"), "Module scores by cell state"),
+                "",
+            ]
+        )
+    lines.extend(
+        [
         "## Age Associations",
         "",
         f"- Association tests with status ok: {_format_int(int(associations['status'].eq('ok').sum())) if 'status' in associations else 'not recorded'}",
@@ -181,12 +276,14 @@ def render_mvp_markdown(
         "",
         "## Interpretation Notes",
         "",
-        "- This is a composition-only MVP; gene programs, pseudobulk DE, trajectory density, Milo, and cNMF are deferred commands.",
-        "- ORA training is restricted to healthy donors with valid age.",
+        "- The composition baseline and module-augmented ORA models are trained only on healthy donors with valid age.",
+        "- Module scores are average log1p expression over curated marker sets, summarized at donor and cell-state levels.",
+        "- Pseudobulk DE, trajectory density, Milo, and cNMF remain deferred commands.",
         "- Chemistry, collection method, site, and yield are treated as covariates or sensitivity variables rather than biological ORA features.",
         "- AD/PD donors are excluded from ORA training and reserved for later frozen-model projection.",
         "",
-    ]
+        ]
+    )
     return "\n".join(line for line in lines if line is not None)
 
 
@@ -197,6 +294,8 @@ def _write_figures(
     performance: pd.DataFrame,
     scores: pd.DataFrame,
     importance: pd.DataFrame,
+    augmented_performance: pd.DataFrame | None,
+    module_summary: pd.DataFrame | None,
     figure_dir: Path,
     top_n: int,
 ) -> dict[str, Path]:
@@ -208,9 +307,21 @@ def _write_figures(
     paths = {key: figure_dir / name for key, name in FIGURE_NAMES.items()}
     _plot_cohort(cohort_summary, paths["cohort"], plt)
     _plot_performance(performance, paths["performance"], plt)
+    if augmented_performance is not None and not augmented_performance.empty:
+        _plot_performance_comparison(
+            combined_performance(performance, augmented_performance),
+            paths["performance_comparison"],
+            plt,
+        )
+    else:
+        paths.pop("performance_comparison", None)
     _plot_associations(rank_associations(associations, top_n=top_n), paths["associations"], plt)
     _plot_predictions(scores, paths["predictions"], plt)
     _plot_importance(importance, paths["importance"], plt)
+    if module_summary is not None and not module_summary.empty:
+        _plot_module_scores(module_summary, paths["module_scores"], plt)
+    else:
+        paths.pop("module_scores", None)
     return paths
 
 
@@ -256,6 +367,33 @@ def _plot_performance(performance: pd.DataFrame, path: Path, plt: Any) -> None:
         ax.tick_params(axis="x", rotation=25)
         ax.spines[["top", "right"]].set_visible(False)
     fig.suptitle("ORA Model Performance")
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+
+
+def _plot_performance_comparison(performance: pd.DataFrame, path: Path, plt: Any) -> None:
+    if performance.empty or not {"feature_set", "model", "mae", "spearman_r"}.issubset(performance.columns):
+        _blank_figure(path, plt, "No augmented model performance available")
+        return
+    frame = performance[~performance["model"].eq("null_model")].copy()
+    frame["mae"] = pd.to_numeric(frame["mae"], errors="coerce")
+    frame["spearman_r"] = pd.to_numeric(frame["spearman_r"], errors="coerce")
+    frame = frame.sort_values(["model", "feature_set"])
+    labels = [
+        f"{str(row.model).replace('_', ' ')}\n{str(row.feature_set).replace('_', ' ')}"
+        for row in frame.itertuples()
+    ]
+    fig, axes = plt.subplots(1, 2, figsize=(10.5, 4.2), constrained_layout=True)
+    axes[0].bar(labels, frame["mae"], color="#4d7fb8")
+    axes[0].set_title("MAE")
+    axes[0].set_ylabel("Years")
+    axes[1].bar(labels, frame["spearman_r"], color="#7a9f45")
+    axes[1].set_title("Spearman r")
+    axes[1].axhline(0, color="#555555", linewidth=0.8)
+    for ax in axes:
+        ax.tick_params(axis="x", rotation=25, labelsize=8)
+        ax.spines[["top", "right"]].set_visible(False)
+    fig.suptitle("Composition Versus Module-Augmented ORA")
     fig.savefig(path, dpi=180)
     plt.close(fig)
 
@@ -325,6 +463,45 @@ def _plot_importance(importance: pd.DataFrame, path: Path, plt: Any) -> None:
     plt.close(fig)
 
 
+def _plot_module_scores(module_summary: pd.DataFrame, path: Path, plt: Any) -> None:
+    required = {"donor_id", "sample_id", "coarse_cell_type", "fine_cell_type", "module", "n_cells", "mean_score"}
+    if module_summary.empty or not required.issubset(module_summary.columns):
+        _blank_figure(path, plt, "No module scores available")
+        return
+    work = module_summary.copy()
+    work["n_cells"] = pd.to_numeric(work["n_cells"], errors="coerce").fillna(0)
+    work["mean_score"] = pd.to_numeric(work["mean_score"], errors="coerce").fillna(0)
+    totals = (
+        work.drop_duplicates(["donor_id", "sample_id", "coarse_cell_type", "fine_cell_type"], keep="first")
+        .groupby("fine_cell_type", observed=True)["n_cells"]
+        .sum()
+        .sort_values(ascending=False)
+        .head(18)
+    )
+    top_states = totals.index.tolist()
+    work = work[work["fine_cell_type"].isin(top_states)].copy()
+    work["_weighted"] = work["mean_score"] * work["n_cells"]
+    weighted = (
+        work.groupby(["module", "fine_cell_type"], observed=True)[["_weighted", "n_cells"]]
+        .sum()
+        .reset_index()
+    )
+    weighted["mean_score"] = weighted["_weighted"] / weighted["n_cells"].replace(0, np.nan)
+    pivot = weighted.pivot(index="module", columns="fine_cell_type", values="mean_score").fillna(0)
+    pivot = pivot.reindex(columns=top_states)
+    scaled = pivot.sub(pivot.mean(axis=1), axis=0).div(pivot.std(axis=1).replace(0, 1), axis=0).fillna(0)
+    fig, ax = plt.subplots(figsize=(10.5, 5.8), constrained_layout=True)
+    image = ax.imshow(scaled.to_numpy(), aspect="auto", cmap="RdBu_r", vmin=-2.5, vmax=2.5)
+    ax.set_yticks(range(scaled.shape[0]), [str(item).replace("_", " ") for item in scaled.index], fontsize=8)
+    ax.set_xticks(range(scaled.shape[1]), [str(item).replace("_", " ") for item in scaled.columns], rotation=45, ha="right", fontsize=8)
+    ax.set_title("Module Scores Across Common Cell States")
+    ax.set_xlabel("Fine cell state")
+    ax.set_ylabel("Module")
+    fig.colorbar(image, ax=ax, label="Row-scaled mean score")
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+
+
 def _top_importance(importance: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
     if importance.empty or not {"model", "feature", "importance"}.issubset(importance.columns):
         return pd.DataFrame(columns=["model", "feature", "importance", "stability"])
@@ -339,6 +516,33 @@ def _top_importance(importance: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
     if not pieces:
         return pd.DataFrame(columns=["model", "feature", "importance", "stability"])
     return pd.concat(pieces, ignore_index=True).drop(columns=["abs_importance"], errors="ignore")
+
+
+def _module_feature_summary(donor_module_features: pd.DataFrame | None) -> pd.DataFrame:
+    if donor_module_features is None or donor_module_features.empty:
+        return pd.DataFrame(columns=["module", "mean", "sd", "min", "max"])
+    module_cols = [col for col in donor_module_features.columns if col.startswith("module_score__")]
+    rows = []
+    for col in module_cols:
+        values = pd.to_numeric(donor_module_features[col], errors="coerce")
+        rows.append(
+            {
+                "module": col.replace("module_score__", ""),
+                "mean": values.mean(),
+                "sd": values.std(ddof=0),
+                "min": values.min(),
+                "max": values.max(),
+            }
+        )
+    return pd.DataFrame(rows).sort_values("sd", ascending=False).reset_index(drop=True)
+
+
+def _has_module_tables(
+    module_summary: pd.DataFrame | None,
+    module_coverage: pd.DataFrame | None,
+    donor_module_features: pd.DataFrame | None,
+) -> bool:
+    return any(frame is not None and not frame.empty for frame in [module_summary, module_coverage, donor_module_features])
 
 
 def _blank_figure(path: Path, plt: Any, message: str) -> None:
@@ -392,6 +596,20 @@ def _model_summary_sentence(best_model: pd.Series) -> str:
         f"Best non-null model by MAE: **{best_model.get('model')}** "
         f"(MAE {_format_float(best_model.get('mae'))} years, "
         f"Spearman r {_format_float(best_model.get('spearman_r'))})."
+    )
+
+
+def _augmented_summary_sentence(performance: pd.DataFrame, augmented_performance: pd.DataFrame) -> str:
+    base = best_predictive_model(performance)
+    augmented = best_predictive_model(augmented_performance)
+    if base.empty or augmented.empty:
+        return "_Module-augmented model performance is available, but the baseline comparison is incomplete._"
+    delta = float(augmented.get("mae")) - float(base.get("mae"))
+    direction = "lower" if delta < 0 else "higher" if delta > 0 else "unchanged"
+    return (
+        f"Best module-augmented model by MAE: **{augmented.get('model')}** "
+        f"(MAE {_format_float(augmented.get('mae'))} years, Spearman r {_format_float(augmented.get('spearman_r'))}); "
+        f"this is {_format_float(abs(delta))} years {direction} than the best composition-only model."
     )
 
 

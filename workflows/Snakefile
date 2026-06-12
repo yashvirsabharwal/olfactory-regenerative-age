@@ -6,7 +6,9 @@ rule all:
         "data/processed/donor_cell_state_features.tsv",
         "data/processed/ora_feature_matrix.tsv",
         "data/processed/donor_module_features.tsv",
+        "data/processed/ora_augmented_feature_matrix.tsv",
         "results/tables/ora_model_performance.tsv",
+        "results/tables/ora_augmented_model_performance.tsv",
         "results/reports/mvp_report.md"
 
 rule download:
@@ -45,6 +47,15 @@ rule features:
     shell:
         "python scripts/build_feature_matrix.py --config configs/gateway.yaml"
 
+rule features_augmented:
+    input:
+        "data/processed/donor_cell_state_features.tsv",
+        "data/processed/donor_module_features.tsv"
+    output:
+        "data/processed/ora_augmented_feature_matrix.tsv"
+    shell:
+        "python scripts/build_feature_matrix.py --config configs/gateway.yaml --include-modules"
+
 rule model:
     input:
         "data/processed/ora_feature_matrix.tsv",
@@ -53,6 +64,17 @@ rule model:
         "results/tables/ora_model_performance.tsv"
     shell:
         "python scripts/run_age_models.py --features {input[0]} --manifest {input[1]} --config configs/models.yaml"
+
+rule model_augmented:
+    input:
+        "data/processed/ora_augmented_feature_matrix.tsv",
+        "data/processed/cohort_manifest.tsv"
+    output:
+        "results/tables/ora_augmented_model_performance.tsv",
+        "results/tables/augmented_donor_ora_scores.tsv",
+        "results/tables/ora_augmented_feature_importance.tsv"
+    shell:
+        "python scripts/run_age_models.py --features {input[0]} --manifest {input[1]} --config configs/models.yaml --performance-out {output[0]} --scores-out {output[1]} --importance-out {output[2]}"
 
 rule modules:
     input:
@@ -71,7 +93,13 @@ rule report:
         "results/tables/age_cell_state_associations.tsv",
         "results/tables/ora_model_performance.tsv",
         "results/tables/donor_ora_scores.tsv",
-        "results/tables/ora_feature_importance.tsv"
+        "results/tables/ora_feature_importance.tsv",
+        "results/tables/ora_augmented_model_performance.tsv",
+        "results/tables/augmented_donor_ora_scores.tsv",
+        "results/tables/ora_augmented_feature_importance.tsv",
+        "results/tables/module_score_summary.tsv",
+        "results/tables/module_gene_coverage.tsv",
+        "data/processed/donor_module_features.tsv"
     output:
         "results/reports/mvp_report.md"
     shell:

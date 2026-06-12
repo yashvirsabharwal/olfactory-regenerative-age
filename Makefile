@@ -1,6 +1,6 @@
 PYTHON ?= python3
 
-.PHONY: setup test download-gateway download-info toy-data smoke-toy inspect cohort aggregate features age-associations model-ora report modules trajectory pseudobulk milo cnmf clean
+.PHONY: setup test download-gateway download-info toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-augmented report modules trajectory pseudobulk milo cnmf clean
 
 setup:
 	$(PYTHON) -m pip install -e ".[dev]"
@@ -32,11 +32,17 @@ aggregate:
 features:
 	$(PYTHON) scripts/build_feature_matrix.py --config configs/gateway.yaml
 
+features-augmented:
+	$(PYTHON) scripts/build_feature_matrix.py --config configs/gateway.yaml --include-modules
+
 age-associations:
 	$(PYTHON) scripts/run_age_associations.py --features data/processed/donor_cell_state_features.tsv --manifest data/processed/cohort_manifest.tsv --config configs/gateway.yaml
 
 model-ora:
 	$(PYTHON) scripts/run_age_models.py --features data/processed/ora_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --config configs/models.yaml
+
+model-ora-augmented:
+	$(PYTHON) scripts/run_age_models.py --features data/processed/ora_augmented_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --config configs/models.yaml --performance-out results/tables/ora_augmented_model_performance.tsv --scores-out results/tables/augmented_donor_ora_scores.tsv --importance-out results/tables/ora_augmented_feature_importance.tsv
 
 report:
 	$(PYTHON) scripts/generate_mvp_report.py --config configs/gateway.yaml
