@@ -31,6 +31,7 @@ make modules
 make features-augmented
 make model-ora-augmented
 make report
+make pseudobulk
 ```
 
 If you do not have the real Gateway file yet, run the smoke workflow against a temporary toy H5AD:
@@ -63,6 +64,10 @@ Generated data and analysis outputs are intentionally ignored by Git:
 - `results/tables/ora_augmented_feature_importance.tsv`
 - `results/tables/module_score_summary.tsv`
 - `results/tables/module_gene_coverage.tsv`
+- `data/processed/pseudobulk_counts.tsv.gz`
+- `data/processed/pseudobulk_metadata.tsv`
+- `results/tables/pseudobulk_gene_coverage.tsv`
+- `results/tables/pseudobulk_de.tsv`
 - `results/reports/mvp_report.md`
 - `results/figures/mvp_*.png`
 

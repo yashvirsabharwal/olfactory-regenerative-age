@@ -7,8 +7,11 @@ rule all:
         "data/processed/ora_feature_matrix.tsv",
         "data/processed/donor_module_features.tsv",
         "data/processed/ora_augmented_feature_matrix.tsv",
+        "data/processed/pseudobulk_counts.tsv.gz",
+        "data/processed/pseudobulk_metadata.tsv",
         "results/tables/ora_model_performance.tsv",
         "results/tables/ora_augmented_model_performance.tsv",
+        "results/tables/pseudobulk_de.tsv",
         "results/reports/mvp_report.md"
 
 rule download:
@@ -85,6 +88,17 @@ rule modules:
         "data/processed/donor_module_features.tsv"
     shell:
         "python scripts/score_gene_sets.py --config configs/gateway.yaml --gene-sets configs/gene_sets.yaml"
+
+rule pseudobulk:
+    input:
+        "data/raw/gateway.h5ad"
+    output:
+        "data/processed/pseudobulk_counts.tsv.gz",
+        "data/processed/pseudobulk_metadata.tsv",
+        "results/tables/pseudobulk_gene_coverage.tsv",
+        "results/tables/pseudobulk_de.tsv"
+    shell:
+        "python scripts/aggregate_pseudobulk.py --config configs/gateway.yaml --gene-sets configs/gene_sets.yaml"
 
 rule report:
     input:
