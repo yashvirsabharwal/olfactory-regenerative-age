@@ -35,6 +35,7 @@ def main() -> None:
     parser.add_argument("--pseudobulk-de", default=None)
     parser.add_argument("--pseudobulk-coverage", default=None)
     parser.add_argument("--pseudobulk-metadata", default=None)
+    parser.add_argument("--pseudobulk-covariate-de", default=None)
     parser.add_argument("--schema", default=None)
     parser.add_argument("--out", default=None)
     parser.add_argument("--figure-dir", default=None)
@@ -70,6 +71,8 @@ def main() -> None:
         or outputs.get("pseudobulk_gene_coverage_tsv", "results/tables/pseudobulk_gene_coverage.tsv"),
         "pseudobulk_metadata": args.pseudobulk_metadata
         or outputs.get("pseudobulk_metadata_tsv", "data/processed/pseudobulk_metadata.tsv"),
+        "pseudobulk_covariate_de": args.pseudobulk_covariate_de
+        or outputs.get("pseudobulk_covariate_de_tsv", "results/tables/pseudobulk_covariate_de.tsv"),
         "schema": args.schema or outputs.get("schema_json", "results/reports/h5ad_schema.json"),
         "out": args.out or outputs.get("mvp_report_md", "results/reports/mvp_report.md"),
         "figure_dir": args.figure_dir or outputs.get("figure_dir", "results/figures"),
@@ -93,6 +96,7 @@ def main() -> None:
         pseudobulk_de=_read_optional_tsv(paths["pseudobulk_de"]),
         pseudobulk_coverage=_read_optional_tsv(paths["pseudobulk_coverage"]),
         pseudobulk_metadata=_read_optional_tsv(paths["pseudobulk_metadata"]),
+        pseudobulk_covariate_de=_read_optional_tsv(paths["pseudobulk_covariate_de"]),
         schema=load_schema(paths["schema"]),
         source=config.get("source", {}),
         paper_defaults=config.get("paper_defaults", {}),

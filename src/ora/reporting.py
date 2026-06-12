@@ -22,6 +22,7 @@ FIGURE_NAMES = {
     "ndd_projection": "mvp_ndd_projection.png",
     "module_scores": "mvp_module_scores.png",
     "pseudobulk_de": "mvp_pseudobulk_de.png",
+    "pseudobulk_covariate_de": "mvp_pseudobulk_covariate_de.png",
 }
 
 
@@ -46,6 +47,7 @@ def generate_mvp_report(
     pseudobulk_de: pd.DataFrame | None = None,
     pseudobulk_coverage: pd.DataFrame | None = None,
     pseudobulk_metadata: pd.DataFrame | None = None,
+    pseudobulk_covariate_de: pd.DataFrame | None = None,
     source: dict[str, Any] | None = None,
     paper_defaults: dict[str, Any] | None = None,
     schema: dict[str, Any] | None = None,
@@ -65,6 +67,7 @@ def generate_mvp_report(
         ndd_projection=ndd_projection,
         module_summary=module_summary,
         pseudobulk_de=pseudobulk_de,
+        pseudobulk_covariate_de=pseudobulk_covariate_de,
         figure_dir=figure_path,
         top_n=top_n,
     )
@@ -84,6 +87,7 @@ def generate_mvp_report(
         pseudobulk_de=pseudobulk_de,
         pseudobulk_coverage=pseudobulk_coverage,
         pseudobulk_metadata=pseudobulk_metadata,
+        pseudobulk_covariate_de=pseudobulk_covariate_de,
         out_md=out_md,
         figure_paths=figure_paths,
         source=source or {},
@@ -142,6 +146,29 @@ def rank_pseudobulk_de(pseudobulk_de: pd.DataFrame | None, top_n: int = 12) -> p
     return frame.sort_values(["fdr", "p_value", "contrast", "fine_cell_type", "gene"]).head(top_n).reset_index(drop=True)
 
 
+def rank_pseudobulk_covariate_de(pseudobulk_de: pd.DataFrame | None, top_n: int = 12) -> pd.DataFrame:
+    """Return top covariate-adjusted pseudobulk DE rows by FDR, then p-value."""
+
+    required = {
+        "contrast",
+        "fine_cell_type",
+        "gene",
+        "n_case",
+        "n_control",
+        "log2fc_adjusted",
+        "p_value",
+        "fdr",
+        "status",
+    }
+    if pseudobulk_de is None or pseudobulk_de.empty or not required.issubset(pseudobulk_de.columns):
+        return pd.DataFrame(columns=list(required))
+    frame = pseudobulk_de[pseudobulk_de["status"].eq("ok")].copy()
+    for col in ["n_case", "n_control", "log2fc_adjusted", "p_value", "fdr"]:
+        frame[col] = pd.to_numeric(frame[col], errors="coerce")
+    frame = frame[np.isfinite(frame["p_value"]) & np.isfinite(frame["fdr"])]
+    return frame.sort_values(["fdr", "p_value", "contrast", "fine_cell_type", "gene"]).head(top_n).reset_index(drop=True)
+
+
 def best_predictive_model(performance: pd.DataFrame) -> pd.Series:
     """Return the best non-null model row by MAE, falling back to the overall best row."""
 
@@ -194,6 +221,7 @@ def render_mvp_markdown(
     pseudobulk_de: pd.DataFrame | None,
     pseudobulk_coverage: pd.DataFrame | None,
     pseudobulk_metadata: pd.DataFrame | None,
+    pseudobulk_covariate_de: pd.DataFrame | None,
     out_md: str | Path,
     figure_paths: dict[str, Path],
     source: dict[str, Any],
@@ -206,6 +234,7 @@ def render_mvp_markdown(
     report_path = Path(out_md)
     top_assoc = rank_associations(associations, top_n=top_n)
     top_pseudobulk = rank_pseudobulk_de(pseudobulk_de, top_n=top_n)
+    top_pseudobulk_adjusted = rank_pseudobulk_covariate_de(pseudobulk_covariate_de, top_n=top_n)
     best_model = best_predictive_model(performance)
     combined_perf = combined_performance(performance, augmented_performance)
     healthy_train = _usable_training_donors(manifest)
@@ -348,6 +377,33 @@ def render_mvp_markdown(
                 "",
             ]
         )
+    if pseudobulk_covariate_de is not None and not pseudobulk_covariate_de.empty:
+        lines.extend(
+            [
+                "## Covariate-Adjusted Pseudobulk DE",
+                "",
+                _pseudobulk_adjusted_summary_sentence(pseudobulk_covariate_de),
+                "",
+                _markdown_table(
+                    top_pseudobulk_adjusted,
+                    [
+                        "contrast",
+                        "fine_cell_type",
+                        "gene",
+                        "n_case",
+                        "n_control",
+                        "log2fc_adjusted",
+                        "p_value",
+                        "fdr",
+                        "covariates",
+                    ],
+                    max_rows=top_n,
+                ),
+                "",
+                _figure_link(report_path, figure_paths.get("pseudobulk_covariate_de"), "Top covariate-adjusted pseudobulk DE hits"),
+                "",
+            ]
+        )
     lines.extend(
         [
         "## Age Associations",
@@ -374,8 +430,8 @@ def render_mvp_markdown(
         "- The composition baseline and module-augmented ORA models are trained only on healthy donors with valid age.",
         "- NDD ORA projections use frozen healthy-trained models; projected AD/PD donors are not included in training or cross-validation.",
         "- Module scores are average log1p expression over curated marker sets, summarized at donor and cell-state levels.",
-        "- Pseudobulk DE is a targeted curated-gene first pass using donor-level logCPM Welch contrasts; treat hits as prioritization until a full covariate-aware model is added.",
-        "- Trajectory density, Milo, cNMF, and genome-wide covariate-aware DE remain deferred commands.",
+        "- Pseudobulk DE includes both unadjusted donor-level logCPM Welch contrasts and targeted covariate-adjusted linear models.",
+        "- Trajectory density, Milo, cNMF, and genome-wide DE remain deferred commands.",
         "- Chemistry, collection method, site, and yield are treated as covariates or sensitivity variables rather than biological ORA features.",
         "- AD/PD donors are excluded from ORA training and reserved for later frozen-model projection.",
         "",
@@ -395,6 +451,7 @@ def _write_figures(
     ndd_projection: pd.DataFrame | None,
     module_summary: pd.DataFrame | None,
     pseudobulk_de: pd.DataFrame | None,
+    pseudobulk_covariate_de: pd.DataFrame | None,
     figure_dir: Path,
     top_n: int,
 ) -> dict[str, Path]:
@@ -429,6 +486,10 @@ def _write_figures(
         _plot_pseudobulk_de(pseudobulk_de, paths["pseudobulk_de"], plt, top_n=top_n)
     else:
         paths.pop("pseudobulk_de", None)
+    if pseudobulk_covariate_de is not None and not pseudobulk_covariate_de.empty:
+        _plot_pseudobulk_covariate_de(pseudobulk_covariate_de, paths["pseudobulk_covariate_de"], plt, top_n=top_n)
+    else:
+        paths.pop("pseudobulk_covariate_de", None)
     return paths
 
 
@@ -679,6 +740,30 @@ def _plot_pseudobulk_de(pseudobulk_de: pd.DataFrame, path: Path, plt: Any, top_n
     plt.close(fig)
 
 
+def _plot_pseudobulk_covariate_de(pseudobulk_de: pd.DataFrame, path: Path, plt: Any, top_n: int) -> None:
+    top = rank_pseudobulk_covariate_de(pseudobulk_de, top_n=top_n)
+    if top.empty:
+        _blank_figure(path, plt, "No covariate-adjusted pseudobulk DE hits available")
+        return
+    frame = top.copy()
+    frame["fdr"] = pd.to_numeric(frame["fdr"], errors="coerce").clip(lower=np.finfo(float).tiny)
+    frame["log2fc_adjusted"] = pd.to_numeric(frame["log2fc_adjusted"], errors="coerce")
+    frame["neg_log10_fdr"] = -np.log10(frame["fdr"])
+    frame = frame.sort_values("neg_log10_fdr")
+    labels = [
+        f"{row.gene} | {str(row.fine_cell_type).replace('_', ' ')} | {str(row.contrast).replace('_', ' ')}"
+        for row in frame.itertuples()
+    ]
+    colors = np.where(frame["log2fc_adjusted"] >= 0, "#287c8e", "#c2674f")
+    fig, ax = plt.subplots(figsize=(9.5, max(4, 0.34 * len(frame))), constrained_layout=True)
+    ax.barh(labels, frame["neg_log10_fdr"], color=colors)
+    ax.set_xlabel("-log10 FDR")
+    ax.set_title("Top Covariate-Adjusted Pseudobulk DE Hits")
+    ax.spines[["top", "right"]].set_visible(False)
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+
+
 def _top_importance(importance: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
     if importance.empty or not {"model", "feature", "importance"}.issubset(importance.columns):
         return pd.DataFrame(columns=["model", "feature", "importance", "stability"])
@@ -792,6 +877,20 @@ def _pseudobulk_summary_sentence(
     return (
         f"Targeted pseudobulk produced {_format_int(len(ok))} valid tests across {contrasts} contrasts, "
         f"{states} fine cell states, and {genes} genes. Aggregated groups: {groups}; cells represented: {cells}."
+    )
+
+
+def _pseudobulk_adjusted_summary_sentence(pseudobulk_de: pd.DataFrame | None) -> str:
+    if pseudobulk_de is None or pseudobulk_de.empty:
+        return "_No covariate-adjusted pseudobulk DE rows available._"
+    ok = pseudobulk_de[pseudobulk_de["status"].eq("ok")].copy() if "status" in pseudobulk_de else pseudobulk_de.copy()
+    contrasts = _format_int(ok["contrast"].nunique()) if "contrast" in ok else "not recorded"
+    genes = _format_int(ok["gene"].nunique()) if "gene" in ok else "not recorded"
+    states = _format_int(ok["fine_cell_type"].nunique()) if "fine_cell_type" in ok else "not recorded"
+    covariates = _format_list(sorted({item for value in ok.get("covariates", pd.Series(dtype=str)).dropna().astype(str) for item in value.split(",") if item}))
+    return (
+        f"Covariate-adjusted targeted pseudobulk produced {_format_int(len(ok))} valid tests across "
+        f"{contrasts} contrasts, {states} fine cell states, and {genes} genes. Covariates used where variable: {covariates}."
     )
 
 

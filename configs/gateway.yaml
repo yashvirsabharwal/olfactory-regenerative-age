@@ -192,5 +192,6 @@ outputs:
   pseudobulk_metadata_tsv: "data/processed/pseudobulk_metadata.tsv"
   pseudobulk_gene_coverage_tsv: "results/tables/pseudobulk_gene_coverage.tsv"
   pseudobulk_de_tsv: "results/tables/pseudobulk_de.tsv"
+  pseudobulk_covariate_de_tsv: "results/tables/pseudobulk_covariate_de.tsv"
   mvp_report_md: "results/reports/mvp_report.md"
   figure_dir: "results/figures"

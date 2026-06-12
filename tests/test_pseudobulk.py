@@ -8,7 +8,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from ora.pseudobulk import aggregate_targeted_pseudobulk_h5ad, run_pseudobulk_de
+from ora.pseudobulk import aggregate_targeted_pseudobulk_h5ad, run_covariate_pseudobulk_de, run_pseudobulk_de
 
 
 def gateway_like_config():
@@ -101,6 +101,55 @@ class PseudobulkTests(unittest.TestCase):
         tp63 = de[de["gene"].eq("TP63")].iloc[0]
         self.assertEqual(tp63["status"], "ok")
         self.assertGreater(tp63["log2fc"], 0)
+
+    def test_covariate_pseudobulk_de_reports_adjusted_effect(self):
+        metadata = pd.DataFrame(
+            {
+                "donor_id": ["a1", "a2", "a3", "h1", "h2", "h3"],
+                "sample_id": ["s1", "s2", "s3", "s4", "s5", "s6"],
+                "disease_group": ["ad", "ad", "ad", "healthy", "healthy", "healthy"],
+                "coarse_cell_type": ["HBC"] * 6,
+                "fine_cell_type": ["qHBC"] * 6,
+                "n_cells": [10] * 6,
+                "sum_n_counts": [1000] * 6,
+            }
+        )
+        counts = pd.DataFrame(
+            {
+                "donor_id": ["a1", "a2", "a3", "h1", "h2", "h3"],
+                "sample_id": ["s1", "s2", "s3", "s4", "s5", "s6"],
+                "disease_group": ["ad", "ad", "ad", "healthy", "healthy", "healthy"],
+                "coarse_cell_type": ["HBC"] * 6,
+                "fine_cell_type": ["qHBC"] * 6,
+                "gene": ["TP63"] * 6,
+                "count": [90, 100, 110, 10, 12, 14],
+            }
+        )
+        manifest = pd.DataFrame(
+            {
+                "donor_id": ["a1", "a2", "a3", "h1", "h2", "h3"],
+                "age": [40, 50, 60, 40, 50, 60],
+                "sex": ["F", "M", "F", "F", "M", "F"],
+                "chemistry": ["v2"] * 6,
+                "collection_method": ["device"] * 6,
+            }
+        )
+
+        de = run_covariate_pseudobulk_de(
+            counts,
+            metadata,
+            manifest,
+            genes=["TP63"],
+            contrasts=[("ad", "healthy")],
+            covariates=["age", "sex", "chemistry", "collection_method"],
+            min_donors=3,
+        )
+
+        row = de.iloc[0]
+        self.assertEqual(row["status"], "ok")
+        self.assertTrue(np.isfinite(row["p_value"]))
+        self.assertGreater(row["log2fc_adjusted"], 0)
+        self.assertIn("age", row["covariates"])
 
 
 if __name__ == "__main__":

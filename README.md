@@ -6,7 +6,7 @@ Primary source: **Gateway: patient olfactory neurons for large-scale discovery i
 
 ## MVP Scope
 
-The initial implementation focuses on memory-safe metadata inspection, healthy-donor cohort definition, cell-state composition features, age associations, composition-only and module-augmented ORA modeling, frozen healthy-trained AD/PD projection, reporting, chunked average-expression module scoring, and targeted curated-gene pseudobulk DE. Heavier analyses such as exact rank-based UCell scoring, genome-wide covariate-aware pseudobulk differential expression, pseudotime density, Milo, and cNMF remain exposed as explicit deferred commands.
+The initial implementation focuses on memory-safe metadata inspection, healthy-donor cohort definition, cell-state composition features, age associations, composition-only and module-augmented ORA modeling, frozen healthy-trained AD/PD projection, reporting, chunked average-expression module scoring, targeted curated-gene pseudobulk DE, and donor-level covariate-adjusted pseudobulk DE. Heavier analyses such as exact rank-based UCell scoring, genome-wide pseudobulk differential expression, pseudotime density, Milo, and cNMF remain exposed as explicit deferred commands.
 
 ## Quickstart
 
@@ -32,6 +32,7 @@ make features-augmented
 make model-ora-augmented
 make project-ndd
 make pseudobulk
+make pseudobulk-covariate-de
 make report
 ```
 
@@ -71,6 +72,7 @@ Generated data and analysis outputs are intentionally ignored by Git:
 - `data/processed/pseudobulk_metadata.tsv`
 - `results/tables/pseudobulk_gene_coverage.tsv`
 - `results/tables/pseudobulk_de.tsv`
+- `results/tables/pseudobulk_covariate_de.tsv`
 - `results/reports/mvp_report.md`
 - `results/figures/mvp_*.png`
 
