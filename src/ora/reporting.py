@@ -52,6 +52,8 @@ def generate_mvp_report(
     pseudobulk_genomewide_qc_summary: pd.DataFrame | None = None,
     pseudobulk_genomewide_gene_qc: pd.DataFrame | None = None,
     pseudobulk_genomewide_disease_summary: pd.DataFrame | None = None,
+    ora_sensitivity_scenarios: pd.DataFrame | None = None,
+    ora_sensitivity_performance: pd.DataFrame | None = None,
     source: dict[str, Any] | None = None,
     paper_defaults: dict[str, Any] | None = None,
     schema: dict[str, Any] | None = None,
@@ -96,6 +98,8 @@ def generate_mvp_report(
         pseudobulk_genomewide_qc_summary=pseudobulk_genomewide_qc_summary,
         pseudobulk_genomewide_gene_qc=pseudobulk_genomewide_gene_qc,
         pseudobulk_genomewide_disease_summary=pseudobulk_genomewide_disease_summary,
+        ora_sensitivity_scenarios=ora_sensitivity_scenarios,
+        ora_sensitivity_performance=ora_sensitivity_performance,
         out_md=out_md,
         figure_paths=figure_paths,
         source=source or {},
@@ -234,6 +238,8 @@ def render_mvp_markdown(
     pseudobulk_genomewide_qc_summary: pd.DataFrame | None,
     pseudobulk_genomewide_gene_qc: pd.DataFrame | None,
     pseudobulk_genomewide_disease_summary: pd.DataFrame | None,
+    ora_sensitivity_scenarios: pd.DataFrame | None,
+    ora_sensitivity_performance: pd.DataFrame | None,
     out_md: str | Path,
     figure_paths: dict[str, Path],
     source: dict[str, Any],
@@ -450,6 +456,21 @@ def render_mvp_markdown(
                     _top_genomewide_variable_genes(pseudobulk_genomewide_gene_qc, top_n=10),
                     ["gene_symbol", "total_count", "detected_group_fraction", "variance_log1p"],
                     max_rows=10,
+                ),
+                "",
+            ]
+        )
+    if ora_sensitivity_performance is not None and not ora_sensitivity_performance.empty:
+        lines.extend(
+            [
+                "## ORA Sensitivity",
+                "",
+                _ora_sensitivity_summary_sentence(ora_sensitivity_scenarios, ora_sensitivity_performance),
+                "",
+                _markdown_table(
+                    _top_ora_sensitivity_performance(ora_sensitivity_performance, model="random_forest"),
+                    ["scenario", "model", "n", "mae", "rmse", "r2", "spearman_r", "healthy_train_donors"],
+                    max_rows=20,
                 ),
                 "",
             ]
@@ -980,6 +1001,39 @@ def _top_genomewide_variable_genes(gene_qc: pd.DataFrame | None, top_n: int) -> 
     frame["variance_log1p"] = pd.to_numeric(frame["variance_log1p"], errors="coerce")
     frame["total_count"] = pd.to_numeric(frame["total_count"], errors="coerce")
     return frame.sort_values(["variance_log1p", "total_count"], ascending=[False, False]).head(top_n)[columns].reset_index(drop=True)
+
+
+def _ora_sensitivity_summary_sentence(
+    scenarios: pd.DataFrame | None,
+    performance: pd.DataFrame | None,
+) -> str:
+    if performance is None or performance.empty:
+        return "_No ORA sensitivity performance rows available._"
+    runnable = int(scenarios["status"].eq("ok").sum()) if scenarios is not None and "status" in scenarios else performance["scenario"].nunique()
+    rf = performance[performance["model"].eq("random_forest")].copy() if "model" in performance else performance.copy()
+    if rf.empty:
+        return f"ORA sensitivity generated performance rows for {performance['scenario'].nunique()} scenarios."
+    best = rf.sort_values("mae").iloc[0]
+    worst = rf.sort_values("mae", ascending=False).iloc[0]
+    return (
+        f"ORA sensitivity reran age models across {_format_int(runnable)} runnable strata. "
+        f"Best random-forest MAE was {_format_table_value(best.get('mae'))} in `{best.get('scenario')}`; "
+        f"weakest was {_format_table_value(worst.get('mae'))} in `{worst.get('scenario')}`."
+    )
+
+
+def _top_ora_sensitivity_performance(
+    performance: pd.DataFrame | None,
+    model: str = "random_forest",
+) -> pd.DataFrame:
+    columns = ["scenario", "model", "n", "mae", "rmse", "r2", "spearman_r", "healthy_train_donors"]
+    if performance is None or performance.empty or not set(columns).issubset(performance.columns):
+        return pd.DataFrame(columns=columns)
+    frame = performance[performance["model"].eq(model)].copy()
+    if frame.empty:
+        frame = performance.copy()
+    frame["mae"] = pd.to_numeric(frame["mae"], errors="coerce")
+    return frame.sort_values(["mae", "scenario"]).head(20)[columns].reset_index(drop=True)
 
 
 def _pseudobulk_metadata_summary(pseudobulk_metadata: pd.DataFrame | None) -> pd.DataFrame:

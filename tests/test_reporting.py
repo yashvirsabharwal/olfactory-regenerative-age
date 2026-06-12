@@ -225,6 +225,24 @@ class ReportingTests(unittest.TestCase):
                 "median_detected_genes": [5, 6],
             }
         )
+        ora_sensitivity_scenarios = pd.DataFrame(
+            {
+                "scenario": ["baseline", "collection_method__brush"],
+                "status": ["ok", "ok"],
+            }
+        )
+        ora_sensitivity_performance = pd.DataFrame(
+            {
+                "scenario": ["baseline", "collection_method__brush"],
+                "model": ["random_forest", "random_forest"],
+                "n": [4, 4],
+                "mae": [9.0, 12.0],
+                "rmse": [11.0, 14.0],
+                "r2": [0.1, -0.1],
+                "spearman_r": [0.6, 0.2],
+                "healthy_train_donors": [4, 4],
+            }
+        )
         ndd_projection = pd.DataFrame(
             {
                 "donor_id": ["d1", "d2", "d3", "d4"] * 2,
@@ -270,6 +288,8 @@ class ReportingTests(unittest.TestCase):
                 pseudobulk_genomewide_qc_summary=pseudobulk_genomewide_qc_summary,
                 pseudobulk_genomewide_gene_qc=pseudobulk_genomewide_gene_qc,
                 pseudobulk_genomewide_disease_summary=pseudobulk_genomewide_disease_summary,
+                ora_sensitivity_scenarios=ora_sensitivity_scenarios,
+                ora_sensitivity_performance=ora_sensitivity_performance,
                 out_md=out,
                 figure_dir=figures,
                 source={"name": "test", "doi": "doi"},
@@ -286,6 +306,8 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("Genome-Wide Pseudobulk Export", report_text)
             self.assertIn("BPIFA1", report_text)
             self.assertIn("Matrix total counts", report_text)
+            self.assertIn("ORA Sensitivity", report_text)
+            self.assertIn("collection_method__brush", report_text)
             self.assertIn("ad_vs_healthy", report_text)
             self.assertGreaterEqual(len(written), 6)
             self.assertTrue((figures / "mvp_model_performance.png").exists())

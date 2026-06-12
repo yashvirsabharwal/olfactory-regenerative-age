@@ -202,5 +202,8 @@ outputs:
   pseudobulk_genomewide_group_qc_tsv: "results/tables/pseudobulk_genomewide_group_qc.tsv"
   pseudobulk_genomewide_disease_summary_tsv: "results/tables/pseudobulk_genomewide_disease_summary.tsv"
   pseudobulk_genomewide_cell_state_summary_tsv: "results/tables/pseudobulk_genomewide_cell_state_summary.tsv"
+  ora_sensitivity_scenarios_tsv: "results/tables/ora_sensitivity_scenarios.tsv"
+  ora_sensitivity_performance_tsv: "results/tables/ora_sensitivity_performance.tsv"
+  ora_sensitivity_scores_tsv: "results/tables/ora_sensitivity_scores.tsv"
   mvp_report_md: "results/reports/mvp_report.md"
   figure_dir: "results/figures"

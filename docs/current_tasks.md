@@ -48,12 +48,12 @@ This is the working task board for the olfactory-regenerative-age project. Check
 
 ## Phase 3: Sensitivity Analyses
 
-- [ ] Re-run ORA by FLEX chemistry version.
-- [ ] Re-run ORA by collection method, especially brush vs Gateway device.
+- [x] Re-run ORA by FLEX chemistry version.
+- [x] Re-run ORA by collection method, especially brush vs Gateway device.
 - [ ] Re-run targeted and adjusted DE by chemistry and collection method strata where sample size allows.
-- [ ] Add minimum cell-count threshold sweeps for donor/cell-state features.
-- [ ] Exclude low-cell donors and low-cell cell states in sensitivity runs.
-- [ ] Add healthy-only subcohort checks.
+- [x] Add minimum cell-count threshold sweeps for donor/cell-state features.
+- [x] Exclude low-cell donors and low-cell cell states in sensitivity runs.
+- [x] Add healthy-only subcohort checks.
 - [ ] Add bootstrap or leave-site/leave-chemistry-out sensitivity summaries.
 - [ ] Add sensitivity tables and plots to the report.
 
@@ -110,3 +110,4 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - 2026-06-12: Added external validation registry, donor-level feature contract, published gene-list coverage command, and tests. Initial curated gene lists resolve 36/36 genes in Gateway; external datasets remain file-pending.
 - 2026-06-12: Added genome-wide pseudobulk export CLI with gene chunking, sparse CSR aggregation, R DE hook templates, minimum group filters, and toy AnnData smoke coverage. Full Gateway export completed: 4,028,275 cells, 18,127 genes, 15,193 total groups, and 6,509 DE-ready groups. Local R-side DE remains pending because `Rscript` is not installed in this environment.
 - 2026-06-12: Added genome-wide pseudobulk QC summaries. The real export has matching matrix/metadata IDs, 12,358 median detected genes per pseudobulk group, 0.8037 median gene detection fraction across groups, and 0.9994 matrix-to-metadata total-count ratio.
+- 2026-06-12: Added ORA sensitivity reruns for chemistry, collection method, healthy-only, and minimum-cell thresholds. Ten scenarios ran successfully; random forest MAE was best in FLEX v2 donors (8.89, n=27) and weakest in brush-only donors (17.34, n=94), indicating collection method/chemistry sensitivity needs careful interpretation.

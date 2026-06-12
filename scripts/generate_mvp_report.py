@@ -40,6 +40,8 @@ def main() -> None:
     parser.add_argument("--pseudobulk-genomewide-qc-summary", default=None)
     parser.add_argument("--pseudobulk-genomewide-gene-qc", default=None)
     parser.add_argument("--pseudobulk-genomewide-disease-summary", default=None)
+    parser.add_argument("--ora-sensitivity-scenarios", default=None)
+    parser.add_argument("--ora-sensitivity-performance", default=None)
     parser.add_argument("--schema", default=None)
     parser.add_argument("--out", default=None)
     parser.add_argument("--figure-dir", default=None)
@@ -85,6 +87,10 @@ def main() -> None:
         or outputs.get("pseudobulk_genomewide_gene_qc_tsv", "results/tables/pseudobulk_genomewide_gene_qc.tsv"),
         "pseudobulk_genomewide_disease_summary": args.pseudobulk_genomewide_disease_summary
         or outputs.get("pseudobulk_genomewide_disease_summary_tsv", "results/tables/pseudobulk_genomewide_disease_summary.tsv"),
+        "ora_sensitivity_scenarios": args.ora_sensitivity_scenarios
+        or outputs.get("ora_sensitivity_scenarios_tsv", "results/tables/ora_sensitivity_scenarios.tsv"),
+        "ora_sensitivity_performance": args.ora_sensitivity_performance
+        or outputs.get("ora_sensitivity_performance_tsv", "results/tables/ora_sensitivity_performance.tsv"),
         "schema": args.schema or outputs.get("schema_json", "results/reports/h5ad_schema.json"),
         "out": args.out or outputs.get("mvp_report_md", "results/reports/mvp_report.md"),
         "figure_dir": args.figure_dir or outputs.get("figure_dir", "results/figures"),
@@ -113,6 +119,8 @@ def main() -> None:
         pseudobulk_genomewide_qc_summary=_read_optional_tsv(paths["pseudobulk_genomewide_qc_summary"]),
         pseudobulk_genomewide_gene_qc=_read_optional_tsv(paths["pseudobulk_genomewide_gene_qc"]),
         pseudobulk_genomewide_disease_summary=_read_optional_tsv(paths["pseudobulk_genomewide_disease_summary"]),
+        ora_sensitivity_scenarios=_read_optional_tsv(paths["ora_sensitivity_scenarios"]),
+        ora_sensitivity_performance=_read_optional_tsv(paths["ora_sensitivity_performance"]),
         schema=load_schema(paths["schema"]),
         source=config.get("source", {}),
         paper_defaults=config.get("paper_defaults", {}),
