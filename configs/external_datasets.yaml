@@ -1,11 +1,100 @@
 datasets:
   durante_2020:
-    use: "lineage marker and trajectory-order validation"
+    title: "Human olfactory mucosa lineage reference"
+    status: "metadata_pending"
+    validation_use: "lineage marker and trajectory-order validation"
+    species: "human"
+    tissue: "olfactory mucosa"
+    disease_context: ["healthy"]
+    expected_level: "single_cell"
     path: null
-  oliva_2022:
-    use: "presbyosmia and aging validation"
-    path: null
-  danniballe_2026:
-    use: "Alzheimer's olfactory biopsy validation"
-    path: null
+    required_files:
+      expression: null
+      metadata: null
+      feature_matrix: null
+    required_columns:
+      donor_id: ["donor_id", "individual", "subject_id"]
+      age: ["age", "age_years"]
+      disease_group: ["disease_group", "condition", "diagnosis"]
+      cell_type: ["cell_type", "fine_cell_type", "annotation"]
+    notes: "Use for lineage/cell-state feature replication once source files are supplied."
 
+  oliva_2022:
+    title: "Presbyosmia / olfactory aging validation"
+    status: "metadata_pending"
+    validation_use: "aging and presbyosmia feature replication"
+    species: "human"
+    tissue: "olfactory epithelium"
+    disease_context: ["aging", "presbyosmia"]
+    expected_level: "single_cell_or_bulk"
+    path: null
+    required_files:
+      expression: null
+      metadata: null
+      feature_matrix: null
+    required_columns:
+      donor_id: ["donor_id", "individual", "subject_id"]
+      age: ["age", "age_years"]
+      disease_group: ["disease_group", "condition", "diagnosis"]
+      cell_type: ["cell_type", "fine_cell_type", "annotation"]
+    notes: "Primary external aging validation target."
+
+  danniballe_2026:
+    title: "Alzheimer's olfactory biopsy validation"
+    status: "metadata_pending"
+    validation_use: "AD olfactory disease projection and DE validation"
+    species: "human"
+    tissue: "olfactory biopsy"
+    disease_context: ["ad", "healthy"]
+    expected_level: "single_cell_or_spatial"
+    path: null
+    required_files:
+      expression: null
+      metadata: null
+      feature_matrix: null
+    required_columns:
+      donor_id: ["donor_id", "individual", "subject_id"]
+      age: ["age", "age_years"]
+      disease_group: ["disease_group", "condition", "diagnosis"]
+      cell_type: ["cell_type", "fine_cell_type", "annotation"]
+    notes: "Primary AD projection validation target once files or tables are available."
+
+published_gene_lists:
+  aging:
+    description: "General cellular aging and senescence markers for external validation."
+    source: "curated_initial"
+    genes: [CDKN1A, CDKN2A, TP53, SERPINE1, MMP3, IL6, CXCL8, LMNB1]
+  olfactory_regeneration:
+    description: "Olfactory epithelial regeneration and neurogenesis markers."
+    source: "curated_initial"
+    genes: [TP63, KRT5, KRT14, SOX2, ASCL1, NEUROG1, NEUROD1, GAP43, DCX, OMP]
+  neurodegeneration_risk:
+    description: "AD/PD-associated genes used for cross-disease validation."
+    source: "curated_initial"
+    genes: [APP, PSEN1, PSEN2, MAPT, APOE, SNCA, LRRK2, PRKN, PINK1, PARK7, GBA1]
+  neuroinflammation:
+    description: "Myeloid/complement inflammatory response genes."
+    source: "curated_initial"
+    genes: [AIF1, C1QA, C1QB, C1QC, TREM2, TYROBP, LST1]
+
+feature_matrix_contract:
+  description: "Minimum donor-level table needed to test ORA feature replication outside Gateway."
+  required_columns:
+    - donor_id
+    - age
+    - disease_group
+  optional_covariates:
+    - sex
+    - chemistry
+    - collection_method
+    - site
+  accepted_feature_prefixes:
+    - "prop__"
+    - "clr__"
+    - "ratio__"
+    - "module_score__"
+
+outputs:
+  validation_summary_tsv: "results/tables/external_validation_summary.tsv"
+  gene_list_coverage_tsv: "results/tables/external_gene_list_coverage.tsv"
+  feature_contract_tsv: "results/tables/external_feature_contract.tsv"
