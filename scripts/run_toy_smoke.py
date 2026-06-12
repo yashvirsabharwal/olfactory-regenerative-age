@@ -23,10 +23,14 @@ def main() -> None:
         counts = tmp / "counts.tsv"
         cell_features = tmp / "cell_features.tsv"
         matrix = tmp / "ora_feature_matrix.tsv"
+        augmented_matrix = tmp / "ora_augmented_feature_matrix.tsv"
         associations = tmp / "age_associations.tsv"
         performance = tmp / "ora_performance.tsv"
         scores = tmp / "ora_scores.tsv"
         importance = tmp / "importance.tsv"
+        augmented_performance = tmp / "ora_augmented_performance.tsv"
+        augmented_scores = tmp / "augmented_ora_scores.tsv"
+        augmented_importance = tmp / "augmented_importance.tsv"
         module_summary = tmp / "module_score_summary.tsv"
         module_coverage = tmp / "module_gene_coverage.tsv"
         donor_module_features = tmp / "donor_module_features.tsv"
@@ -126,6 +130,36 @@ def main() -> None:
         _run(
             [
                 python,
+                "scripts/build_feature_matrix.py",
+                "--features",
+                str(cell_features),
+                "--module-features",
+                str(donor_module_features),
+                "--out",
+                str(augmented_matrix),
+            ],
+            root,
+        )
+        _run(
+            [
+                python,
+                "scripts/run_age_models.py",
+                "--features",
+                str(augmented_matrix),
+                "--manifest",
+                str(manifest),
+                "--performance-out",
+                str(augmented_performance),
+                "--scores-out",
+                str(augmented_scores),
+                "--importance-out",
+                str(augmented_importance),
+            ],
+            root,
+        )
+        _run(
+            [
+                python,
                 "scripts/generate_mvp_report.py",
                 "--manifest",
                 str(manifest),
@@ -139,6 +173,18 @@ def main() -> None:
                 str(scores),
                 "--importance",
                 str(importance),
+                "--augmented-performance",
+                str(augmented_performance),
+                "--augmented-scores",
+                str(augmented_scores),
+                "--augmented-importance",
+                str(augmented_importance),
+                "--module-summary",
+                str(module_summary),
+                "--module-coverage",
+                str(module_coverage),
+                "--donor-module-features",
+                str(donor_module_features),
                 "--schema",
                 str(schema),
                 "--out",
