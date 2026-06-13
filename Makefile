@@ -1,6 +1,6 @@
 PYTHON ?= python3
 
-.PHONY: setup test download-gateway download-info toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-augmented project-ndd report modules external-validation trajectory pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-covariate-de ora-sensitivity milo cnmf clean
+.PHONY: setup test download-gateway download-info toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-repeated model-ora-augmented project-ndd report modules external-validation trajectory pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-covariate-de ora-sensitivity milo cnmf clean
 
 setup:
 	$(PYTHON) -m pip install -e ".[dev]"
@@ -40,6 +40,9 @@ age-associations:
 
 model-ora:
 	$(PYTHON) scripts/run_age_models.py --features data/processed/ora_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --config configs/models.yaml
+
+model-ora-repeated:
+	$(PYTHON) scripts/run_age_models_repeated.py --features data/processed/ora_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --model-config configs/models.yaml --gateway-config configs/gateway.yaml
 
 model-ora-augmented:
 	$(PYTHON) scripts/run_age_models.py --features data/processed/ora_augmented_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --config configs/models.yaml --performance-out results/tables/ora_augmented_model_performance.tsv --scores-out results/tables/augmented_donor_ora_scores.tsv --importance-out results/tables/ora_augmented_feature_importance.tsv

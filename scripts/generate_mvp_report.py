@@ -42,6 +42,8 @@ def main() -> None:
     parser.add_argument("--pseudobulk-genomewide-disease-summary", default=None)
     parser.add_argument("--ora-sensitivity-scenarios", default=None)
     parser.add_argument("--ora-sensitivity-performance", default=None)
+    parser.add_argument("--ora-repeated-cv-summary", default=None)
+    parser.add_argument("--ora-repeated-cv-feature-stability", default=None)
     parser.add_argument("--schema", default=None)
     parser.add_argument("--out", default=None)
     parser.add_argument("--figure-dir", default=None)
@@ -91,6 +93,10 @@ def main() -> None:
         or outputs.get("ora_sensitivity_scenarios_tsv", "results/tables/ora_sensitivity_scenarios.tsv"),
         "ora_sensitivity_performance": args.ora_sensitivity_performance
         or outputs.get("ora_sensitivity_performance_tsv", "results/tables/ora_sensitivity_performance.tsv"),
+        "ora_repeated_cv_summary": args.ora_repeated_cv_summary
+        or outputs.get("ora_repeated_cv_summary_tsv", "results/tables/ora_repeated_cv_summary.tsv"),
+        "ora_repeated_cv_feature_stability": args.ora_repeated_cv_feature_stability
+        or outputs.get("ora_repeated_cv_feature_stability_tsv", "results/tables/ora_repeated_cv_feature_stability.tsv"),
         "schema": args.schema or outputs.get("schema_json", "results/reports/h5ad_schema.json"),
         "out": args.out or outputs.get("mvp_report_md", "results/reports/mvp_report.md"),
         "figure_dir": args.figure_dir or outputs.get("figure_dir", "results/figures"),
@@ -121,6 +127,8 @@ def main() -> None:
         pseudobulk_genomewide_disease_summary=_read_optional_tsv(paths["pseudobulk_genomewide_disease_summary"]),
         ora_sensitivity_scenarios=_read_optional_tsv(paths["ora_sensitivity_scenarios"]),
         ora_sensitivity_performance=_read_optional_tsv(paths["ora_sensitivity_performance"]),
+        ora_repeated_cv_summary=_read_optional_tsv(paths["ora_repeated_cv_summary"]),
+        ora_repeated_cv_feature_stability=_read_optional_tsv(paths["ora_repeated_cv_feature_stability"]),
         schema=load_schema(paths["schema"]),
         source=config.get("source", {}),
         paper_defaults=config.get("paper_defaults", {}),

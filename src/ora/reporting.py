@@ -54,6 +54,8 @@ def generate_mvp_report(
     pseudobulk_genomewide_disease_summary: pd.DataFrame | None = None,
     ora_sensitivity_scenarios: pd.DataFrame | None = None,
     ora_sensitivity_performance: pd.DataFrame | None = None,
+    ora_repeated_cv_summary: pd.DataFrame | None = None,
+    ora_repeated_cv_feature_stability: pd.DataFrame | None = None,
     source: dict[str, Any] | None = None,
     paper_defaults: dict[str, Any] | None = None,
     schema: dict[str, Any] | None = None,
@@ -100,6 +102,8 @@ def generate_mvp_report(
         pseudobulk_genomewide_disease_summary=pseudobulk_genomewide_disease_summary,
         ora_sensitivity_scenarios=ora_sensitivity_scenarios,
         ora_sensitivity_performance=ora_sensitivity_performance,
+        ora_repeated_cv_summary=ora_repeated_cv_summary,
+        ora_repeated_cv_feature_stability=ora_repeated_cv_feature_stability,
         out_md=out_md,
         figure_paths=figure_paths,
         source=source or {},
@@ -240,6 +244,8 @@ def render_mvp_markdown(
     pseudobulk_genomewide_disease_summary: pd.DataFrame | None,
     ora_sensitivity_scenarios: pd.DataFrame | None,
     ora_sensitivity_performance: pd.DataFrame | None,
+    ora_repeated_cv_summary: pd.DataFrame | None,
+    ora_repeated_cv_feature_stability: pd.DataFrame | None,
     out_md: str | Path,
     figure_paths: dict[str, Path],
     source: dict[str, Any],
@@ -322,6 +328,37 @@ def render_mvp_markdown(
                     "",
                 ]
             )
+    if ora_repeated_cv_summary is not None and not ora_repeated_cv_summary.empty:
+        lines.extend(
+            [
+                "## Repeated-CV ORA Stability",
+                "",
+                _ora_repeated_cv_summary_sentence(ora_repeated_cv_summary),
+                "",
+                _markdown_table(
+                    ora_repeated_cv_summary,
+                    [
+                        "model",
+                        "repeats",
+                        "n",
+                        "mae_mean",
+                        "mae_ci_low",
+                        "mae_ci_high",
+                        "spearman_r_mean",
+                        "spearman_r_ci_low",
+                        "spearman_r_ci_high",
+                    ],
+                    max_rows=10,
+                ),
+                "",
+                _markdown_table(
+                    _top_repeated_cv_features(ora_repeated_cv_feature_stability, top_n=10),
+                    ["model", "feature", "mean_importance", "selection_fraction"],
+                    max_rows=10,
+                ),
+                "",
+            ]
+        )
     if _has_ndd_projection(ndd_projection, ndd_projection_summary):
         lines.extend(
             [
@@ -1034,6 +1071,38 @@ def _top_ora_sensitivity_performance(
         frame = performance.copy()
     frame["mae"] = pd.to_numeric(frame["mae"], errors="coerce")
     return frame.sort_values(["mae", "scenario"]).head(20)[columns].reset_index(drop=True)
+
+
+def _ora_repeated_cv_summary_sentence(summary: pd.DataFrame | None) -> str:
+    if summary is None or summary.empty:
+        return "_No repeated-CV ORA summary available._"
+    rf = summary[summary["model"].eq("random_forest")] if "model" in summary else pd.DataFrame()
+    if rf.empty:
+        row = summary.iloc[0]
+    else:
+        row = rf.iloc[0]
+    return (
+        f"Repeated donor-level CV used {_format_int(row.get('repeats'))} repeats. "
+        f"Random-forest MAE mean was {_format_table_value(row.get('mae_mean'))} "
+        f"({_format_table_value(row.get('mae_ci_low'))}-{_format_table_value(row.get('mae_ci_high'))}); "
+        f"Spearman r mean was {_format_table_value(row.get('spearman_r_mean'))} "
+        f"({_format_table_value(row.get('spearman_r_ci_low'))}-{_format_table_value(row.get('spearman_r_ci_high'))})."
+    )
+
+
+def _top_repeated_cv_features(feature_stability: pd.DataFrame | None, top_n: int) -> pd.DataFrame:
+    columns = ["model", "feature", "mean_importance", "selection_fraction"]
+    if feature_stability is None or feature_stability.empty or not set(columns).issubset(feature_stability.columns):
+        return pd.DataFrame(columns=columns)
+    frame = feature_stability.copy()
+    frame["selection_fraction"] = pd.to_numeric(frame["selection_fraction"], errors="coerce")
+    frame["mean_importance"] = pd.to_numeric(frame["mean_importance"], errors="coerce")
+    frame["abs_mean_importance"] = frame["mean_importance"].abs()
+    return (
+        frame.sort_values(["selection_fraction", "abs_mean_importance"], ascending=[False, False])
+        .head(top_n)[columns]
+        .reset_index(drop=True)
+    )
 
 
 def _pseudobulk_metadata_summary(pseudobulk_metadata: pd.DataFrame | None) -> pd.DataFrame:

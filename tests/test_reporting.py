@@ -243,6 +243,27 @@ class ReportingTests(unittest.TestCase):
                 "healthy_train_donors": [4, 4],
             }
         )
+        ora_repeated_cv_summary = pd.DataFrame(
+            {
+                "model": ["random_forest"],
+                "repeats": [2],
+                "n": [4],
+                "mae_mean": [9.5],
+                "mae_ci_low": [9.0],
+                "mae_ci_high": [10.0],
+                "spearman_r_mean": [0.5],
+                "spearman_r_ci_low": [0.4],
+                "spearman_r_ci_high": [0.6],
+            }
+        )
+        ora_repeated_cv_feature_stability = pd.DataFrame(
+            {
+                "model": ["elastic_net"],
+                "feature": ["clr__cdc1"],
+                "mean_importance": [-1.2],
+                "selection_fraction": [1.0],
+            }
+        )
         ndd_projection = pd.DataFrame(
             {
                 "donor_id": ["d1", "d2", "d3", "d4"] * 2,
@@ -290,6 +311,8 @@ class ReportingTests(unittest.TestCase):
                 pseudobulk_genomewide_disease_summary=pseudobulk_genomewide_disease_summary,
                 ora_sensitivity_scenarios=ora_sensitivity_scenarios,
                 ora_sensitivity_performance=ora_sensitivity_performance,
+                ora_repeated_cv_summary=ora_repeated_cv_summary,
+                ora_repeated_cv_feature_stability=ora_repeated_cv_feature_stability,
                 out_md=out,
                 figure_dir=figures,
                 source={"name": "test", "doi": "doi"},
@@ -308,6 +331,8 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("Matrix total counts", report_text)
             self.assertIn("ORA Sensitivity", report_text)
             self.assertIn("collection_method__brush", report_text)
+            self.assertIn("Repeated-CV ORA Stability", report_text)
+            self.assertIn("clr__cdc1", report_text)
             self.assertIn("ad_vs_healthy", report_text)
             self.assertGreaterEqual(len(written), 6)
             self.assertTrue((figures / "mvp_model_performance.png").exists())

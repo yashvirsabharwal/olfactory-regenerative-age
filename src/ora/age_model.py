@@ -43,6 +43,14 @@ class ProjectionResult:
     summary: pd.DataFrame
 
 
+@dataclass
+class RepeatedModelResult:
+    repeat_performance: pd.DataFrame
+    performance_summary: pd.DataFrame
+    predictions: pd.DataFrame
+    feature_stability: pd.DataFrame
+
+
 def biological_feature_columns(features: pd.DataFrame, model_config: dict[str, Any] | None = None) -> list[str]:
     """Return biological numeric features, excluding technical/yield columns."""
 
@@ -136,6 +144,99 @@ def train_ora_models(
     perf = pd.DataFrame(performance_rows)
     importance = pd.concat(importances, ignore_index=True) if importances else pd.DataFrame()
     return ModelResult(performance=perf, predictions=pred_table, feature_importance=importance)
+
+
+def train_ora_models_repeated(
+    features: pd.DataFrame,
+    manifest: pd.DataFrame,
+    model_config: dict[str, Any] | None = None,
+    *,
+    repeats: int | None = None,
+) -> RepeatedModelResult:
+    """Run repeated donor-level CV and summarize model uncertainty."""
+
+    model_config = dict(model_config or {})
+    repeats = int(repeats or model_config.get("outer_cv_repeats", 1))
+    repeats = max(1, repeats)
+    base_seed = int(model_config.get("random_seed", 42))
+    performance_rows = []
+    prediction_rows = []
+    importance_rows = []
+    for repeat in range(repeats):
+        repeat_config = dict(model_config)
+        repeat_config["random_seed"] = base_seed + repeat
+        result = train_ora_models(features, manifest, repeat_config)
+        perf = result.performance.copy()
+        perf.insert(0, "repeat", repeat)
+        performance_rows.append(perf)
+        preds = result.predictions.copy()
+        preds.insert(0, "repeat", repeat)
+        prediction_rows.append(preds)
+        if not result.feature_importance.empty:
+            imp = result.feature_importance.copy()
+            imp.insert(0, "repeat", repeat)
+            importance_rows.append(imp)
+
+    repeat_performance = pd.concat(performance_rows, ignore_index=True)
+    predictions = pd.concat(prediction_rows, ignore_index=True)
+    feature_importance = pd.concat(importance_rows, ignore_index=True) if importance_rows else pd.DataFrame()
+    return RepeatedModelResult(
+        repeat_performance=repeat_performance,
+        performance_summary=summarize_repeated_performance(repeat_performance),
+        predictions=predictions,
+        feature_stability=summarize_feature_stability(feature_importance),
+    )
+
+
+def summarize_repeated_performance(performance: pd.DataFrame) -> pd.DataFrame:
+    """Summarize repeated-CV metrics with empirical 95% intervals."""
+
+    if performance.empty:
+        return pd.DataFrame()
+    metrics = ["mae", "rmse", "r2", "spearman_r"]
+    rows = []
+    for model, frame in performance.groupby("model", observed=True, sort=False):
+        row: dict[str, object] = {
+            "model": model,
+            "repeats": int(frame["repeat"].nunique()) if "repeat" in frame else 1,
+            "n": int(frame["n"].median()) if "n" in frame else np.nan,
+        }
+        for metric in metrics:
+            values = pd.to_numeric(frame.get(metric), errors="coerce").dropna().to_numpy(dtype=float)
+            if values.size == 0:
+                row[f"{metric}_mean"] = np.nan
+                row[f"{metric}_sd"] = np.nan
+                row[f"{metric}_ci_low"] = np.nan
+                row[f"{metric}_ci_high"] = np.nan
+                continue
+            row[f"{metric}_mean"] = float(np.mean(values))
+            row[f"{metric}_sd"] = float(np.std(values, ddof=1)) if values.size > 1 else 0.0
+            row[f"{metric}_ci_low"] = float(np.quantile(values, 0.025))
+            row[f"{metric}_ci_high"] = float(np.quantile(values, 0.975))
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def summarize_feature_stability(feature_importance: pd.DataFrame) -> pd.DataFrame:
+    """Summarize feature importance stability across repeated CV runs."""
+
+    if feature_importance.empty:
+        return pd.DataFrame()
+    frame = feature_importance.copy()
+    frame["importance"] = pd.to_numeric(frame["importance"], errors="coerce").fillna(0.0)
+    frame["selected"] = frame["importance"].abs().gt(1e-12)
+    summary = (
+        frame.groupby(["model", "feature"], observed=True)
+        .agg(
+            mean_importance=("importance", "mean"),
+            sd_importance=("importance", "std"),
+            selection_fraction=("selected", "mean"),
+            repeats=("repeat", "nunique"),
+        )
+        .reset_index()
+    )
+    summary["abs_mean_importance"] = summary["mean_importance"].abs()
+    return summary.sort_values(["model", "selection_fraction", "abs_mean_importance"], ascending=[True, False, False]).reset_index(drop=True)
 
 
 def project_ora_models(

@@ -1,6 +1,6 @@
 random_seed: 42
 outer_cv_folds: 5
-outer_cv_repeats: 1
+outer_cv_repeats: 10
 inner_cv_folds: 5
 
 age_bins:

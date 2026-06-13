@@ -7,7 +7,13 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from ora.age_model import biological_feature_columns, donor_cv_folds, project_ora_models, train_ora_models
+from ora.age_model import (
+    biological_feature_columns,
+    donor_cv_folds,
+    project_ora_models,
+    train_ora_models,
+    train_ora_models_repeated,
+)
 
 
 class AgeModelTests(unittest.TestCase):
@@ -73,6 +79,44 @@ class AgeModelTests(unittest.TestCase):
         self.assertEqual(set(result.performance["model"]), {"null_model", "elastic_net", "random_forest"})
         self.assertEqual(set(result.predictions["donor_id"]), set(donors[:10]))
         self.assertTrue(result.predictions["oraa"].notna().all())
+
+    def test_repeated_models_return_intervals_and_feature_stability(self):
+        donors = [f"d{i}" for i in range(12)]
+        ages = np.linspace(35, 80, 12)
+        features = pd.DataFrame(
+            {
+                "donor_id": donors,
+                "prop__young_feature": np.linspace(1, 0, 12),
+                "clr__old_feature": np.linspace(0, 1, 12),
+            }
+        )
+        manifest = pd.DataFrame(
+            {
+                "donor_id": donors,
+                "sample_id": [f"s{i}" for i in range(12)],
+                "age": ages,
+                "sex": ["F", "M"] * 6,
+                "race_ethnicity": ["reported"] * 12,
+                "disease_group": ["healthy"] * 12,
+                "chemistry": ["v2"] * 12,
+                "collection_method": ["device"] * 12,
+                "site": ["site1"] * 12,
+                "total_cells": np.arange(12) + 100,
+                "usable_for_ora_training": [True] * 12,
+            }
+        )
+
+        result = train_ora_models_repeated(
+            features,
+            manifest,
+            {"outer_cv_folds": 3, "outer_cv_repeats": 2, "random_seed": 1},
+        )
+
+        self.assertEqual(set(result.performance_summary["model"]), {"null_model", "elastic_net", "random_forest"})
+        self.assertTrue({"mae_mean", "mae_ci_low", "mae_ci_high"}.issubset(result.performance_summary.columns))
+        self.assertEqual(result.repeat_performance["repeat"].nunique(), 2)
+        self.assertFalse(result.feature_stability.empty)
+        self.assertTrue({"selection_fraction", "mean_importance"}.issubset(result.feature_stability.columns))
 
     def test_project_models_scores_ndd_without_training_on_them(self):
         donors = [f"d{i}" for i in range(14)]

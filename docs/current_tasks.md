@@ -60,10 +60,10 @@ This is the working task board for the olfactory-regenerative-age project. Check
 ## Phase 4: Improve ORA Modeling
 
 - [ ] Add age calibration for ORA predictions.
-- [ ] Add repeated donor-level CV.
+- [x] Add repeated donor-level CV.
 - [ ] Add simpler interpretable models, such as ridge/lasso/linear baseline.
-- [ ] Add feature stability selection across repeated CV.
-- [ ] Add confidence intervals for MAE, Spearman r, and ORAA summaries.
+- [x] Add feature stability selection across repeated CV.
+- [x] Add confidence intervals for MAE, Spearman r, and ORAA summaries.
 - [ ] Compare composition-only vs module-augmented models formally.
 - [ ] Add permutation/null-model tests.
 - [ ] Add calibrated ORA plots and confidence intervals to the report.
@@ -111,3 +111,4 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - 2026-06-12: Added genome-wide pseudobulk export CLI with gene chunking, sparse CSR aggregation, R DE hook templates, minimum group filters, and toy AnnData smoke coverage. Full Gateway export completed: 4,028,275 cells, 18,127 genes, 15,193 total groups, and 6,509 DE-ready groups. Local R-side DE remains pending because `Rscript` is not installed in this environment.
 - 2026-06-12: Added genome-wide pseudobulk QC summaries. The real export has matching matrix/metadata IDs, 12,358 median detected genes per pseudobulk group, 0.8037 median gene detection fraction across groups, and 0.9994 matrix-to-metadata total-count ratio.
 - 2026-06-12: Added ORA sensitivity reruns for chemistry, collection method, healthy-only, and minimum-cell thresholds. Ten scenarios ran successfully; random forest MAE was best in FLEX v2 donors (8.89, n=27) and weakest in brush-only donors (17.34, n=94), indicating collection method/chemistry sensitivity needs careful interpretation.
+- 2026-06-13: Added 10-repeat donor-level CV for ORA. Composition-only random forest mean MAE is 14.20 with empirical 95% interval 13.87-14.48, and mean Spearman r is 0.330 with interval 0.306-0.365.
