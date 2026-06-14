@@ -33,6 +33,8 @@ dev = [
 full = [
   "scanpy>=1.10",
   "xgboost>=2.0",
+  "lightgbm>=4.0",
+  "catboost>=1.2",
   "shap>=0.45",
   "cellxgene-census>=1.15",
   "gseapy>=1.1",
@@ -50,4 +52,3 @@ pythonpath = ["src"]
 [tool.ruff]
 line-length = 100
 src = ["src", "scripts", "tests"]
-

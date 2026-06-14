@@ -66,6 +66,7 @@ def generate_mvp_report(
     ora_sensitivity_performance: pd.DataFrame | None = None,
     ora_repeated_cv_summary: pd.DataFrame | None = None,
     ora_repeated_cv_feature_stability: pd.DataFrame | None = None,
+    ora_feature_set_model_comparison: pd.DataFrame | None = None,
     source: dict[str, Any] | None = None,
     paper_defaults: dict[str, Any] | None = None,
     schema: dict[str, Any] | None = None,
@@ -124,6 +125,7 @@ def generate_mvp_report(
         ora_sensitivity_performance=ora_sensitivity_performance,
         ora_repeated_cv_summary=ora_repeated_cv_summary,
         ora_repeated_cv_feature_stability=ora_repeated_cv_feature_stability,
+        ora_feature_set_model_comparison=ora_feature_set_model_comparison,
         out_md=out_md,
         figure_paths=figure_paths,
         source=source or {},
@@ -240,6 +242,21 @@ def combined_performance(
     return pd.concat(pieces, ignore_index=True)
 
 
+def _sort_metric_table(frame: pd.DataFrame | None, metric: str, *, ascending: bool = True) -> pd.DataFrame:
+    if frame is None:
+        return pd.DataFrame()
+    if frame.empty or metric not in frame:
+        return frame
+    out = frame.copy()
+    out[metric] = pd.to_numeric(out[metric], errors="coerce")
+    sort_cols = [metric]
+    if "feature_set" in out:
+        sort_cols.append("feature_set")
+    if "model" in out:
+        sort_cols.append("model")
+    return out.sort_values(sort_cols, ascending=[ascending] + [True] * (len(sort_cols) - 1)).reset_index(drop=True)
+
+
 def render_mvp_markdown(
     *,
     manifest: pd.DataFrame,
@@ -276,6 +293,7 @@ def render_mvp_markdown(
     ora_sensitivity_performance: pd.DataFrame | None,
     ora_repeated_cv_summary: pd.DataFrame | None,
     ora_repeated_cv_feature_stability: pd.DataFrame | None,
+    ora_feature_set_model_comparison: pd.DataFrame | None,
     out_md: str | Path,
     figure_paths: dict[str, Path],
     source: dict[str, Any],
@@ -321,7 +339,7 @@ def render_mvp_markdown(
         "",
         _model_summary_sentence(best_model),
         "",
-        _markdown_table(performance, ["model", "n", "mae", "rmse", "r2", "spearman_r"], max_rows=20),
+        _markdown_table(_sort_metric_table(performance, "mae"), ["model", "n", "mae", "rmse", "r2", "spearman_r"], max_rows=20),
         "",
         _figure_link(report_path, figure_paths.get("performance"), "Model performance"),
         "",
@@ -371,9 +389,9 @@ def render_mvp_markdown(
                 _augmented_summary_sentence(performance, augmented_performance),
                 "",
                 _markdown_table(
-                    combined_perf,
+                    _sort_metric_table(combined_perf, "mae"),
                     ["feature_set", "model", "n", "mae", "rmse", "r2", "spearman_r"],
-                    max_rows=20,
+                    max_rows=24,
                 ),
                 "",
                 _figure_link(report_path, figure_paths.get("performance_comparison"), "ORA model comparison"),
@@ -401,7 +419,7 @@ def render_mvp_markdown(
                 _ora_repeated_cv_summary_sentence(ora_repeated_cv_summary),
                 "",
                 _markdown_table(
-                    ora_repeated_cv_summary,
+                    _sort_metric_table(ora_repeated_cv_summary, "mae_mean"),
                     [
                         "model",
                         "repeats",
@@ -413,7 +431,7 @@ def render_mvp_markdown(
                         "spearman_r_ci_low",
                         "spearman_r_ci_high",
                     ],
-                    max_rows=10,
+                    max_rows=12,
                 ),
                 "",
                 _markdown_table(
@@ -424,6 +442,29 @@ def render_mvp_markdown(
                 "",
             ]
         )
+        comparison = _top_feature_set_model_comparison(ora_feature_set_model_comparison, top_n=10)
+        if not comparison.empty:
+            lines.extend(
+                [
+                    "### Feature-Set Model Comparison",
+                    "",
+                    _markdown_table(
+                        comparison,
+                        [
+                            "feature_set",
+                            "model",
+                            "mae_mean",
+                            "mae_ci_low",
+                            "mae_ci_high",
+                            "rmse_mean",
+                            "r2_mean",
+                            "spearman_r_mean",
+                        ],
+                        max_rows=10,
+                    ),
+                    "",
+                ]
+            )
     if _has_ndd_projection(ndd_projection, ndd_projection_summary):
         lines.extend(
             [
@@ -1154,11 +1195,27 @@ def _model_order_map() -> dict[str, int]:
         "extra_trees": 5,
         "gradient_boosting": 6,
         "tree_ensemble": 7,
+        "xgboost": 8,
+        "lightgbm": 9,
+        "catboost": 10,
+        "boosted_ensemble": 11,
     }
 
 
 def _display_models() -> list[str]:
-    return ["ridge", "lasso", "elastic_net", "random_forest", "extra_trees", "gradient_boosting", "tree_ensemble"]
+    return [
+        "ridge",
+        "lasso",
+        "elastic_net",
+        "random_forest",
+        "extra_trees",
+        "gradient_boosting",
+        "tree_ensemble",
+        "xgboost",
+        "lightgbm",
+        "catboost",
+        "boosted_ensemble",
+    ]
 
 
 def _has_external_validation_tables(
@@ -1394,18 +1451,37 @@ def _top_ora_sensitivity_performance(
 def _ora_repeated_cv_summary_sentence(summary: pd.DataFrame | None) -> str:
     if summary is None or summary.empty:
         return "_No repeated-CV ORA summary available._"
-    rf = summary[summary["model"].eq("random_forest")] if "model" in summary else pd.DataFrame()
-    if rf.empty:
-        row = summary.iloc[0]
-    else:
-        row = rf.iloc[0]
+    frame = summary.copy()
+    if "mae_mean" in frame:
+        frame["mae_mean"] = pd.to_numeric(frame["mae_mean"], errors="coerce")
+        frame = frame.sort_values(["mae_mean", "model"])
+    row = frame.iloc[0]
+    model = row.get("model", "best model")
     return (
         f"Repeated donor-level CV used {_format_int(row.get('repeats'))} repeats. "
-        f"Random-forest MAE mean was {_format_table_value(row.get('mae_mean'))} "
+        f"Best mean-MAE model was {model} with MAE {_format_table_value(row.get('mae_mean'))} "
         f"({_format_table_value(row.get('mae_ci_low'))}-{_format_table_value(row.get('mae_ci_high'))}); "
         f"Spearman r mean was {_format_table_value(row.get('spearman_r_mean'))} "
         f"({_format_table_value(row.get('spearman_r_ci_low'))}-{_format_table_value(row.get('spearman_r_ci_high'))})."
     )
+
+
+def _top_feature_set_model_comparison(comparison: pd.DataFrame | None, top_n: int) -> pd.DataFrame:
+    columns = [
+        "feature_set",
+        "model",
+        "mae_mean",
+        "mae_ci_low",
+        "mae_ci_high",
+        "rmse_mean",
+        "r2_mean",
+        "spearman_r_mean",
+    ]
+    if comparison is None or comparison.empty or not set(columns).issubset(comparison.columns):
+        return pd.DataFrame(columns=columns)
+    frame = comparison.copy()
+    frame["mae_mean"] = pd.to_numeric(frame["mae_mean"], errors="coerce")
+    return frame.sort_values(["mae_mean", "rmse_mean", "model"]).head(top_n)[columns].reset_index(drop=True)
 
 
 def _top_repeated_cv_features(feature_stability: pd.DataFrame | None, top_n: int) -> pd.DataFrame:

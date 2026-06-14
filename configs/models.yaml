@@ -59,3 +59,31 @@ models:
     subsample: 0.8
   tree_ensemble:
     enabled: true
+  xgboost:
+    enabled: true
+    n_estimators: 300
+    learning_rate: 0.03
+    max_depth: 2
+    min_child_weight: 3.0
+    subsample: 0.8
+    colsample_bytree: 0.8
+    reg_lambda: 5.0
+    reg_alpha: 0.0
+  lightgbm:
+    enabled: true
+    n_estimators: 300
+    learning_rate: 0.03
+    max_depth: 2
+    num_leaves: 7
+    min_child_samples: 8
+    subsample: 0.8
+    colsample_bytree: 0.8
+    reg_lambda: 5.0
+  catboost:
+    enabled: true
+    iterations: 300
+    learning_rate: 0.03
+    depth: 3
+    l2_leaf_reg: 10.0
+  boosted_ensemble:
+    enabled: true

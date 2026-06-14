@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -38,6 +39,10 @@ MODEL_ORDER = [
     "extra_trees",
     "gradient_boosting",
     "tree_ensemble",
+    "xgboost",
+    "lightgbm",
+    "catboost",
+    "boosted_ensemble",
 ]
 
 
@@ -135,8 +140,16 @@ def train_ora_models(
                 fold_pred, coefs = _fit_extra_trees_or_linear(x_train, y_train, x_test, model_config)
             elif model_name == "gradient_boosting":
                 fold_pred, coefs = _fit_gradient_boosting_or_linear(x_train, y_train, x_test, model_config)
-            else:
+            elif model_name == "tree_ensemble":
                 fold_pred, coefs = _fit_tree_ensemble_or_linear(x_train, y_train, x_test, model_config)
+            elif model_name == "xgboost":
+                fold_pred, coefs = _fit_xgboost_or_tree(x_train, y_train, x_test, model_config)
+            elif model_name == "lightgbm":
+                fold_pred, coefs = _fit_lightgbm_or_tree(x_train, y_train, x_test, model_config)
+            elif model_name == "catboost":
+                fold_pred, coefs = _fit_catboost_or_tree(x_train, y_train, x_test, model_config)
+            else:
+                fold_pred, coefs = _fit_boosted_ensemble_or_tree(x_train, y_train, x_test, model_config)
             pred[test_idx] = fold_pred
             if coefs is not None:
                 fold_importances.append(pd.DataFrame({"feature": feature_cols, "importance": coefs, "fold": fold_id}))
@@ -309,8 +322,16 @@ def project_ora_models(
             pred, _ = _fit_extra_trees_or_linear(x_train, y_train, x_project, model_config)
         elif model_name == "gradient_boosting":
             pred, _ = _fit_gradient_boosting_or_linear(x_train, y_train, x_project, model_config)
-        else:
+        elif model_name == "tree_ensemble":
             pred, _ = _fit_tree_ensemble_or_linear(x_train, y_train, x_project, model_config)
+        elif model_name == "xgboost":
+            pred, _ = _fit_xgboost_or_tree(x_train, y_train, x_project, model_config)
+        elif model_name == "lightgbm":
+            pred, _ = _fit_lightgbm_or_tree(x_train, y_train, x_project, model_config)
+        elif model_name == "catboost":
+            pred, _ = _fit_catboost_or_tree(x_train, y_train, x_project, model_config)
+        else:
+            pred, _ = _fit_boosted_ensemble_or_tree(x_train, y_train, x_project, model_config)
         frame = _projection_frame(project, model_name, pred, train.shape[0], len(feature_cols))
         rows.append(frame)
 
@@ -594,6 +615,115 @@ def _fit_tree_ensemble_or_linear(
     preds = []
     importances = []
     for fitter in [_fit_random_forest_or_linear, _fit_extra_trees_or_linear, _fit_gradient_boosting_or_linear]:
+        pred, importance = fitter(x_train, y_train, x_test, model_config)
+        preds.append(pred)
+        importances.append(importance)
+    return np.mean(np.vstack(preds), axis=0), np.mean(np.vstack(importances), axis=0)
+
+
+def _fit_xgboost_or_tree(
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    model_config: dict[str, Any],
+) -> tuple[np.ndarray, np.ndarray]:
+    try:
+        from xgboost import XGBRegressor  # type: ignore
+
+        params = model_config.get("models", {}).get("xgboost", {})
+        model = XGBRegressor(
+            n_estimators=int(params.get("n_estimators", 300)),
+            learning_rate=float(params.get("learning_rate", 0.03)),
+            max_depth=int(params.get("max_depth", 2)),
+            min_child_weight=float(params.get("min_child_weight", 3.0)),
+            subsample=float(params.get("subsample", 0.8)),
+            colsample_bytree=float(params.get("colsample_bytree", 0.8)),
+            reg_lambda=float(params.get("reg_lambda", 5.0)),
+            reg_alpha=float(params.get("reg_alpha", 0.0)),
+            objective="reg:squarederror",
+            random_state=int(model_config.get("random_seed", 42)),
+            n_jobs=-1,
+            verbosity=0,
+        )
+        model.fit(x_train, y_train)
+        return model.predict(x_test), np.asarray(model.feature_importances_, dtype=float)
+    except Exception:
+        return _fit_gradient_boosting_or_linear(x_train, y_train, x_test, model_config)
+
+
+def _fit_lightgbm_or_tree(
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    model_config: dict[str, Any],
+) -> tuple[np.ndarray, np.ndarray]:
+    try:
+        from lightgbm import LGBMRegressor  # type: ignore
+
+        params = model_config.get("models", {}).get("lightgbm", {})
+        model = LGBMRegressor(
+            n_estimators=int(params.get("n_estimators", 300)),
+            learning_rate=float(params.get("learning_rate", 0.03)),
+            max_depth=int(params.get("max_depth", 2)),
+            num_leaves=int(params.get("num_leaves", 7)),
+            min_child_samples=int(params.get("min_child_samples", 8)),
+            subsample=float(params.get("subsample", 0.8)),
+            colsample_bytree=float(params.get("colsample_bytree", 0.8)),
+            reg_lambda=float(params.get("reg_lambda", 5.0)),
+            random_state=int(model_config.get("random_seed", 42)),
+            n_jobs=-1,
+            verbosity=-1,
+        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="X does not have valid feature names.*")
+            model.fit(x_train, y_train)
+            pred = model.predict(x_test)
+        return pred, np.asarray(model.feature_importances_, dtype=float)
+    except Exception:
+        return _fit_gradient_boosting_or_linear(x_train, y_train, x_test, model_config)
+
+
+def _fit_catboost_or_tree(
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    model_config: dict[str, Any],
+) -> tuple[np.ndarray, np.ndarray]:
+    try:
+        from catboost import CatBoostRegressor  # type: ignore
+
+        params = model_config.get("models", {}).get("catboost", {})
+        model = CatBoostRegressor(
+            iterations=int(params.get("iterations", 300)),
+            learning_rate=float(params.get("learning_rate", 0.03)),
+            depth=int(params.get("depth", 3)),
+            l2_leaf_reg=float(params.get("l2_leaf_reg", 10.0)),
+            loss_function="RMSE",
+            random_seed=int(model_config.get("random_seed", 42)),
+            thread_count=-1,
+            verbose=False,
+            allow_writing_files=False,
+        )
+        model.fit(x_train, y_train)
+        return model.predict(x_test), np.asarray(model.get_feature_importance(), dtype=float)
+    except Exception:
+        return _fit_gradient_boosting_or_linear(x_train, y_train, x_test, model_config)
+
+
+def _fit_boosted_ensemble_or_tree(
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    model_config: dict[str, Any],
+) -> tuple[np.ndarray, np.ndarray]:
+    preds = []
+    importances = []
+    for fitter in [
+        _fit_gradient_boosting_or_linear,
+        _fit_xgboost_or_tree,
+        _fit_lightgbm_or_tree,
+        _fit_catboost_or_tree,
+    ]:
         pred, importance = fitter(x_train, y_train, x_test, model_config)
         preds.append(pred)
         importances.append(importance)
