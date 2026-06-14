@@ -20,7 +20,8 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [x] Run targeted curated-gene pseudobulk DE.
 - [x] Run covariate-adjusted targeted pseudobulk DE.
 - [x] Keep generated data/results out of Git.
-- [x] Push/merge completed milestones to the private GitHub repo.
+- [x] Create local milestone commits for completed work.
+- [ ] Push/merge completed milestones to the private GitHub repo once GitHub auth is restored.
 
 ## Phase 1: External Validation
 
@@ -30,6 +31,10 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [x] Add published gene-list registry for aging, NDD, olfactory regeneration, and inflammation signatures.
 - [x] Add gene-list validation command that reports coverage against Gateway genes.
 - [x] Add module scoring support for imported published gene lists.
+- [ ] Add real external dataset download/import notes for each registry entry.
+- [ ] Add raw single-cell adapter for external AnnData/H5AD inputs.
+- [ ] Add donor-feature adapter for external CSV/TSV feature matrices.
+- [ ] Add feature harmonization report for missing/renamed cell states and modules.
 - [ ] Test whether ORA-associated composition/module features replicate outside Gateway.
 - [ ] Compare Gateway ORA signatures against external aging or disease contrasts.
 - [x] Report external validation status in the MVP report.
@@ -49,6 +54,11 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [x] Run full genome-wide edgeR quasi-likelihood DE on the exported Gateway pseudobulk matrix.
 - [x] Add compact genome-wide DE summary and top-hit report tables.
 - [ ] Add sex-balanced or sex-stratified genome-wide DE sensitivity models where sample size allows.
+- [ ] Add chemistry-stratified genome-wide DE sensitivity models where sample size allows.
+- [ ] Add collection-method-stratified genome-wide DE sensitivity models where sample size allows.
+- [ ] Add matched healthy reference DE for FLEX v2/device-only AD/PD comparisons.
+- [ ] Add per-cell-state donor balance diagnostics before interpreting DE.
+- [ ] Add a sex-linked and mitochondrial/ribosomal hit audit table.
 - [ ] Add limma-voom and DESeq2 parity runs or documented adapter examples.
 
 ## Phase 3: Sensitivity Analyses
@@ -60,17 +70,23 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [x] Exclude low-cell donors and low-cell cell states in sensitivity runs.
 - [x] Add healthy-only subcohort checks.
 - [ ] Add bootstrap or leave-site/leave-chemistry-out sensitivity summaries.
+- [ ] Add leave-collection-method-out model checks.
+- [ ] Add matched healthy FLEX v2/device-only ORA training/projection checks.
+- [ ] Add donor-yield sensitivity checks excluding top/bottom cell-count donors.
 - [ ] Add sensitivity tables and plots to the report.
 
 ## Phase 4: Improve ORA Modeling
 
 - [ ] Add age calibration for ORA predictions.
 - [x] Add repeated donor-level CV.
-- [ ] Add simpler interpretable models, such as ridge/lasso/linear baseline.
+- [x] Add simpler interpretable models, such as ridge/lasso/linear baseline.
 - [x] Add feature stability selection across repeated CV.
 - [x] Add confidence intervals for MAE, Spearman r, and ORAA summaries.
 - [ ] Compare composition-only vs module-augmented models formally.
 - [ ] Add permutation/null-model tests.
+- [ ] Add model residual diagnostics by sex, chemistry, collection method, site, and cell yield.
+- [ ] Add calibration slope/intercept and age-bin error summaries.
+- [ ] Add final model-card table describing features, exclusions, cohorts, and limitations.
 - [ ] Add calibrated ORA plots and confidence intervals to the report.
 
 ## Phase 5: Interpret NDD Projection Carefully
@@ -80,6 +96,9 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [x] Separate disease biology from device, chemistry, and sample-composition effects.
 - [ ] Compare NDD projection using composition-only vs module-augmented features.
 - [ ] Add donor-level NDD projection appendix table.
+- [ ] Add disease projection residual diagnostics by age, sex, chemistry, collection method, site, and yield.
+- [ ] Add matched healthy reference plots for FLEX v2/device-only donors.
+- [ ] Add disease projection permutation test with labels shuffled within compatible strata where possible.
 - [x] Add projection uncertainty or bootstrap intervals.
 - [ ] Validate negative ORAA pattern in independent NDD olfactory datasets if available.
 
@@ -87,10 +106,12 @@ This is the working task board for the olfactory-regenerative-age project. Check
 
 - [ ] Confirm whether original scANVI/scVI latent embeddings can be obtained outside CELLxGENE export.
 - [ ] If unavailable, add workflow to recompute latent representations.
+- [ ] Add preprocessing plan for recomputed latent space, including HVG selection, covariates, and batch keys.
 - [ ] Add pseudotime/lineage-density workflow using an appropriate latent space.
 - [ ] Add Milo neighborhood analysis external-compute workflow.
 - [ ] Add cNMF program discovery external-compute workflow.
 - [ ] Add lineage bottleneck and density summaries.
+- [ ] Validate that trajectory/neighborhood findings are not UMAP-only artifacts.
 - [ ] Add trajectory/neighborhood report sections only after latent-space validation.
 
 ## Phase 7: Manuscript/Package Hardening
@@ -101,6 +122,27 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [ ] Add release checklist for figures/tables.
 - [ ] Add CI-friendly tests that avoid requiring real Gateway data.
 - [ ] Add method text drafts for ORA, module scoring, pseudobulk, and projection.
+- [ ] Add paper claim ledger separating supported findings, exploratory observations, and deferred claims.
+- [ ] Add figure plan for main figures, extended data, and supplement tables.
+- [ ] Add limitations section draft focused on NDD sample size, chemistry/device confounding, and external validation.
+- [ ] Add reproducibility appendix with exact commands, software versions, and generated-output checksums.
+
+## Phase 8: Paper Story and Novelty
+
+- [ ] Define primary claim: olfactory epithelial composition encodes a regenerative aging axis in healthy donors.
+- [ ] Define secondary claim: NDD projections are exploratory and hypothesis-generating only.
+- [ ] Prioritize interpretable cell-state signals over black-box prediction performance.
+- [ ] Map top ORA features to regenerative lineage biology, immune aging, glandular states, and neuronal maturation.
+- [ ] Compare ORA conceptually against generic tissue aging clocks and olfactory dysfunction biomarker literature.
+- [ ] Draft title, abstract, and one-page significance statement.
+- [ ] Decide target venue tier after sensitivity/external-validation results mature.
+
+## Needs From User / External Blockers
+
+- [ ] Restore GitHub authentication so local commits can be pushed to the private repository.
+- [ ] Provide or approve downloads for independent olfactory aging/NDD datasets when available.
+- [ ] Provide any preferred target journal, paper style, or claim aggressiveness constraints.
+- [ ] Provide paper PDF/supplement updates if a newer Gateway version appears.
 
 ## Current Priority
 
@@ -120,3 +162,4 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - 2026-06-14: Added NDD projection bootstrap uncertainty and chemistry/device context. AD and PD each have 5 donors, all FLEX v2/device; matched healthy FLEX v2/device reference has 16 donors. Negative ORAA remains below matched healthy reference for random forest: AD mean -9.06, matched difference -8.54 (95% bootstrap interval -12.66 to -3.67); PD mean -12.17, matched difference -11.65 (-17.51 to -6.66).
 - 2026-06-14: Installed a local micromamba R/Bioconductor environment (`.mamba/ora-r`) with edgeR 4.4.0, limma 3.62.1, DESeq2 1.46.0, data.table, optparse, and R.utils. Full genome-wide edgeR QL DE completed on the 18,127-gene export, producing 862,707 tested gene/cell-state/contrast rows across 83 successful models. At FDR < 0.05, AD vs healthy has 819 significant rows across 28 cell states and PD vs healthy has 839 significant rows across 38 cell states. PD top hits are dominated by Y-linked sentinel genes because the PD cohort is 1 male/4 female versus healthy 77 male/113 female/2 unknown; report now includes a non-sex-linked top-hit table for transparent triage.
 - 2026-06-14: Connected published external gene lists to the module-scoring engine and MVP report. Full Gateway scoring completed for four published-list modules (aging, olfactory regeneration, neurodegeneration risk, neuroinflammation), generating 60,772 grouped score rows and 202-donor features. All 36 requested genes resolve in Gateway. External validation registry tracks three candidate datasets, but none are feature-ready until expression/metadata or donor feature matrices are supplied.
+- 2026-06-14: Added ridge and lasso as interpretable ORA baselines across standard CV, repeated CV, feature importance, NDD projection, uncertainty summaries, and report figures. In 10-repeat composition-only CV, ridge has MAE 14.60 (95% interval 14.11-15.12) and Spearman r 0.302, lasso has MAE 15.12 and Spearman r 0.217, elastic net has MAE 14.75, and random forest remains best overall with MAE 14.20 and Spearman r 0.330.

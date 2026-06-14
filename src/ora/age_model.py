@@ -29,6 +29,8 @@ TECHNICAL_EXACT = {
     "mature_neurons",
 }
 
+MODEL_ORDER = ["null_model", "ridge", "lasso", "elastic_net", "random_forest"]
+
 
 @dataclass
 class ModelResult:
@@ -101,7 +103,7 @@ def train_ora_models(
     importances = []
     performance_rows = []
 
-    for model_name in ["null_model", "elastic_net", "random_forest"]:
+    for model_name in MODEL_ORDER:
         pred = np.full(train.shape[0], np.nan, dtype=float)
         fold_importances = []
         for fold_id, (train_idx, test_idx) in enumerate(folds):
@@ -112,6 +114,10 @@ def train_ora_models(
             if model_name == "null_model":
                 fold_pred = np.full(test_idx.size, float(np.mean(y_train)))
                 coefs = np.zeros(len(feature_cols))
+            elif model_name == "ridge":
+                fold_pred, coefs = _fit_ridge_or_linear(x_train, y_train, x_test, model_config)
+            elif model_name == "lasso":
+                fold_pred, coefs = _fit_lasso_or_linear(x_train, y_train, x_test, model_config)
             elif model_name == "elastic_net":
                 fold_pred, coefs = _fit_elastic_or_linear(x_train, y_train, x_test, model_config)
             else:
@@ -273,9 +279,13 @@ def project_ora_models(
     x_project = transform_preprocessor(project[feature_cols], prep)
     y_train = train["age"].astype(float).to_numpy()
     rows = []
-    for model_name in ["null_model", "elastic_net", "random_forest"]:
+    for model_name in MODEL_ORDER:
         if model_name == "null_model":
             pred = np.full(project.shape[0], float(np.mean(y_train)))
+        elif model_name == "ridge":
+            pred, _ = _fit_ridge_or_linear(x_train, y_train, x_project, model_config)
+        elif model_name == "lasso":
+            pred, _ = _fit_lasso_or_linear(x_train, y_train, x_project, model_config)
         elif model_name == "elastic_net":
             pred, _ = _fit_elastic_or_linear(x_train, y_train, x_project, model_config)
         else:
@@ -428,13 +438,56 @@ def _fit_elastic_or_linear(
             cv=min(5, max(2, len(y_train) // 4)),
             random_state=int(model_config.get("random_seed", 42)),
             max_iter=int(params.get("max_iter", 50000)),
-            tol=float(params.get("tol", 1e-3)),
+            tol=float(params.get("tol", 1e-2)),
             n_jobs=int(params.get("n_jobs", -1)),
         )
         model.fit(x_train, y_train)
         return model.predict(x_test), np.asarray(model.coef_, dtype=float)
     except ModuleNotFoundError:
         coef, intercept = _ridge_closed_form(x_train, y_train)
+        return x_test @ coef + intercept, coef
+
+
+def _fit_ridge_or_linear(
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    model_config: dict[str, Any],
+) -> tuple[np.ndarray, np.ndarray]:
+    try:
+        from sklearn.linear_model import RidgeCV  # type: ignore
+
+        params = model_config.get("models", {}).get("ridge", {})
+        model = RidgeCV(alphas=params.get("alphas", [0.1, 1.0, 10.0, 100.0]))
+        model.fit(x_train, y_train)
+        return model.predict(x_test), np.asarray(model.coef_, dtype=float)
+    except ModuleNotFoundError:
+        coef, intercept = _ridge_closed_form(x_train, y_train, alpha=10.0)
+        return x_test @ coef + intercept, coef
+
+
+def _fit_lasso_or_linear(
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    model_config: dict[str, Any],
+) -> tuple[np.ndarray, np.ndarray]:
+    try:
+        from sklearn.linear_model import LassoCV  # type: ignore
+
+        params = model_config.get("models", {}).get("lasso", {})
+        model = LassoCV(
+            alphas=params.get("alphas", [0.001, 0.01, 0.1, 1.0, 10.0]),
+            cv=min(5, max(2, len(y_train) // 4)),
+            random_state=int(model_config.get("random_seed", 42)),
+            max_iter=int(params.get("max_iter", 50000)),
+            tol=float(params.get("tol", 1e-3)),
+            n_jobs=int(params.get("n_jobs", -1)),
+        )
+        model.fit(x_train, y_train)
+        return model.predict(x_test), np.asarray(model.coef_, dtype=float)
+    except ModuleNotFoundError:
+        coef, intercept = _ridge_closed_form(x_train, y_train, alpha=25.0)
         return x_test @ coef + intercept, coef
 
 
