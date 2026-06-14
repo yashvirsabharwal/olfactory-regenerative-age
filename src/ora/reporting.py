@@ -54,6 +54,8 @@ def generate_mvp_report(
     pseudobulk_genomewide_qc_summary: pd.DataFrame | None = None,
     pseudobulk_genomewide_gene_qc: pd.DataFrame | None = None,
     pseudobulk_genomewide_disease_summary: pd.DataFrame | None = None,
+    pseudobulk_genomewide_de_summary: pd.DataFrame | None = None,
+    pseudobulk_genomewide_de_top_hits: pd.DataFrame | None = None,
     ora_sensitivity_scenarios: pd.DataFrame | None = None,
     ora_sensitivity_performance: pd.DataFrame | None = None,
     ora_repeated_cv_summary: pd.DataFrame | None = None,
@@ -104,6 +106,8 @@ def generate_mvp_report(
         pseudobulk_genomewide_qc_summary=pseudobulk_genomewide_qc_summary,
         pseudobulk_genomewide_gene_qc=pseudobulk_genomewide_gene_qc,
         pseudobulk_genomewide_disease_summary=pseudobulk_genomewide_disease_summary,
+        pseudobulk_genomewide_de_summary=pseudobulk_genomewide_de_summary,
+        pseudobulk_genomewide_de_top_hits=pseudobulk_genomewide_de_top_hits,
         ora_sensitivity_scenarios=ora_sensitivity_scenarios,
         ora_sensitivity_performance=ora_sensitivity_performance,
         ora_repeated_cv_summary=ora_repeated_cv_summary,
@@ -248,6 +252,8 @@ def render_mvp_markdown(
     pseudobulk_genomewide_qc_summary: pd.DataFrame | None,
     pseudobulk_genomewide_gene_qc: pd.DataFrame | None,
     pseudobulk_genomewide_disease_summary: pd.DataFrame | None,
+    pseudobulk_genomewide_de_summary: pd.DataFrame | None,
+    pseudobulk_genomewide_de_top_hits: pd.DataFrame | None,
     ora_sensitivity_scenarios: pd.DataFrame | None,
     ora_sensitivity_performance: pd.DataFrame | None,
     ora_repeated_cv_summary: pd.DataFrame | None,
@@ -527,6 +533,45 @@ def render_mvp_markdown(
                 "",
             ]
         )
+    if pseudobulk_genomewide_de_summary is not None and not pseudobulk_genomewide_de_summary.empty:
+        lines.extend(
+            [
+                "## Genome-Wide edgeR DE",
+                "",
+                _pseudobulk_genomewide_de_sentence(pseudobulk_genomewide_de_summary),
+                "",
+                _markdown_table(
+                    pseudobulk_genomewide_de_summary,
+                    [
+                        "contrast",
+                        "tested_rows",
+                        "tested_genes",
+                        "tested_cell_states",
+                        "ok_cell_state_models",
+                        "significant_rows",
+                        "significant_genes",
+                        "significant_cell_states",
+                        "sex_linked_significant_rows",
+                    ],
+                    max_rows=10,
+                ),
+                "",
+                _markdown_table(
+                    pseudobulk_genomewide_de_top_hits if pseudobulk_genomewide_de_top_hits is not None else pd.DataFrame(),
+                    ["contrast", "fine_cell_type", "gene_symbol", "log2fc", "p_value", "fdr", "is_sex_linked_initial"],
+                    max_rows=top_n,
+                ),
+                "",
+                "Top non-sex-linked sentinel hits:",
+                "",
+                _markdown_table(
+                    _non_sex_linked_genomewide_de_hits(pseudobulk_genomewide_de_top_hits, top_n=top_n),
+                    ["contrast", "fine_cell_type", "gene_symbol", "log2fc", "p_value", "fdr", "is_sex_linked_initial"],
+                    max_rows=top_n,
+                ),
+                "",
+            ]
+        )
     if ora_sensitivity_performance is not None and not ora_sensitivity_performance.empty:
         lines.extend(
             [
@@ -569,7 +614,8 @@ def render_mvp_markdown(
         "- NDD ORA projections use frozen healthy-trained models; projected AD/PD donors are not included in training or cross-validation.",
         "- Module scores are average log1p expression over curated marker sets, summarized at donor and cell-state levels.",
         "- Pseudobulk DE includes both unadjusted donor-level logCPM Welch contrasts and targeted covariate-adjusted linear models.",
-        "- Genome-wide pseudobulk counts are exported for edgeR, limma-voom, and DESeq2; local R-side DE requires an R/Bioconductor runtime.",
+        "- Genome-wide pseudobulk counts now have a local edgeR quasi-likelihood workflow; limma-voom and DESeq2 remain adapter hooks.",
+        "- Genome-wide NDD DE is discovery-oriented only: AD/PD sample sizes are five donors each and sex/chemistry/collection imbalance can dominate top hits.",
         "- Trajectory density, Milo, and cNMF remain deferred commands.",
         "- Chemistry, collection method, site, and yield are treated as covariates or sensitivity variables rather than biological ORA features.",
         "- AD/PD donors are excluded from ORA training and reserved for later frozen-model projection.",
@@ -1068,6 +1114,35 @@ def _top_genomewide_variable_genes(gene_qc: pd.DataFrame | None, top_n: int) -> 
     frame["variance_log1p"] = pd.to_numeric(frame["variance_log1p"], errors="coerce")
     frame["total_count"] = pd.to_numeric(frame["total_count"], errors="coerce")
     return frame.sort_values(["variance_log1p", "total_count"], ascending=[False, False]).head(top_n)[columns].reset_index(drop=True)
+
+
+def _pseudobulk_genomewide_de_sentence(summary: pd.DataFrame | None) -> str:
+    if summary is None or summary.empty:
+        return "_No genome-wide edgeR DE summary available._"
+    tested = int(pd.to_numeric(summary.get("tested_rows"), errors="coerce").fillna(0).sum())
+    significant = int(pd.to_numeric(summary.get("significant_rows"), errors="coerce").fillna(0).sum())
+    sex_linked = int(pd.to_numeric(summary.get("sex_linked_significant_rows"), errors="coerce").fillna(0).sum())
+    states = int(pd.to_numeric(summary.get("ok_cell_state_models"), errors="coerce").fillna(0).sum())
+    threshold = pd.to_numeric(summary.get("fdr_threshold"), errors="coerce").dropna()
+    fdr_threshold = threshold.iloc[0] if not threshold.empty else 0.05
+    return (
+        f"edgeR quasi-likelihood models tested {_format_int(tested)} gene/cell-state/contrast rows across "
+        f"{_format_int(states)} successful cell-state contrast models. At FDR < {_format_table_value(fdr_threshold)}, "
+        f"{_format_int(significant)} rows were significant; {_format_int(sex_linked)} significant rows were in the "
+        "initial sex-linked sentinel list, so top hits require sex-balance sensitivity checks."
+    )
+
+
+def _non_sex_linked_genomewide_de_hits(de_hits: pd.DataFrame | None, top_n: int) -> pd.DataFrame:
+    columns = ["contrast", "fine_cell_type", "gene_symbol", "log2fc", "p_value", "fdr", "is_sex_linked_initial"]
+    if de_hits is None or de_hits.empty or not set(columns).issubset(de_hits.columns):
+        return pd.DataFrame(columns=columns)
+    frame = de_hits.copy()
+    is_sex = frame["is_sex_linked_initial"].astype(str).str.lower().isin({"true", "1", "yes"})
+    frame = frame.loc[~is_sex, columns].copy()
+    frame["fdr"] = pd.to_numeric(frame["fdr"], errors="coerce")
+    frame["p_value"] = pd.to_numeric(frame["p_value"], errors="coerce")
+    return frame.sort_values(["fdr", "p_value", "contrast", "fine_cell_type", "gene_symbol"]).head(top_n).reset_index(drop=True)
 
 
 def _ora_sensitivity_summary_sentence(

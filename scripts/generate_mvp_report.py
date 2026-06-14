@@ -42,6 +42,8 @@ def main() -> None:
     parser.add_argument("--pseudobulk-genomewide-qc-summary", default=None)
     parser.add_argument("--pseudobulk-genomewide-gene-qc", default=None)
     parser.add_argument("--pseudobulk-genomewide-disease-summary", default=None)
+    parser.add_argument("--pseudobulk-genomewide-de-summary", default=None)
+    parser.add_argument("--pseudobulk-genomewide-de-top-hits", default=None)
     parser.add_argument("--ora-sensitivity-scenarios", default=None)
     parser.add_argument("--ora-sensitivity-performance", default=None)
     parser.add_argument("--ora-repeated-cv-summary", default=None)
@@ -95,6 +97,10 @@ def main() -> None:
         or outputs.get("pseudobulk_genomewide_gene_qc_tsv", "results/tables/pseudobulk_genomewide_gene_qc.tsv"),
         "pseudobulk_genomewide_disease_summary": args.pseudobulk_genomewide_disease_summary
         or outputs.get("pseudobulk_genomewide_disease_summary_tsv", "results/tables/pseudobulk_genomewide_disease_summary.tsv"),
+        "pseudobulk_genomewide_de_summary": args.pseudobulk_genomewide_de_summary
+        or outputs.get("pseudobulk_genomewide_de_summary_tsv", "results/tables/pseudobulk_genomewide_de_summary.tsv"),
+        "pseudobulk_genomewide_de_top_hits": args.pseudobulk_genomewide_de_top_hits
+        or outputs.get("pseudobulk_genomewide_de_top_hits_tsv", "results/tables/pseudobulk_genomewide_de_top_hits.tsv"),
         "ora_sensitivity_scenarios": args.ora_sensitivity_scenarios
         or outputs.get("ora_sensitivity_scenarios_tsv", "results/tables/ora_sensitivity_scenarios.tsv"),
         "ora_sensitivity_performance": args.ora_sensitivity_performance
@@ -133,6 +139,8 @@ def main() -> None:
         pseudobulk_genomewide_qc_summary=_read_optional_tsv(paths["pseudobulk_genomewide_qc_summary"]),
         pseudobulk_genomewide_gene_qc=_read_optional_tsv(paths["pseudobulk_genomewide_gene_qc"]),
         pseudobulk_genomewide_disease_summary=_read_optional_tsv(paths["pseudobulk_genomewide_disease_summary"]),
+        pseudobulk_genomewide_de_summary=_read_optional_tsv(paths["pseudobulk_genomewide_de_summary"]),
+        pseudobulk_genomewide_de_top_hits=_read_optional_tsv(paths["pseudobulk_genomewide_de_top_hits"]),
         ora_sensitivity_scenarios=_read_optional_tsv(paths["ora_sensitivity_scenarios"]),
         ora_sensitivity_performance=_read_optional_tsv(paths["ora_sensitivity_performance"]),
         ora_repeated_cv_summary=_read_optional_tsv(paths["ora_repeated_cv_summary"]),

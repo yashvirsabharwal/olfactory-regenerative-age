@@ -225,6 +225,31 @@ class ReportingTests(unittest.TestCase):
                 "median_detected_genes": [5, 6],
             }
         )
+        pseudobulk_genomewide_de_summary = pd.DataFrame(
+            {
+                "contrast": ["ad_vs_healthy"],
+                "tested_rows": [100],
+                "tested_genes": [50],
+                "tested_cell_states": [2],
+                "ok_cell_state_models": [2],
+                "fdr_threshold": [0.05],
+                "significant_rows": [3],
+                "significant_genes": [2],
+                "significant_cell_states": [1],
+                "sex_linked_significant_rows": [1],
+            }
+        )
+        pseudobulk_genomewide_de_top_hits = pd.DataFrame(
+            {
+                "contrast": ["ad_vs_healthy", "ad_vs_healthy"],
+                "fine_cell_type": ["qHBC", "mOSN"],
+                "gene_symbol": ["USP9Y", "MAFF"],
+                "log2fc": [2.0, 1.0],
+                "p_value": [0.001, 0.002],
+                "fdr": [0.01, 0.02],
+                "is_sex_linked_initial": [True, False],
+            }
+        )
         ora_sensitivity_scenarios = pd.DataFrame(
             {
                 "scenario": ["baseline", "collection_method__brush"],
@@ -336,6 +361,8 @@ class ReportingTests(unittest.TestCase):
                 pseudobulk_genomewide_qc_summary=pseudobulk_genomewide_qc_summary,
                 pseudobulk_genomewide_gene_qc=pseudobulk_genomewide_gene_qc,
                 pseudobulk_genomewide_disease_summary=pseudobulk_genomewide_disease_summary,
+                pseudobulk_genomewide_de_summary=pseudobulk_genomewide_de_summary,
+                pseudobulk_genomewide_de_top_hits=pseudobulk_genomewide_de_top_hits,
                 ora_sensitivity_scenarios=ora_sensitivity_scenarios,
                 ora_sensitivity_performance=ora_sensitivity_performance,
                 ora_repeated_cv_summary=ora_repeated_cv_summary,
@@ -356,6 +383,11 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("Pseudobulk Differential Expression", report_text)
             self.assertIn("Covariate-Adjusted Pseudobulk DE", report_text)
             self.assertIn("Genome-Wide Pseudobulk Export", report_text)
+            self.assertIn("Genome-Wide edgeR DE", report_text)
+            self.assertIn("sex-linked sentinel", report_text)
+            self.assertIn("Top non-sex-linked sentinel hits", report_text)
+            self.assertIn("USP9Y", report_text)
+            self.assertIn("MAFF", report_text)
             self.assertIn("BPIFA1", report_text)
             self.assertIn("Matrix total counts", report_text)
             self.assertIn("ORA Sensitivity", report_text)

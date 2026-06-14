@@ -1,6 +1,6 @@
 # ORA Current Tasks and Milestone Tracker
 
-Updated: 2026-06-12
+Updated: 2026-06-14
 
 This is the working task board for the olfactory-regenerative-age project. Checkboxes should be updated as implementation lands, tests pass, and real Gateway outputs are regenerated.
 
@@ -45,6 +45,11 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [x] Add smoke tests on toy AnnData for genome-wide export.
 - [x] Add report section summarizing genome-wide DE readiness and outputs.
 - [x] Add genome-wide pseudobulk QC summaries for matrix alignment, detection rates, disease strata, and top variable genes.
+- [x] Install local R/Bioconductor runtime with edgeR, limma, and DESeq2 via micromamba.
+- [x] Run full genome-wide edgeR quasi-likelihood DE on the exported Gateway pseudobulk matrix.
+- [x] Add compact genome-wide DE summary and top-hit report tables.
+- [ ] Add sex-balanced or sex-stratified genome-wide DE sensitivity models where sample size allows.
+- [ ] Add limma-voom and DESeq2 parity runs or documented adapter examples.
 
 ## Phase 3: Sensitivity Analyses
 
@@ -99,10 +104,10 @@ This is the working task board for the olfactory-regenerative-age project. Check
 
 ## Current Priority
 
-1. External validation scaffold and published gene-list registry.
-2. Genome-wide pseudobulk export hooks.
-3. Sensitivity analyses for chemistry/collection method.
-4. ORA model calibration and repeated CV.
+1. External validation with imported published signatures and any available independent olfactory/NDD datasets.
+2. Sex/chemistry/collection-method sensitivity for genome-wide DE and NDD projection.
+3. ORA model calibration, interpretable baselines, and formal composition-vs-module comparison.
+4. Latent-space recovery or recomputation for trajectory/neighborhood analyses.
 
 ## Progress Log
 
@@ -113,3 +118,4 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - 2026-06-12: Added ORA sensitivity reruns for chemistry, collection method, healthy-only, and minimum-cell thresholds. Ten scenarios ran successfully; random forest MAE was best in FLEX v2 donors (8.89, n=27) and weakest in brush-only donors (17.34, n=94), indicating collection method/chemistry sensitivity needs careful interpretation.
 - 2026-06-13: Added 10-repeat donor-level CV for ORA. Composition-only random forest mean MAE is 14.20 with empirical 95% interval 13.87-14.48, and mean Spearman r is 0.330 with interval 0.306-0.365.
 - 2026-06-14: Added NDD projection bootstrap uncertainty and chemistry/device context. AD and PD each have 5 donors, all FLEX v2/device; matched healthy FLEX v2/device reference has 16 donors. Negative ORAA remains below matched healthy reference for random forest: AD mean -9.06, matched difference -8.54 (95% bootstrap interval -12.66 to -3.67); PD mean -12.17, matched difference -11.65 (-17.51 to -6.66).
+- 2026-06-14: Installed a local micromamba R/Bioconductor environment (`.mamba/ora-r`) with edgeR 4.4.0, limma 3.62.1, DESeq2 1.46.0, data.table, optparse, and R.utils. Full genome-wide edgeR QL DE completed on the 18,127-gene export, producing 862,707 tested gene/cell-state/contrast rows across 83 successful models. At FDR < 0.05, AD vs healthy has 819 significant rows across 28 cell states and PD vs healthy has 839 significant rows across 38 cell states. PD top hits are dominated by Y-linked sentinel genes because the PD cohort is 1 male/4 female versus healthy 77 male/113 female/2 unknown; report now includes a non-sex-linked top-hit table for transparent triage.
