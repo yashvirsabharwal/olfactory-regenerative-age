@@ -1,6 +1,6 @@
 PYTHON ?= python3
 
-.PHONY: setup test download-gateway download-info toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-repeated model-ora-augmented project-ndd report modules external-validation trajectory pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-covariate-de ora-sensitivity milo cnmf clean
+.PHONY: setup test download-gateway download-info toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-repeated model-ora-augmented project-ndd project-ndd-uncertainty report modules external-validation trajectory pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-covariate-de ora-sensitivity milo cnmf clean
 
 setup:
 	$(PYTHON) -m pip install -e ".[dev]"
@@ -49,6 +49,9 @@ model-ora-augmented:
 
 project-ndd:
 	$(PYTHON) scripts/project_ndd_ora.py --gateway-config configs/gateway.yaml --model-config configs/models.yaml
+
+project-ndd-uncertainty:
+	$(PYTHON) scripts/summarize_ndd_projection_uncertainty.py --gateway-config configs/gateway.yaml
 
 report:
 	$(PYTHON) scripts/generate_mvp_report.py --config configs/gateway.yaml

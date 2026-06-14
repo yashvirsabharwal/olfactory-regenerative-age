@@ -70,12 +70,12 @@ This is the working task board for the olfactory-regenerative-age project. Check
 
 ## Phase 5: Interpret NDD Projection Carefully
 
-- [ ] Add explicit warning/report note that AD/PD sample size is 5 donors each.
+- [x] Add explicit warning/report note that AD/PD sample size is 5 donors each.
 - [ ] Add sensitivity checks for negative ORAA.
-- [ ] Separate disease biology from device, chemistry, and sample-composition effects.
+- [x] Separate disease biology from device, chemistry, and sample-composition effects.
 - [ ] Compare NDD projection using composition-only vs module-augmented features.
 - [ ] Add donor-level NDD projection appendix table.
-- [ ] Add projection uncertainty or bootstrap intervals.
+- [x] Add projection uncertainty or bootstrap intervals.
 - [ ] Validate negative ORAA pattern in independent NDD olfactory datasets if available.
 
 ## Phase 6: Trajectory and Neighborhood Work
@@ -112,3 +112,4 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - 2026-06-12: Added genome-wide pseudobulk QC summaries. The real export has matching matrix/metadata IDs, 12,358 median detected genes per pseudobulk group, 0.8037 median gene detection fraction across groups, and 0.9994 matrix-to-metadata total-count ratio.
 - 2026-06-12: Added ORA sensitivity reruns for chemistry, collection method, healthy-only, and minimum-cell thresholds. Ten scenarios ran successfully; random forest MAE was best in FLEX v2 donors (8.89, n=27) and weakest in brush-only donors (17.34, n=94), indicating collection method/chemistry sensitivity needs careful interpretation.
 - 2026-06-13: Added 10-repeat donor-level CV for ORA. Composition-only random forest mean MAE is 14.20 with empirical 95% interval 13.87-14.48, and mean Spearman r is 0.330 with interval 0.306-0.365.
+- 2026-06-14: Added NDD projection bootstrap uncertainty and chemistry/device context. AD and PD each have 5 donors, all FLEX v2/device; matched healthy FLEX v2/device reference has 16 donors. Negative ORAA remains below matched healthy reference for random forest: AD mean -9.06, matched difference -8.54 (95% bootstrap interval -12.66 to -3.67); PD mean -12.17, matched difference -11.65 (-17.51 to -6.66).

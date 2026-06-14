@@ -29,6 +29,8 @@ def main() -> None:
     parser.add_argument("--augmented-importance", default=None)
     parser.add_argument("--ndd-projection", default=None)
     parser.add_argument("--ndd-projection-summary", default=None)
+    parser.add_argument("--ndd-projection-uncertainty", default=None)
+    parser.add_argument("--ndd-projection-context", default=None)
     parser.add_argument("--module-summary", default=None)
     parser.add_argument("--module-coverage", default=None)
     parser.add_argument("--donor-module-features", default=None)
@@ -68,6 +70,10 @@ def main() -> None:
         "ndd_projection": args.ndd_projection or outputs.get("ndd_ora_projection_tsv", "results/tables/ndd_ora_projection.tsv"),
         "ndd_projection_summary": args.ndd_projection_summary
         or outputs.get("ndd_ora_projection_summary_tsv", "results/tables/ndd_ora_projection_summary.tsv"),
+        "ndd_projection_uncertainty": args.ndd_projection_uncertainty
+        or outputs.get("ndd_ora_projection_uncertainty_tsv", "results/tables/ndd_ora_projection_uncertainty.tsv"),
+        "ndd_projection_context": args.ndd_projection_context
+        or outputs.get("ndd_ora_projection_context_tsv", "results/tables/ndd_ora_projection_context.tsv"),
         "module_summary": args.module_summary
         or outputs.get("module_score_summary_tsv", "results/tables/module_score_summary.tsv"),
         "module_coverage": args.module_coverage
@@ -114,6 +120,8 @@ def main() -> None:
         augmented_importance=_read_optional_tsv(paths["augmented_importance"]),
         ndd_projection=_read_optional_tsv(paths["ndd_projection"]),
         ndd_projection_summary=_read_optional_tsv(paths["ndd_projection_summary"]),
+        ndd_projection_uncertainty=_read_optional_tsv(paths["ndd_projection_uncertainty"]),
+        ndd_projection_context=_read_optional_tsv(paths["ndd_projection_context"]),
         module_summary=_read_optional_tsv(paths["module_summary"]),
         module_coverage=_read_optional_tsv(paths["module_coverage"]),
         donor_module_features=_read_optional_tsv(paths["donor_module_features"]),

@@ -288,6 +288,31 @@ class ReportingTests(unittest.TestCase):
                 "sd_oraa": [0.2, 0],
             }
         )
+        ndd_projection_uncertainty = pd.DataFrame(
+            {
+                "model": ["random_forest"],
+                "disease_group": ["ad"],
+                "reference": ["matched_healthy"],
+                "n_disease": [1],
+                "n_reference": [2],
+                "mean_oraa": [4.5],
+                "mean_oraa_ci_low": [4.0],
+                "mean_oraa_ci_high": [5.0],
+                "difference_vs_reference": [4.0],
+                "difference_ci_low": [3.0],
+                "difference_ci_high": [5.0],
+            }
+        )
+        ndd_projection_context = pd.DataFrame(
+            {
+                "disease_group": ["ad", "healthy"],
+                "chemistry": ["flex_v2", "flex_v2"],
+                "collection_method": ["device", "device"],
+                "donors": [1, 2],
+                "mean_age": [70, 45],
+                "median_total_cells": [1000, 800],
+            }
+        )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             out = Path(tmpdir) / "reports" / "mvp.md"
@@ -301,6 +326,8 @@ class ReportingTests(unittest.TestCase):
                 importance=importance,
                 ndd_projection=ndd_projection,
                 ndd_projection_summary=ndd_projection_summary,
+                ndd_projection_uncertainty=ndd_projection_uncertainty,
+                ndd_projection_context=ndd_projection_context,
                 pseudobulk_de=pseudobulk_de,
                 pseudobulk_coverage=pseudobulk_coverage,
                 pseudobulk_metadata=pseudobulk_metadata,
@@ -324,6 +351,8 @@ class ReportingTests(unittest.TestCase):
             report_text = out.read_text(encoding="utf-8")
             self.assertIn("Gateway ORA MVP Report", report_text)
             self.assertIn("NDD ORA Projection", report_text)
+            self.assertIn("matched_healthy", report_text)
+            self.assertIn("flex_v2", report_text)
             self.assertIn("Pseudobulk Differential Expression", report_text)
             self.assertIn("Covariate-Adjusted Pseudobulk DE", report_text)
             self.assertIn("Genome-Wide Pseudobulk Export", report_text)

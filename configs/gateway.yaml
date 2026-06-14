@@ -185,6 +185,8 @@ outputs:
   augmented_feature_importance_tsv: "results/tables/ora_augmented_feature_importance.tsv"
   ndd_ora_projection_tsv: "results/tables/ndd_ora_projection.tsv"
   ndd_ora_projection_summary_tsv: "results/tables/ndd_ora_projection_summary.tsv"
+  ndd_ora_projection_uncertainty_tsv: "results/tables/ndd_ora_projection_uncertainty.tsv"
+  ndd_ora_projection_context_tsv: "results/tables/ndd_ora_projection_context.tsv"
   module_score_summary_tsv: "results/tables/module_score_summary.tsv"
   module_gene_coverage_tsv: "results/tables/module_gene_coverage.tsv"
   donor_module_features_tsv: "data/processed/donor_module_features.tsv"
