@@ -24,6 +24,9 @@ def main() -> None:
     parser.add_argument("--performance", default=None)
     parser.add_argument("--scores", default=None)
     parser.add_argument("--importance", default=None)
+    parser.add_argument("--ora-calibration", default=None)
+    parser.add_argument("--ora-age-bin-errors", default=None)
+    parser.add_argument("--ora-residual-diagnostics", default=None)
     parser.add_argument("--augmented-performance", default=None)
     parser.add_argument("--augmented-scores", default=None)
     parser.add_argument("--augmented-importance", default=None)
@@ -66,6 +69,11 @@ def main() -> None:
         "performance": args.performance or outputs.get("model_performance_tsv", "results/tables/ora_model_performance.tsv"),
         "scores": args.scores or outputs.get("donor_ora_scores_tsv", "results/tables/donor_ora_scores.tsv"),
         "importance": args.importance or outputs.get("feature_importance_tsv", "results/tables/ora_feature_importance.tsv"),
+        "ora_calibration": args.ora_calibration or outputs.get("ora_calibration_tsv", "results/tables/ora_calibration.tsv"),
+        "ora_age_bin_errors": args.ora_age_bin_errors
+        or outputs.get("ora_age_bin_errors_tsv", "results/tables/ora_age_bin_errors.tsv"),
+        "ora_residual_diagnostics": args.ora_residual_diagnostics
+        or outputs.get("ora_residual_diagnostics_tsv", "results/tables/ora_residual_diagnostics.tsv"),
         "augmented_performance": args.augmented_performance
         or outputs.get("augmented_model_performance_tsv", "results/tables/ora_augmented_model_performance.tsv"),
         "augmented_scores": args.augmented_scores
@@ -130,6 +138,9 @@ def main() -> None:
         performance=pd.read_csv(paths["performance"], sep="\t"),
         scores=pd.read_csv(paths["scores"], sep="\t"),
         importance=pd.read_csv(paths["importance"], sep="\t"),
+        ora_calibration=_read_optional_tsv(paths["ora_calibration"]),
+        ora_age_bin_errors=_read_optional_tsv(paths["ora_age_bin_errors"]),
+        ora_residual_diagnostics=_read_optional_tsv(paths["ora_residual_diagnostics"]),
         augmented_performance=_read_optional_tsv(paths["augmented_performance"]),
         augmented_scores=_read_optional_tsv(paths["augmented_scores"]),
         augmented_importance=_read_optional_tsv(paths["augmented_importance"]),

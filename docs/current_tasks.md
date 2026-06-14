@@ -77,15 +77,15 @@ This is the working task board for the olfactory-regenerative-age project. Check
 
 ## Phase 4: Improve ORA Modeling
 
-- [ ] Add age calibration for ORA predictions.
+- [x] Add age calibration for ORA predictions.
 - [x] Add repeated donor-level CV.
 - [x] Add simpler interpretable models, such as ridge/lasso/linear baseline.
 - [x] Add feature stability selection across repeated CV.
 - [x] Add confidence intervals for MAE, Spearman r, and ORAA summaries.
 - [ ] Compare composition-only vs module-augmented models formally.
 - [ ] Add permutation/null-model tests.
-- [ ] Add model residual diagnostics by sex, chemistry, collection method, site, and cell yield.
-- [ ] Add calibration slope/intercept and age-bin error summaries.
+- [x] Add model residual diagnostics by sex, chemistry, collection method, site, and cell yield.
+- [x] Add calibration slope/intercept and age-bin error summaries.
 - [ ] Add final model-card table describing features, exclusions, cohorts, and limitations.
 - [ ] Add calibrated ORA plots and confidence intervals to the report.
 
@@ -163,3 +163,4 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - 2026-06-14: Installed a local micromamba R/Bioconductor environment (`.mamba/ora-r`) with edgeR 4.4.0, limma 3.62.1, DESeq2 1.46.0, data.table, optparse, and R.utils. Full genome-wide edgeR QL DE completed on the 18,127-gene export, producing 862,707 tested gene/cell-state/contrast rows across 83 successful models. At FDR < 0.05, AD vs healthy has 819 significant rows across 28 cell states and PD vs healthy has 839 significant rows across 38 cell states. PD top hits are dominated by Y-linked sentinel genes because the PD cohort is 1 male/4 female versus healthy 77 male/113 female/2 unknown; report now includes a non-sex-linked top-hit table for transparent triage.
 - 2026-06-14: Connected published external gene lists to the module-scoring engine and MVP report. Full Gateway scoring completed for four published-list modules (aging, olfactory regeneration, neurodegeneration risk, neuroinflammation), generating 60,772 grouped score rows and 202-donor features. All 36 requested genes resolve in Gateway. External validation registry tracks three candidate datasets, but none are feature-ready until expression/metadata or donor feature matrices are supplied.
 - 2026-06-14: Added ridge and lasso as interpretable ORA baselines across standard CV, repeated CV, feature importance, NDD projection, uncertainty summaries, and report figures. In 10-repeat composition-only CV, ridge has MAE 14.60 (95% interval 14.11-15.12) and Spearman r 0.302, lasso has MAE 15.12 and Spearman r 0.217, elastic net has MAE 14.75, and random forest remains best overall with MAE 14.20 and Spearman r 0.330.
+- 2026-06-14: Added ORA calibration and residual diagnostics. Full composition-only score diagnostics now output calibration summaries, calibrated scores, age-bin errors, and residual strata by sex, chemistry, collection method, race/ethnicity, site, and cell-yield quartile. Random forest remains best by raw and recalibrated MAE (13.85 and 13.84), but all non-null models are under-dispersed with ORA-on-age calibration slopes around 0.11-0.18; young donors are overpredicted and old donors are underpredicted, so ORA should be interpreted as a relative aging/regenerative-state axis rather than an absolute age clock.

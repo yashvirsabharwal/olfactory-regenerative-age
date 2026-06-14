@@ -289,6 +289,41 @@ class ReportingTests(unittest.TestCase):
                 "selection_fraction": [1.0],
             }
         )
+        ora_calibration = pd.DataFrame(
+            {
+                "model": ["ridge", "random_forest"],
+                "n": [4, 4],
+                "calibration_slope_ora_on_age": [0.8, 0.9],
+                "calibration_intercept_ora_on_age": [10.0, 5.0],
+                "mae": [9.0, 8.0],
+                "calibrated_mae": [7.0, 6.5],
+                "spearman_r": [0.5, 0.6],
+            }
+        )
+        ora_age_bin_errors = pd.DataFrame(
+            {
+                "model": ["ridge", "ridge", "ridge"],
+                "group": ["age_bin", "age_bin", "age_bin"],
+                "level": ["young", "middle", "old"],
+                "n": [1, 2, 1],
+                "mean_error": [2.0, -1.0, 3.0],
+                "mae": [2.0, 1.5, 3.0],
+                "calibrated_mean_error": [0.5, -0.2, 0.8],
+                "calibrated_mae": [0.5, 0.8, 0.8],
+            }
+        )
+        ora_residual_diagnostics = pd.DataFrame(
+            {
+                "model": ["ridge", "random_forest"],
+                "group": ["chemistry", "collection_method"],
+                "level": ["flex_v2", "device"],
+                "n": [6, 6],
+                "mean_error": [4.0, -3.0],
+                "mae": [4.5, 3.5],
+                "mean_oraa": [0.2, -0.3],
+                "calibrated_mean_error": [1.0, -1.2],
+            }
+        )
         ndd_projection = pd.DataFrame(
             {
                 "donor_id": ["d1", "d2", "d3", "d4"] * 2,
@@ -379,6 +414,9 @@ class ReportingTests(unittest.TestCase):
                 ndd_projection_summary=ndd_projection_summary,
                 ndd_projection_uncertainty=ndd_projection_uncertainty,
                 ndd_projection_context=ndd_projection_context,
+                ora_calibration=ora_calibration,
+                ora_age_bin_errors=ora_age_bin_errors,
+                ora_residual_diagnostics=ora_residual_diagnostics,
                 external_validation_summary=external_validation_summary,
                 external_gene_list_coverage=external_gene_list_coverage,
                 external_feature_contract=external_feature_contract,
@@ -423,6 +461,8 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("collection_method__brush", report_text)
             self.assertIn("Repeated-CV ORA Stability", report_text)
             self.assertIn("clr__cdc1", report_text)
+            self.assertIn("ORA Calibration Diagnostics", report_text)
+            self.assertIn("calibrated MAE", report_text)
             self.assertIn("External Validation Readiness", report_text)
             self.assertIn("toy_external", report_text)
             self.assertIn("module_score__", report_text)

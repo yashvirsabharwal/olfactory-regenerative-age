@@ -39,6 +39,9 @@ def generate_mvp_report(
     augmented_performance: pd.DataFrame | None = None,
     augmented_scores: pd.DataFrame | None = None,
     augmented_importance: pd.DataFrame | None = None,
+    ora_calibration: pd.DataFrame | None = None,
+    ora_age_bin_errors: pd.DataFrame | None = None,
+    ora_residual_diagnostics: pd.DataFrame | None = None,
     ndd_projection: pd.DataFrame | None = None,
     ndd_projection_summary: pd.DataFrame | None = None,
     ndd_projection_uncertainty: pd.DataFrame | None = None,
@@ -92,6 +95,9 @@ def generate_mvp_report(
         associations=associations,
         performance=performance,
         importance=importance,
+        ora_calibration=ora_calibration,
+        ora_age_bin_errors=ora_age_bin_errors,
+        ora_residual_diagnostics=ora_residual_diagnostics,
         augmented_performance=augmented_performance,
         augmented_importance=augmented_importance,
         ndd_projection=ndd_projection,
@@ -241,6 +247,9 @@ def render_mvp_markdown(
     associations: pd.DataFrame,
     performance: pd.DataFrame,
     importance: pd.DataFrame,
+    ora_calibration: pd.DataFrame | None,
+    ora_age_bin_errors: pd.DataFrame | None,
+    ora_residual_diagnostics: pd.DataFrame | None,
     augmented_performance: pd.DataFrame | None,
     augmented_importance: pd.DataFrame | None,
     ndd_projection: pd.DataFrame | None,
@@ -319,6 +328,41 @@ def render_mvp_markdown(
         _figure_link(report_path, figure_paths.get("predictions"), "Predicted age versus chronological age"),
         "",
     ]
+    if _has_ora_diagnostics(ora_calibration, ora_age_bin_errors, ora_residual_diagnostics):
+        lines.extend(
+            [
+                "## ORA Calibration Diagnostics",
+                "",
+                _ora_calibration_summary_sentence(ora_calibration),
+                "",
+                _markdown_table(
+                    ora_calibration if ora_calibration is not None else pd.DataFrame(),
+                    [
+                        "model",
+                        "n",
+                        "calibration_slope_ora_on_age",
+                        "calibration_intercept_ora_on_age",
+                        "mae",
+                        "calibrated_mae",
+                        "spearman_r",
+                    ],
+                    max_rows=20,
+                ),
+                "",
+                _markdown_table(
+                    _diagnostic_model_subset(ora_age_bin_errors, group_col="group", levels=["young", "middle", "old"]),
+                    ["model", "group", "level", "n", "mean_error", "mae", "calibrated_mean_error", "calibrated_mae"],
+                    max_rows=30,
+                ),
+                "",
+                _markdown_table(
+                    _top_residual_diagnostics(ora_residual_diagnostics, top_n=20),
+                    ["model", "group", "level", "n", "mean_error", "mae", "mean_oraa", "calibrated_mean_error"],
+                    max_rows=20,
+                ),
+                "",
+            ]
+        )
     if augmented_performance is not None and not augmented_performance.empty:
         lines.extend(
             [
@@ -658,6 +702,7 @@ def render_mvp_markdown(
         "- NDD ORA projections use frozen healthy-trained models; projected AD/PD donors are not included in training or cross-validation.",
         "- Module scores are average log1p expression over curated marker sets, summarized at donor and cell-state levels.",
         "- Pseudobulk DE includes both unadjusted donor-level logCPM Welch contrasts and targeted covariate-adjusted linear models.",
+        "- ORA predictions are under-dispersed across chronological age; calibration diagnostics support using ORA as a relative tissue-state axis rather than an absolute biological-age estimator.",
         "- Genome-wide pseudobulk counts now have a local edgeR quasi-likelihood workflow; limma-voom and DESeq2 remain adapter hooks.",
         "- Genome-wide NDD DE is discovery-oriented only: AD/PD sample sizes are five donors each and sex/chemistry/collection imbalance can dominate top hits.",
         "- Trajectory density, Milo, and cNMF remain deferred commands.",
@@ -1034,6 +1079,73 @@ def _has_module_tables(
     donor_module_features: pd.DataFrame | None,
 ) -> bool:
     return any(frame is not None and not frame.empty for frame in [module_summary, module_coverage, donor_module_features])
+
+
+def _has_ora_diagnostics(
+    ora_calibration: pd.DataFrame | None,
+    ora_age_bin_errors: pd.DataFrame | None,
+    ora_residual_diagnostics: pd.DataFrame | None,
+) -> bool:
+    return any(frame is not None and not frame.empty for frame in [ora_calibration, ora_age_bin_errors, ora_residual_diagnostics])
+
+
+def _ora_calibration_summary_sentence(ora_calibration: pd.DataFrame | None) -> str:
+    if ora_calibration is None or ora_calibration.empty:
+        return "_No ORA calibration diagnostics available._"
+    frame = ora_calibration.copy()
+    frame["mae"] = pd.to_numeric(frame.get("mae"), errors="coerce")
+    frame["calibrated_mae"] = pd.to_numeric(frame.get("calibrated_mae"), errors="coerce")
+    non_null = frame[~frame["model"].eq("null_model")] if "model" in frame else frame
+    if non_null.empty:
+        non_null = frame
+    best = non_null.sort_values("mae").iloc[0]
+    best_calibrated = non_null.sort_values("calibrated_mae").iloc[0]
+    return (
+        f"Out-of-fold calibration diagnostics compare raw ORA to a simple linear recalibration of predicted age. "
+        f"Best raw MAE is {_format_table_value(best.get('mae'))} for `{best.get('model')}`; "
+        f"best recalibrated MAE is {_format_table_value(best_calibrated.get('calibrated_mae'))} "
+        f"for `{best_calibrated.get('model')}`."
+    )
+
+
+def _diagnostic_model_subset(
+    diagnostics: pd.DataFrame | None,
+    *,
+    group_col: str,
+    levels: list[str],
+) -> pd.DataFrame:
+    columns = ["model", "group", "level", "n", "mean_error", "mae", "calibrated_mean_error", "calibrated_mae"]
+    if diagnostics is None or diagnostics.empty or not set(columns).issubset(diagnostics.columns):
+        return pd.DataFrame(columns=columns)
+    frame = diagnostics.copy()
+    frame = frame[frame[group_col].eq("age_bin") & frame["level"].astype(str).isin(levels)]
+    frame["_level_order"] = frame["level"].astype(str).map({level: idx for idx, level in enumerate(levels)}).fillna(len(levels))
+    frame["_model_order"] = frame["model"].astype(str).map(_model_order_map()).fillna(99)
+    return (
+        frame.sort_values(["_model_order", "_level_order"])[columns]
+        .reset_index(drop=True)
+    )
+
+
+def _top_residual_diagnostics(diagnostics: pd.DataFrame | None, top_n: int) -> pd.DataFrame:
+    columns = ["model", "group", "level", "n", "mean_error", "mae", "mean_oraa", "calibrated_mean_error"]
+    if diagnostics is None or diagnostics.empty or not set(columns).issubset(diagnostics.columns):
+        return pd.DataFrame(columns=columns)
+    frame = diagnostics.copy()
+    frame = frame[~frame["group"].eq("age_bin")].copy()
+    frame["n"] = pd.to_numeric(frame["n"], errors="coerce")
+    frame["mean_error"] = pd.to_numeric(frame["mean_error"], errors="coerce")
+    frame["abs_mean_error"] = frame["mean_error"].abs()
+    return (
+        frame[frame["n"].ge(5)]
+        .sort_values(["abs_mean_error", "mae"], ascending=[False, False])
+        .head(top_n)[columns]
+        .reset_index(drop=True)
+    )
+
+
+def _model_order_map() -> dict[str, int]:
+    return {"null_model": 0, "ridge": 1, "lasso": 2, "elastic_net": 3, "random_forest": 4}
 
 
 def _has_external_validation_tables(

@@ -4,7 +4,7 @@ R_ENV ?= .mamba/ora-r
 MICROMAMBA ?= $(HOME)/.local/bin/micromamba
 RSCRIPT ?= $(MICROMAMBA) run -p $(R_ENV) Rscript
 
-.PHONY: setup test download-gateway download-info toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-repeated model-ora-augmented project-ndd project-ndd-uncertainty report modules published-gene-modules external-validation trajectory pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-genomewide-edger pseudobulk-genomewide-de-summary pseudobulk-covariate-de ora-sensitivity milo cnmf clean
+.PHONY: setup test download-gateway download-info toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-diagnostics model-ora-repeated model-ora-augmented project-ndd project-ndd-uncertainty report modules published-gene-modules external-validation trajectory pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-genomewide-edger pseudobulk-genomewide-de-summary pseudobulk-covariate-de ora-sensitivity milo cnmf clean
 
 setup:
 	$(PYTHON) -m pip install -e ".[dev]"
@@ -44,6 +44,9 @@ age-associations:
 
 model-ora:
 	$(PYTHON) scripts/run_age_models.py --features data/processed/ora_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --config configs/models.yaml
+
+model-ora-diagnostics:
+	$(PYTHON) scripts/summarize_ora_diagnostics.py --model-config configs/models.yaml --gateway-config configs/gateway.yaml
 
 model-ora-repeated:
 	$(PYTHON) scripts/run_age_models_repeated.py --features data/processed/ora_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --model-config configs/models.yaml --gateway-config configs/gateway.yaml
