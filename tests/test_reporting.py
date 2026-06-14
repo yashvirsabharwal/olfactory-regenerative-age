@@ -338,6 +338,32 @@ class ReportingTests(unittest.TestCase):
                 "median_total_cells": [1000, 800],
             }
         )
+        external_validation_summary = pd.DataFrame(
+            {
+                "dataset_id": ["toy_external"],
+                "status": ["metadata_pending"],
+                "validation_use": ["aging replication"],
+                "expected_level": ["donor_feature_matrix"],
+                "ready_for_feature_validation": [False],
+                "ready_for_raw_adapter": [False],
+                "files_missing": ["feature_matrix,expression,metadata"],
+            }
+        )
+        external_gene_list_coverage = pd.DataFrame(
+            {
+                "gene_list": ["aging"],
+                "n_requested": [2],
+                "n_present": [2],
+                "coverage_fraction": [1.0],
+                "missing_genes": [""],
+            }
+        )
+        external_feature_contract = pd.DataFrame(
+            {
+                "field": ["donor_id", "age", "module_score__"],
+                "kind": ["required_column", "required_column", "accepted_feature_prefix"],
+            }
+        )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             out = Path(tmpdir) / "reports" / "mvp.md"
@@ -353,6 +379,9 @@ class ReportingTests(unittest.TestCase):
                 ndd_projection_summary=ndd_projection_summary,
                 ndd_projection_uncertainty=ndd_projection_uncertainty,
                 ndd_projection_context=ndd_projection_context,
+                external_validation_summary=external_validation_summary,
+                external_gene_list_coverage=external_gene_list_coverage,
+                external_feature_contract=external_feature_contract,
                 pseudobulk_de=pseudobulk_de,
                 pseudobulk_coverage=pseudobulk_coverage,
                 pseudobulk_metadata=pseudobulk_metadata,
@@ -394,6 +423,9 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("collection_method__brush", report_text)
             self.assertIn("Repeated-CV ORA Stability", report_text)
             self.assertIn("clr__cdc1", report_text)
+            self.assertIn("External Validation Readiness", report_text)
+            self.assertIn("toy_external", report_text)
+            self.assertIn("module_score__", report_text)
             self.assertIn("ad_vs_healthy", report_text)
             self.assertGreaterEqual(len(written), 6)
             self.assertTrue((figures / "mvp_model_performance.png").exists())

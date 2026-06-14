@@ -4,7 +4,7 @@ R_ENV ?= .mamba/ora-r
 MICROMAMBA ?= $(HOME)/.local/bin/micromamba
 RSCRIPT ?= $(MICROMAMBA) run -p $(R_ENV) Rscript
 
-.PHONY: setup test download-gateway download-info toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-repeated model-ora-augmented project-ndd project-ndd-uncertainty report modules external-validation trajectory pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-genomewide-edger pseudobulk-genomewide-de-summary pseudobulk-covariate-de ora-sensitivity milo cnmf clean
+.PHONY: setup test download-gateway download-info toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-repeated model-ora-augmented project-ndd project-ndd-uncertainty report modules published-gene-modules external-validation trajectory pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-genomewide-edger pseudobulk-genomewide-de-summary pseudobulk-covariate-de ora-sensitivity milo cnmf clean
 
 setup:
 	$(PYTHON) -m pip install -e ".[dev]"
@@ -65,6 +65,9 @@ trajectory:
 
 modules:
 	$(PYTHON) scripts/score_gene_sets.py --config configs/gateway.yaml --gene-sets configs/gene_sets.yaml
+
+published-gene-modules:
+	$(PYTHON) scripts/score_gene_sets.py --config configs/gateway.yaml --gene-sets configs/external_datasets.yaml --summary-out results/tables/published_module_score_summary.tsv --coverage-out results/tables/published_module_gene_list_coverage.tsv --donor-features-out data/processed/published_donor_module_features.tsv
 
 external-validation:
 	$(PYTHON) scripts/summarize_external_validation.py --external-config configs/external_datasets.yaml --gateway-config configs/gateway.yaml

@@ -35,6 +35,19 @@ class ModuleTests(unittest.TestCase):
         self.assertEqual(parsed[0].genes, ("A", "B"))
         self.assertEqual(parsed[0].description, "module")
 
+    def test_parse_gene_sets_accepts_published_gene_lists(self):
+        parsed = parse_gene_sets(
+            {
+                "published_gene_lists": {
+                    "aging": {"description": "Published aging list", "genes": ["CDKN1A", "CDKN2A"]}
+                }
+            }
+        )
+
+        self.assertEqual(parsed[0].name, "aging")
+        self.assertEqual(parsed[0].genes, ("CDKN1A", "CDKN2A"))
+        self.assertEqual(parsed[0].description, "Published aging list")
+
     def test_resolve_gene_sets_uses_feature_name(self):
         var = pd.DataFrame({"feature_name": ["TP63", "OMP", "SNCA"]}, index=["ENSG1", "ENSG2", "ENSG3"])
         gene_sets = parse_gene_sets({"gene_sets": {"olf": {"genes": ["TP63", "OMP", "MISSING"]}}})

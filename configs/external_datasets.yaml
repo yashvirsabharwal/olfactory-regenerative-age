@@ -98,3 +98,6 @@ outputs:
   validation_summary_tsv: "results/tables/external_validation_summary.tsv"
   gene_list_coverage_tsv: "results/tables/external_gene_list_coverage.tsv"
   feature_contract_tsv: "results/tables/external_feature_contract.tsv"
+  published_module_score_summary_tsv: "results/tables/published_module_score_summary.tsv"
+  published_module_gene_list_coverage_tsv: "results/tables/published_module_gene_list_coverage.tsv"
+  published_donor_module_features_tsv: "data/processed/published_donor_module_features.tsv"

@@ -46,6 +46,9 @@ def generate_mvp_report(
     module_summary: pd.DataFrame | None = None,
     module_coverage: pd.DataFrame | None = None,
     donor_module_features: pd.DataFrame | None = None,
+    external_validation_summary: pd.DataFrame | None = None,
+    external_gene_list_coverage: pd.DataFrame | None = None,
+    external_feature_contract: pd.DataFrame | None = None,
     pseudobulk_de: pd.DataFrame | None = None,
     pseudobulk_coverage: pd.DataFrame | None = None,
     pseudobulk_metadata: pd.DataFrame | None = None,
@@ -98,6 +101,9 @@ def generate_mvp_report(
         module_summary=module_summary,
         module_coverage=module_coverage,
         donor_module_features=donor_module_features,
+        external_validation_summary=external_validation_summary,
+        external_gene_list_coverage=external_gene_list_coverage,
+        external_feature_contract=external_feature_contract,
         pseudobulk_de=pseudobulk_de,
         pseudobulk_coverage=pseudobulk_coverage,
         pseudobulk_metadata=pseudobulk_metadata,
@@ -244,6 +250,9 @@ def render_mvp_markdown(
     module_summary: pd.DataFrame | None,
     module_coverage: pd.DataFrame | None,
     donor_module_features: pd.DataFrame | None,
+    external_validation_summary: pd.DataFrame | None,
+    external_gene_list_coverage: pd.DataFrame | None,
+    external_feature_contract: pd.DataFrame | None,
     pseudobulk_de: pd.DataFrame | None,
     pseudobulk_coverage: pd.DataFrame | None,
     pseudobulk_metadata: pd.DataFrame | None,
@@ -436,6 +445,41 @@ def render_mvp_markdown(
                 ),
                 "",
                 _figure_link(report_path, figure_paths.get("module_scores"), "Module scores by cell state"),
+                "",
+            ]
+        )
+    if _has_external_validation_tables(external_validation_summary, external_gene_list_coverage, external_feature_contract):
+        lines.extend(
+            [
+                "## External Validation Readiness",
+                "",
+                _external_validation_summary_sentence(external_validation_summary, external_gene_list_coverage),
+                "",
+                _markdown_table(
+                    external_validation_summary if external_validation_summary is not None else pd.DataFrame(),
+                    [
+                        "dataset_id",
+                        "status",
+                        "validation_use",
+                        "expected_level",
+                        "ready_for_feature_validation",
+                        "ready_for_raw_adapter",
+                        "files_missing",
+                    ],
+                    max_rows=20,
+                ),
+                "",
+                _markdown_table(
+                    external_gene_list_coverage if external_gene_list_coverage is not None else pd.DataFrame(),
+                    ["gene_list", "n_requested", "n_present", "coverage_fraction", "missing_genes"],
+                    max_rows=20,
+                ),
+                "",
+                _markdown_table(
+                    external_feature_contract if external_feature_contract is not None else pd.DataFrame(),
+                    ["field", "kind"],
+                    max_rows=20,
+                ),
                 "",
             ]
         )
@@ -990,6 +1034,50 @@ def _has_module_tables(
     donor_module_features: pd.DataFrame | None,
 ) -> bool:
     return any(frame is not None and not frame.empty for frame in [module_summary, module_coverage, donor_module_features])
+
+
+def _has_external_validation_tables(
+    external_validation_summary: pd.DataFrame | None,
+    external_gene_list_coverage: pd.DataFrame | None,
+    external_feature_contract: pd.DataFrame | None,
+) -> bool:
+    return any(
+        frame is not None and not frame.empty
+        for frame in [external_validation_summary, external_gene_list_coverage, external_feature_contract]
+    )
+
+
+def _external_validation_summary_sentence(
+    external_validation_summary: pd.DataFrame | None,
+    external_gene_list_coverage: pd.DataFrame | None,
+) -> str:
+    dataset_count = (
+        _format_int(external_validation_summary["dataset_id"].nunique())
+        if external_validation_summary is not None
+        and not external_validation_summary.empty
+        and "dataset_id" in external_validation_summary
+        else "0"
+    )
+    feature_ready = (
+        int(external_validation_summary["ready_for_feature_validation"].astype(bool).sum())
+        if external_validation_summary is not None
+        and not external_validation_summary.empty
+        and "ready_for_feature_validation" in external_validation_summary
+        else 0
+    )
+    gene_lists = (
+        _format_int(external_gene_list_coverage["gene_list"].nunique())
+        if external_gene_list_coverage is not None
+        and not external_gene_list_coverage.empty
+        and "gene_list" in external_gene_list_coverage
+        else "0"
+    )
+    return (
+        f"External validation registry currently tracks {dataset_count} candidate datasets; "
+        f"{_format_int(feature_ready)} have all files needed for donor-level feature replication. "
+        f"Published validation gene-list coverage is available for {gene_lists} lists and can now be scored "
+        "through the module-scoring command by passing the external dataset config."
+    )
 
 
 def _has_ndd_projection(

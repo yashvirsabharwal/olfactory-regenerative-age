@@ -36,7 +36,7 @@ def parse_gene_sets(config: dict[str, Any]) -> list[GeneSet]:
     """Parse flexible gene-set config entries."""
 
     parsed: list[GeneSet] = []
-    for name, spec in config.get("gene_sets", {}).items():
+    for name, spec in _iter_gene_set_specs(config):
         description = ""
         if isinstance(spec, dict):
             genes = spec.get("genes", [])
@@ -47,6 +47,17 @@ def parse_gene_sets(config: dict[str, Any]) -> list[GeneSet]:
         if genes_tuple:
             parsed.append(GeneSet(name=str(name), genes=genes_tuple, description=description))
     return parsed
+
+
+def _iter_gene_set_specs(config: dict[str, Any]) -> list[tuple[str, Any]]:
+    entries: list[tuple[str, Any]] = []
+    entries.extend((str(name), spec) for name, spec in config.get("gene_sets", {}).items())
+    for name, spec in config.get("published_gene_lists", {}).items():
+        gene_set_name = str(name)
+        if any(existing == gene_set_name for existing, _ in entries):
+            gene_set_name = f"published_{gene_set_name}"
+        entries.append((gene_set_name, spec))
+    return entries
 
 
 def resolve_gene_sets(

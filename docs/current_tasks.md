@@ -29,10 +29,10 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [x] Add external feature-matrix import contract for donor-level validation files.
 - [x] Add published gene-list registry for aging, NDD, olfactory regeneration, and inflammation signatures.
 - [x] Add gene-list validation command that reports coverage against Gateway genes.
-- [ ] Add module scoring support for imported published gene lists.
+- [x] Add module scoring support for imported published gene lists.
 - [ ] Test whether ORA-associated composition/module features replicate outside Gateway.
 - [ ] Compare Gateway ORA signatures against external aging or disease contrasts.
-- [ ] Report external validation status in the MVP report.
+- [x] Report external validation status in the MVP report.
 
 ## Phase 2: Genome-Wide Pseudobulk DE
 
@@ -119,3 +119,4 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - 2026-06-13: Added 10-repeat donor-level CV for ORA. Composition-only random forest mean MAE is 14.20 with empirical 95% interval 13.87-14.48, and mean Spearman r is 0.330 with interval 0.306-0.365.
 - 2026-06-14: Added NDD projection bootstrap uncertainty and chemistry/device context. AD and PD each have 5 donors, all FLEX v2/device; matched healthy FLEX v2/device reference has 16 donors. Negative ORAA remains below matched healthy reference for random forest: AD mean -9.06, matched difference -8.54 (95% bootstrap interval -12.66 to -3.67); PD mean -12.17, matched difference -11.65 (-17.51 to -6.66).
 - 2026-06-14: Installed a local micromamba R/Bioconductor environment (`.mamba/ora-r`) with edgeR 4.4.0, limma 3.62.1, DESeq2 1.46.0, data.table, optparse, and R.utils. Full genome-wide edgeR QL DE completed on the 18,127-gene export, producing 862,707 tested gene/cell-state/contrast rows across 83 successful models. At FDR < 0.05, AD vs healthy has 819 significant rows across 28 cell states and PD vs healthy has 839 significant rows across 38 cell states. PD top hits are dominated by Y-linked sentinel genes because the PD cohort is 1 male/4 female versus healthy 77 male/113 female/2 unknown; report now includes a non-sex-linked top-hit table for transparent triage.
+- 2026-06-14: Connected published external gene lists to the module-scoring engine and MVP report. Full Gateway scoring completed for four published-list modules (aging, olfactory regeneration, neurodegeneration risk, neuroinflammation), generating 60,772 grouped score rows and 202-donor features. All 36 requested genes resolve in Gateway. External validation registry tracks three candidate datasets, but none are feature-ready until expression/metadata or donor feature matrices are supplied.

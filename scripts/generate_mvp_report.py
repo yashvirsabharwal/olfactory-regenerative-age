@@ -34,6 +34,9 @@ def main() -> None:
     parser.add_argument("--module-summary", default=None)
     parser.add_argument("--module-coverage", default=None)
     parser.add_argument("--donor-module-features", default=None)
+    parser.add_argument("--external-validation-summary", default=None)
+    parser.add_argument("--external-gene-list-coverage", default=None)
+    parser.add_argument("--external-feature-contract", default=None)
     parser.add_argument("--pseudobulk-de", default=None)
     parser.add_argument("--pseudobulk-coverage", default=None)
     parser.add_argument("--pseudobulk-metadata", default=None)
@@ -82,6 +85,12 @@ def main() -> None:
         or outputs.get("module_gene_coverage_tsv", "results/tables/module_gene_coverage.tsv"),
         "donor_module_features": args.donor_module_features
         or outputs.get("donor_module_features_tsv", "data/processed/donor_module_features.tsv"),
+        "external_validation_summary": args.external_validation_summary
+        or outputs.get("external_validation_summary_tsv", "results/tables/external_validation_summary.tsv"),
+        "external_gene_list_coverage": args.external_gene_list_coverage
+        or outputs.get("external_gene_list_coverage_tsv", "results/tables/external_gene_list_coverage.tsv"),
+        "external_feature_contract": args.external_feature_contract
+        or outputs.get("external_feature_contract_tsv", "results/tables/external_feature_contract.tsv"),
         "pseudobulk_de": args.pseudobulk_de or outputs.get("pseudobulk_de_tsv", "results/tables/pseudobulk_de.tsv"),
         "pseudobulk_coverage": args.pseudobulk_coverage
         or outputs.get("pseudobulk_gene_coverage_tsv", "results/tables/pseudobulk_gene_coverage.tsv"),
@@ -131,6 +140,9 @@ def main() -> None:
         module_summary=_read_optional_tsv(paths["module_summary"]),
         module_coverage=_read_optional_tsv(paths["module_coverage"]),
         donor_module_features=_read_optional_tsv(paths["donor_module_features"]),
+        external_validation_summary=_read_optional_tsv(paths["external_validation_summary"]),
+        external_gene_list_coverage=_read_optional_tsv(paths["external_gene_list_coverage"]),
+        external_feature_contract=_read_optional_tsv(paths["external_feature_contract"]),
         pseudobulk_de=_read_optional_tsv(paths["pseudobulk_de"]),
         pseudobulk_coverage=_read_optional_tsv(paths["pseudobulk_coverage"]),
         pseudobulk_metadata=_read_optional_tsv(paths["pseudobulk_metadata"]),
