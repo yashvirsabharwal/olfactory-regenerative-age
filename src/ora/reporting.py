@@ -862,7 +862,7 @@ def _plot_predictions(scores: pd.DataFrame, path: Path, plt: Any) -> None:
     if scores.empty or not {"model", "chronological_age", "ora"}.issubset(scores.columns):
         _blank_figure(path, plt, "No ORA predictions available")
         return
-    frame = scores[scores["model"].isin(["ridge", "lasso", "elastic_net", "random_forest"])].copy()
+    frame = scores[scores["model"].isin(_display_models())].copy()
     if frame.empty:
         frame = scores.copy()
     models = list(frame["model"].drop_duplicates())
@@ -910,7 +910,7 @@ def _plot_ndd_projection(projection: pd.DataFrame, path: Path, plt: Any) -> None
     if projection.empty or not required.issubset(projection.columns):
         _blank_figure(path, plt, "No NDD projection available")
         return
-    frame = projection[projection["model"].isin(["ridge", "lasso", "elastic_net", "random_forest"])].copy()
+    frame = projection[projection["model"].isin(_display_models())].copy()
     if frame.empty:
         frame = projection.copy()
     frame["oraa"] = pd.to_numeric(frame["oraa"], errors="coerce")
@@ -1041,7 +1041,7 @@ def _plot_pseudobulk_covariate_de(pseudobulk_de: pd.DataFrame, path: Path, plt: 
 def _top_importance(importance: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
     if importance.empty or not {"model", "feature", "importance"}.issubset(importance.columns):
         return pd.DataFrame(columns=["model", "feature", "importance", "stability"])
-    frame = importance[importance["model"].isin(["ridge", "lasso", "elastic_net", "random_forest"])].copy()
+    frame = importance[importance["model"].isin(_display_models())].copy()
     if frame.empty:
         frame = importance.copy()
     frame["abs_importance"] = pd.to_numeric(frame["importance"], errors="coerce").abs()
@@ -1145,7 +1145,20 @@ def _top_residual_diagnostics(diagnostics: pd.DataFrame | None, top_n: int) -> p
 
 
 def _model_order_map() -> dict[str, int]:
-    return {"null_model": 0, "ridge": 1, "lasso": 2, "elastic_net": 3, "random_forest": 4}
+    return {
+        "null_model": 0,
+        "ridge": 1,
+        "lasso": 2,
+        "elastic_net": 3,
+        "random_forest": 4,
+        "extra_trees": 5,
+        "gradient_boosting": 6,
+        "tree_ensemble": 7,
+    }
+
+
+def _display_models() -> list[str]:
+    return ["ridge", "lasso", "elastic_net", "random_forest", "extra_trees", "gradient_boosting", "tree_ensemble"]
 
 
 def _has_external_validation_tables(

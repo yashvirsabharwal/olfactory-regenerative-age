@@ -8,6 +8,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from ora.age_model import (
+    MODEL_ORDER,
     biological_feature_columns,
     donor_cv_folds,
     project_ora_models,
@@ -76,7 +77,7 @@ class AgeModelTests(unittest.TestCase):
 
         result = train_ora_models(features, manifest, {"outer_cv_folds": 5, "random_seed": 1})
 
-        self.assertEqual(set(result.performance["model"]), {"null_model", "ridge", "lasso", "elastic_net", "random_forest"})
+        self.assertEqual(set(result.performance["model"]), set(MODEL_ORDER))
         self.assertEqual(set(result.predictions["donor_id"]), set(donors[:10]))
         self.assertTrue(result.predictions["oraa"].notna().all())
 
@@ -112,7 +113,7 @@ class AgeModelTests(unittest.TestCase):
             {"outer_cv_folds": 3, "outer_cv_repeats": 2, "random_seed": 1},
         )
 
-        self.assertEqual(set(result.performance_summary["model"]), {"null_model", "ridge", "lasso", "elastic_net", "random_forest"})
+        self.assertEqual(set(result.performance_summary["model"]), set(MODEL_ORDER))
         self.assertTrue({"mae_mean", "mae_ci_low", "mae_ci_high"}.issubset(result.performance_summary.columns))
         self.assertEqual(result.repeat_performance["repeat"].nunique(), 2)
         self.assertFalse(result.feature_stability.empty)

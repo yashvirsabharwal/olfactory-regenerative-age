@@ -18,7 +18,15 @@ class NDDUncertaintyResult:
 def summarize_ndd_projection_uncertainty(
     projection: pd.DataFrame,
     *,
-    models: Iterable[str] = ("ridge", "lasso", "elastic_net", "random_forest"),
+    models: Iterable[str] = (
+        "ridge",
+        "lasso",
+        "elastic_net",
+        "random_forest",
+        "extra_trees",
+        "gradient_boosting",
+        "tree_ensemble",
+    ),
     diseases: Iterable[str] = ("ad", "pd"),
     n_bootstrap: int = 5000,
     random_seed: int = 42,

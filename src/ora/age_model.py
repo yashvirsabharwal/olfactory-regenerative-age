@@ -29,7 +29,16 @@ TECHNICAL_EXACT = {
     "mature_neurons",
 }
 
-MODEL_ORDER = ["null_model", "ridge", "lasso", "elastic_net", "random_forest"]
+MODEL_ORDER = [
+    "null_model",
+    "ridge",
+    "lasso",
+    "elastic_net",
+    "random_forest",
+    "extra_trees",
+    "gradient_boosting",
+    "tree_ensemble",
+]
 
 
 @dataclass
@@ -120,8 +129,14 @@ def train_ora_models(
                 fold_pred, coefs = _fit_lasso_or_linear(x_train, y_train, x_test, model_config)
             elif model_name == "elastic_net":
                 fold_pred, coefs = _fit_elastic_or_linear(x_train, y_train, x_test, model_config)
-            else:
+            elif model_name == "random_forest":
                 fold_pred, coefs = _fit_random_forest_or_linear(x_train, y_train, x_test, model_config)
+            elif model_name == "extra_trees":
+                fold_pred, coefs = _fit_extra_trees_or_linear(x_train, y_train, x_test, model_config)
+            elif model_name == "gradient_boosting":
+                fold_pred, coefs = _fit_gradient_boosting_or_linear(x_train, y_train, x_test, model_config)
+            else:
+                fold_pred, coefs = _fit_tree_ensemble_or_linear(x_train, y_train, x_test, model_config)
             pred[test_idx] = fold_pred
             if coefs is not None:
                 fold_importances.append(pd.DataFrame({"feature": feature_cols, "importance": coefs, "fold": fold_id}))
@@ -288,8 +303,14 @@ def project_ora_models(
             pred, _ = _fit_lasso_or_linear(x_train, y_train, x_project, model_config)
         elif model_name == "elastic_net":
             pred, _ = _fit_elastic_or_linear(x_train, y_train, x_project, model_config)
-        else:
+        elif model_name == "random_forest":
             pred, _ = _fit_random_forest_or_linear(x_train, y_train, x_project, model_config)
+        elif model_name == "extra_trees":
+            pred, _ = _fit_extra_trees_or_linear(x_train, y_train, x_project, model_config)
+        elif model_name == "gradient_boosting":
+            pred, _ = _fit_gradient_boosting_or_linear(x_train, y_train, x_project, model_config)
+        else:
+            pred, _ = _fit_tree_ensemble_or_linear(x_train, y_train, x_project, model_config)
         frame = _projection_frame(project, model_name, pred, train.shape[0], len(feature_cols))
         rows.append(frame)
 
@@ -512,6 +533,71 @@ def _fit_random_forest_or_linear(
     except ModuleNotFoundError:
         coef, intercept = _ridge_closed_form(x_train, y_train, alpha=10.0)
         return x_test @ coef + intercept, np.abs(coef)
+
+
+def _fit_extra_trees_or_linear(
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    model_config: dict[str, Any],
+) -> tuple[np.ndarray, np.ndarray]:
+    try:
+        from sklearn.ensemble import ExtraTreesRegressor  # type: ignore
+
+        params = model_config.get("models", {}).get("extra_trees", {})
+        model = ExtraTreesRegressor(
+            n_estimators=int(params.get("n_estimators", 500)),
+            max_depth=params.get("max_depth", 5),
+            min_samples_leaf=int(params.get("min_samples_leaf", 2)),
+            max_features=params.get("max_features", "sqrt"),
+            random_state=int(model_config.get("random_seed", 42)),
+            n_jobs=-1,
+        )
+        model.fit(x_train, y_train)
+        return model.predict(x_test), np.asarray(model.feature_importances_, dtype=float)
+    except ModuleNotFoundError:
+        coef, intercept = _ridge_closed_form(x_train, y_train, alpha=10.0)
+        return x_test @ coef + intercept, np.abs(coef)
+
+
+def _fit_gradient_boosting_or_linear(
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    model_config: dict[str, Any],
+) -> tuple[np.ndarray, np.ndarray]:
+    try:
+        from sklearn.ensemble import GradientBoostingRegressor  # type: ignore
+
+        params = model_config.get("models", {}).get("gradient_boosting", {})
+        model = GradientBoostingRegressor(
+            n_estimators=int(params.get("n_estimators", 250)),
+            learning_rate=float(params.get("learning_rate", 0.03)),
+            max_depth=int(params.get("max_depth", 2)),
+            min_samples_leaf=int(params.get("min_samples_leaf", 5)),
+            subsample=float(params.get("subsample", 0.8)),
+            random_state=int(model_config.get("random_seed", 42)),
+        )
+        model.fit(x_train, y_train)
+        return model.predict(x_test), np.asarray(model.feature_importances_, dtype=float)
+    except ModuleNotFoundError:
+        coef, intercept = _ridge_closed_form(x_train, y_train, alpha=10.0)
+        return x_test @ coef + intercept, np.abs(coef)
+
+
+def _fit_tree_ensemble_or_linear(
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    model_config: dict[str, Any],
+) -> tuple[np.ndarray, np.ndarray]:
+    preds = []
+    importances = []
+    for fitter in [_fit_random_forest_or_linear, _fit_extra_trees_or_linear, _fit_gradient_boosting_or_linear]:
+        pred, importance = fitter(x_train, y_train, x_test, model_config)
+        preds.append(pred)
+        importances.append(importance)
+    return np.mean(np.vstack(preds), axis=0), np.mean(np.vstack(importances), axis=0)
 
 
 def _ridge_closed_form(x: np.ndarray, y: np.ndarray, alpha: float = 1.0) -> tuple[np.ndarray, float]:
