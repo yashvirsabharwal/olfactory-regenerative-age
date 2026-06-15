@@ -91,6 +91,131 @@ def ndd_projection_context(projection: pd.DataFrame) -> pd.DataFrame:
     )
 
 
+def compare_ndd_feature_sets(
+    projections: dict[str, pd.DataFrame],
+    *,
+    baseline: str = "composition",
+    augmented: str = "augmented",
+    diseases: Iterable[str] = ("ad", "pd"),
+    negative_epsilon: float = 1e-6,
+) -> pd.DataFrame:
+    """Compare disease ORAA means across frozen-projection feature sets."""
+
+    summaries = []
+    disease_set = {str(disease) for disease in diseases}
+    for feature_set, projection in projections.items():
+        if projection is None or projection.empty:
+            continue
+        frame = projection.copy()
+        frame["feature_set"] = str(feature_set)
+        frame["disease_group"] = frame["disease_group"].astype(str)
+        frame = frame[frame["disease_group"].isin(disease_set)].copy()
+        if frame.empty:
+            continue
+        for col in ["ora", "oraa", "n_features"]:
+            if col in frame:
+                frame[col] = pd.to_numeric(frame[col], errors="coerce")
+        summary = (
+            frame.groupby(["feature_set", "model", "disease_group"], observed=True, dropna=False)
+            .agg(
+                donors=("donor_id", "nunique"),
+                mean_ora=("ora", "mean"),
+                mean_oraa=("oraa", "mean"),
+                sd_oraa=("oraa", lambda s: float(pd.to_numeric(s, errors="coerce").std(ddof=0))),
+                n_features=("n_features", "max"),
+            )
+            .reset_index()
+        )
+        summaries.append(summary)
+    if not summaries:
+        return pd.DataFrame()
+
+    summary = pd.concat(summaries, ignore_index=True)
+    rows = []
+    for (model, disease), group in summary.groupby(["model", "disease_group"], observed=True, dropna=False):
+        by_feature = {str(row.feature_set): row for row in group.itertuples(index=False)}
+        base = by_feature.get(baseline)
+        aug = by_feature.get(augmented)
+        base_oraa = _row_value(base, "mean_oraa")
+        aug_oraa = _row_value(aug, "mean_oraa")
+        rows.append(
+            {
+                "model": model,
+                "disease_group": disease,
+                f"{baseline}_donors": _row_value(base, "donors"),
+                f"{augmented}_donors": _row_value(aug, "donors"),
+                f"{baseline}_n_features": _row_value(base, "n_features"),
+                f"{augmented}_n_features": _row_value(aug, "n_features"),
+                f"{baseline}_mean_ora": _row_value(base, "mean_ora"),
+                f"{augmented}_mean_ora": _row_value(aug, "mean_ora"),
+                f"{baseline}_mean_oraa": base_oraa,
+                f"{augmented}_mean_oraa": aug_oraa,
+                f"{augmented}_minus_{baseline}_oraa": aug_oraa - base_oraa
+                if np.isfinite(base_oraa) and np.isfinite(aug_oraa)
+                else np.nan,
+                "sign_stable_negative": bool(
+                    np.isfinite(base_oraa)
+                    and np.isfinite(aug_oraa)
+                    and base_oraa < -abs(float(negative_epsilon))
+                    and aug_oraa < -abs(float(negative_epsilon))
+                ),
+            }
+        )
+    out = pd.DataFrame(rows)
+    if out.empty:
+        return out
+    return out.sort_values(["disease_group", "model"]).reset_index(drop=True)
+
+
+def donor_projection_appendix(
+    projection: pd.DataFrame,
+    *,
+    feature_set: str | None = None,
+    models: Iterable[str] | None = None,
+    diseases: Iterable[str] = ("ad", "pd"),
+) -> pd.DataFrame:
+    """Return donor-level AD/PD projection rows for appendix export."""
+
+    if projection is None or projection.empty:
+        return pd.DataFrame()
+    frame = projection.copy()
+    if feature_set is not None and "feature_set" not in frame:
+        frame.insert(0, "feature_set", str(feature_set))
+    elif "feature_set" not in frame:
+        frame.insert(0, "feature_set", "unknown")
+    disease_set = {str(disease) for disease in diseases}
+    frame["disease_group"] = frame["disease_group"].astype(str)
+    frame = frame[frame["disease_group"].isin(disease_set)].copy()
+    if models is not None:
+        model_set = {str(model) for model in models}
+        frame = frame[frame["model"].astype(str).isin(model_set)].copy()
+    if frame.empty:
+        return pd.DataFrame()
+    columns = [
+        "feature_set",
+        "donor_id",
+        "disease_group",
+        "sex",
+        "race_ethnicity",
+        "chronological_age",
+        "chemistry",
+        "collection_method",
+        "site",
+        "total_cells",
+        "model",
+        "ora",
+        "oraa",
+        "training_n",
+        "n_features",
+    ]
+    for col in columns:
+        if col not in frame:
+            frame[col] = np.nan
+    for col in ["chronological_age", "total_cells", "ora", "oraa", "training_n", "n_features"]:
+        frame[col] = pd.to_numeric(frame[col], errors="coerce")
+    return frame[columns].sort_values(["feature_set", "disease_group", "donor_id", "model"]).reset_index(drop=True)
+
+
 def _matched_healthy_reference(healthy: pd.DataFrame, disease: pd.DataFrame) -> pd.DataFrame:
     reference = healthy.copy()
     for col in ["chemistry", "collection_method"]:
@@ -99,6 +224,15 @@ def _matched_healthy_reference(healthy: pd.DataFrame, disease: pd.DataFrame) -> 
             if values:
                 reference = reference[reference[col].astype(str).isin(values)]
     return reference
+
+
+def _row_value(row: object | None, field: str) -> float:
+    if row is None:
+        return float("nan")
+    value = getattr(row, field)
+    if pd.isna(value):
+        return float("nan")
+    return float(value)
 
 
 def _uncertainty_row(

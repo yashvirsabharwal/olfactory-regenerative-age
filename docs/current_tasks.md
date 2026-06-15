@@ -97,10 +97,10 @@ This is the working task board for the olfactory-regenerative-age project. Check
 ## Phase 5: Interpret NDD Projection Carefully
 
 - [x] Add explicit warning/report note that AD/PD sample size is 5 donors each.
-- [ ] Add sensitivity checks for negative ORAA.
+- [x] Add sensitivity checks for negative ORAA.
 - [x] Separate disease biology from device, chemistry, and sample-composition effects.
-- [ ] Compare NDD projection using composition-only vs module-augmented features.
-- [ ] Add donor-level NDD projection appendix table.
+- [x] Compare NDD projection using composition-only vs module-augmented features.
+- [x] Add donor-level NDD projection appendix table.
 - [ ] Add disease projection residual diagnostics by age, sex, chemistry, collection method, site, and yield.
 - [ ] Add matched healthy reference plots for FLEX v2/device-only donors.
 - [ ] Add disease projection permutation test with labels shuffled within compatible strata where possible.
@@ -175,3 +175,4 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - 2026-06-15: Added donor-level shuffled-age permutation/null testing with model-subset support, a CLI, unit tests, config outputs, and MVP report integration. A 50-permutation, 2-repeat augmented-feature null run completed for random forest, XGBoost, CatBoost, and the boosted ensemble. All four observed models beat every shuffled-label permutation for MAE and Spearman r, giving empirical p=0.0196 at this permutation depth. CatBoost observed MAE is 14.08 versus shuffled null mean 15.99; XGBoost observed MAE is 14.12 versus null mean 16.56; boosted ensemble observed MAE is 14.16 versus null mean 16.37; random forest observed MAE is 14.19 versus null mean 16.02.
 - 2026-06-15: Added leakage-safe nested hyperparameter tuning for top booster models with inner donor-level CV inside each outer fold, CLI outputs, unit tests, and MVP report integration. Native XGBoost/LightGBM required restoring the local `libomp.dylib` runtime link from `.mamba/ora-r`. A 5-repeat augmented-feature nested tuning run showed modest gains: tuned XGBoost mean MAE 14.04 (13.65-14.41) versus untuned repeated-CV mean 14.12, while tuned CatBoost mean MAE 14.08 (13.79-14.52) was essentially unchanged from untuned 14.08. Current conclusion: nested tuning helps a little for XGBoost but does not move the project anywhere near zero MAE.
 - 2026-06-15: Added leakage-safe out-of-fold stacking across ridge, random forest, XGBoost, and CatBoost with inner donor-fold meta-training, CLI outputs, unit tests, and MVP report integration. A 5-repeat augmented-feature run produced stacked-ensemble mean MAE 14.46 (13.98-14.88) and mean Spearman r 0.313, which is worse than tuned XGBoost MAE 14.04 and tuned CatBoost MAE 14.08. The ensemble weights were unstable across folds, so stacking is recorded as a negative benchmark rather than the preferred ORA model.
+- 2026-06-15: Added NDD projection feature-set sensitivity and donor appendix exports. The workflow reruns frozen ORA projection with composition-only and module-augmented features, emits a 24-row model/disease comparison, and writes a 240-row AD/PD donor appendix. Excluding the null model, all 11 model families show negative mean ORAA for both AD and PD under both feature sets; the largest feature-set shift was CatBoost AD, moving from -8.93 to -6.13 years. This supports directional stability of the exploratory NDD projection, but the sample size remains 5 AD and 5 PD donors.

@@ -46,6 +46,8 @@ def generate_mvp_report(
     ndd_projection_summary: pd.DataFrame | None = None,
     ndd_projection_uncertainty: pd.DataFrame | None = None,
     ndd_projection_context: pd.DataFrame | None = None,
+    ndd_projection_feature_comparison: pd.DataFrame | None = None,
+    ndd_projection_donor_appendix: pd.DataFrame | None = None,
     module_summary: pd.DataFrame | None = None,
     module_coverage: pd.DataFrame | None = None,
     donor_module_features: pd.DataFrame | None = None,
@@ -108,6 +110,8 @@ def generate_mvp_report(
         ndd_projection_summary=ndd_projection_summary,
         ndd_projection_uncertainty=ndd_projection_uncertainty,
         ndd_projection_context=ndd_projection_context,
+        ndd_projection_feature_comparison=ndd_projection_feature_comparison,
+        ndd_projection_donor_appendix=ndd_projection_donor_appendix,
         module_summary=module_summary,
         module_coverage=module_coverage,
         donor_module_features=donor_module_features,
@@ -279,6 +283,8 @@ def render_mvp_markdown(
     ndd_projection_summary: pd.DataFrame | None,
     ndd_projection_uncertainty: pd.DataFrame | None,
     ndd_projection_context: pd.DataFrame | None,
+    ndd_projection_feature_comparison: pd.DataFrame | None,
+    ndd_projection_donor_appendix: pd.DataFrame | None,
     module_summary: pd.DataFrame | None,
     module_coverage: pd.DataFrame | None,
     donor_module_features: pd.DataFrame | None,
@@ -592,6 +598,51 @@ def render_mvp_markdown(
                 "",
             ]
         )
+        ndd_feature_comparison = _top_ndd_feature_comparison(ndd_projection_feature_comparison, top_n=24)
+        if not ndd_feature_comparison.empty:
+            lines.extend(
+                [
+                    "### Feature-Set Projection Sensitivity",
+                    "",
+                    _markdown_table(
+                        ndd_feature_comparison,
+                        [
+                            "model",
+                            "disease_group",
+                            "composition_mean_oraa",
+                            "augmented_mean_oraa",
+                            "augmented_minus_composition_oraa",
+                            "sign_stable_negative",
+                        ],
+                        max_rows=24,
+                    ),
+                    "",
+                ]
+            )
+        ndd_donor_appendix = _top_ndd_donor_appendix(ndd_projection_donor_appendix, top_n=12)
+        if not ndd_donor_appendix.empty:
+            lines.extend(
+                [
+                    "### Donor Appendix Preview",
+                    "",
+                    _markdown_table(
+                        ndd_donor_appendix,
+                        [
+                            "feature_set",
+                            "donor_id",
+                            "disease_group",
+                            "chronological_age",
+                            "chemistry",
+                            "collection_method",
+                            "model",
+                            "ora",
+                            "oraa",
+                        ],
+                        max_rows=12,
+                    ),
+                    "",
+                ]
+            )
     if _has_module_tables(module_summary, module_coverage, donor_module_features):
         lines.extend(
             [
@@ -1385,6 +1436,52 @@ def _top_ndd_projection_rows(ndd_projection: pd.DataFrame | None, top_n: int) ->
     return frame.sort_values(["abs_oraa", "model"], ascending=[False, True]).head(top_n)[columns].reset_index(drop=True)
 
 
+def _top_ndd_feature_comparison(comparison: pd.DataFrame | None, top_n: int) -> pd.DataFrame:
+    columns = [
+        "model",
+        "disease_group",
+        "composition_mean_oraa",
+        "augmented_mean_oraa",
+        "augmented_minus_composition_oraa",
+        "sign_stable_negative",
+    ]
+    if comparison is None or comparison.empty or not set(columns).issubset(comparison.columns):
+        return pd.DataFrame(columns=columns)
+    frame = comparison[comparison["model"].isin(_display_models())].copy()
+    if frame.empty:
+        frame = comparison.copy()
+    frame["abs_augmented_minus_composition_oraa"] = pd.to_numeric(
+        frame["augmented_minus_composition_oraa"],
+        errors="coerce",
+    ).abs()
+    return (
+        frame.sort_values(["disease_group", "abs_augmented_minus_composition_oraa", "model"], ascending=[True, False, True])
+        .head(top_n)[columns]
+        .reset_index(drop=True)
+    )
+
+
+def _top_ndd_donor_appendix(appendix: pd.DataFrame | None, top_n: int) -> pd.DataFrame:
+    columns = [
+        "feature_set",
+        "donor_id",
+        "disease_group",
+        "chronological_age",
+        "chemistry",
+        "collection_method",
+        "model",
+        "ora",
+        "oraa",
+    ]
+    if appendix is None or appendix.empty or not set(columns).issubset(appendix.columns):
+        return pd.DataFrame(columns=columns)
+    frame = appendix[appendix["model"].isin(["random_forest", "xgboost", "catboost", "boosted_ensemble"])].copy()
+    if frame.empty:
+        frame = appendix.copy()
+    frame["abs_oraa"] = pd.to_numeric(frame["oraa"], errors="coerce").abs()
+    return frame.sort_values(["abs_oraa", "feature_set", "model"], ascending=[False, True, True]).head(top_n)[columns].reset_index(drop=True)
+
+
 def _has_pseudobulk_tables(
     pseudobulk_de: pd.DataFrame | None,
     pseudobulk_coverage: pd.DataFrame | None,
@@ -1663,7 +1760,9 @@ def _markdown_table(frame: pd.DataFrame, columns: list[str], max_rows: int) -> s
         return "_No rows available._"
     table = frame[available].head(max_rows).copy()
     for col in table.columns:
-        if pd.api.types.is_numeric_dtype(table[col]):
+        if pd.api.types.is_bool_dtype(table[col]):
+            table[col] = table[col].map(lambda value: "True" if bool(value) else "False")
+        elif pd.api.types.is_numeric_dtype(table[col]):
             table[col] = table[col].map(_format_table_value)
         else:
             table[col] = table[col].fillna("").astype(str)

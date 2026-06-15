@@ -6,7 +6,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from ora.ndd import summarize_ndd_projection_uncertainty
+from ora.ndd import compare_ndd_feature_sets, donor_projection_appendix, summarize_ndd_projection_uncertainty
 
 
 class NDDUncertaintyTests(unittest.TestCase):
@@ -39,6 +39,44 @@ class NDDUncertaintyTests(unittest.TestCase):
         self.assertEqual(int(rf_matched["n_reference"]), 2)
         self.assertLess(rf_matched["difference_vs_reference"], 0)
         self.assertIn("collection_method", result.context.columns)
+
+    def test_compare_feature_sets_and_appendix(self):
+        base = pd.DataFrame(
+            {
+                "donor_id": ["h1", "a1", "p1"] * 2,
+                "model": ["random_forest"] * 3 + ["xgboost"] * 3,
+                "disease_group": ["healthy", "ad", "pd"] * 2,
+                "sex": ["F", "F", "M"] * 2,
+                "race_ethnicity": ["reported"] * 6,
+                "chemistry": ["v2"] * 6,
+                "collection_method": ["device"] * 6,
+                "site": ["s1"] * 6,
+                "chronological_age": [55, 70, 72] * 2,
+                "total_cells": [100, 200, 300] * 2,
+                "ora": [55, 62, 65, 55, 61, 64],
+                "oraa": [0, -8, -7, 0, -9, -8],
+                "training_n": [10] * 6,
+                "n_features": [100] * 6,
+            }
+        )
+        augmented = base.copy()
+        augmented["ora"] = augmented["ora"] - 1
+        augmented["oraa"] = augmented["oraa"] - 1
+        augmented["n_features"] = 110
+
+        comparison = compare_ndd_feature_sets({"composition": base, "augmented": augmented})
+        appendix = donor_projection_appendix(augmented, feature_set="augmented", models=["random_forest"])
+
+        rf_ad = comparison[
+            comparison["model"].eq("random_forest")
+            & comparison["disease_group"].eq("ad")
+        ].iloc[0]
+        self.assertEqual(rf_ad["composition_n_features"], 100)
+        self.assertEqual(rf_ad["augmented_n_features"], 110)
+        self.assertEqual(rf_ad["augmented_minus_composition_oraa"], -1)
+        self.assertTrue(rf_ad["sign_stable_negative"])
+        self.assertEqual(set(appendix["donor_id"]), {"a1", "p1"})
+        self.assertEqual(set(appendix["feature_set"]), {"augmented"})
 
 
 if __name__ == "__main__":

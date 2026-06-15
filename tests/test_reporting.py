@@ -411,6 +411,29 @@ class ReportingTests(unittest.TestCase):
                 "median_total_cells": [1000, 800],
             }
         )
+        ndd_projection_feature_comparison = pd.DataFrame(
+            {
+                "model": ["random_forest"],
+                "disease_group": ["ad"],
+                "composition_mean_oraa": [-8.0],
+                "augmented_mean_oraa": [-9.0],
+                "augmented_minus_composition_oraa": [-1.0],
+                "sign_stable_negative": [True],
+            }
+        )
+        ndd_projection_donor_appendix = pd.DataFrame(
+            {
+                "feature_set": ["augmented"],
+                "donor_id": ["d3"],
+                "disease_group": ["ad"],
+                "chronological_age": [70],
+                "chemistry": ["flex_v2"],
+                "collection_method": ["device"],
+                "model": ["random_forest"],
+                "ora": [78],
+                "oraa": [4.5],
+            }
+        )
         external_validation_summary = pd.DataFrame(
             {
                 "dataset_id": ["toy_external"],
@@ -452,6 +475,8 @@ class ReportingTests(unittest.TestCase):
                 ndd_projection_summary=ndd_projection_summary,
                 ndd_projection_uncertainty=ndd_projection_uncertainty,
                 ndd_projection_context=ndd_projection_context,
+                ndd_projection_feature_comparison=ndd_projection_feature_comparison,
+                ndd_projection_donor_appendix=ndd_projection_donor_appendix,
                 ora_calibration=ora_calibration,
                 ora_age_bin_errors=ora_age_bin_errors,
                 ora_residual_diagnostics=ora_residual_diagnostics,
@@ -488,6 +513,8 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("NDD ORA Projection", report_text)
             self.assertIn("matched_healthy", report_text)
             self.assertIn("flex_v2", report_text)
+            self.assertIn("Feature-Set Projection Sensitivity", report_text)
+            self.assertIn("Donor Appendix Preview", report_text)
             self.assertIn("Pseudobulk Differential Expression", report_text)
             self.assertIn("Covariate-Adjusted Pseudobulk DE", report_text)
             self.assertIn("Genome-Wide Pseudobulk Export", report_text)
