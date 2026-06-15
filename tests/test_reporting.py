@@ -289,6 +289,18 @@ class ReportingTests(unittest.TestCase):
                 "selection_fraction": [1.0],
             }
         )
+        ora_permutation_empirical = pd.DataFrame(
+            {
+                "model": ["random_forest"],
+                "n_permutations": [10],
+                "observed_mae": [9.5],
+                "null_mae_mean": [14.0],
+                "empirical_p_mae": [0.09],
+                "observed_spearman_r": [0.5],
+                "null_spearman_r_mean": [0.02],
+                "empirical_p_spearman_r": [0.09],
+            }
+        )
         ora_calibration = pd.DataFrame(
             {
                 "model": ["ridge", "random_forest"],
@@ -434,6 +446,7 @@ class ReportingTests(unittest.TestCase):
                 ora_sensitivity_performance=ora_sensitivity_performance,
                 ora_repeated_cv_summary=ora_repeated_cv_summary,
                 ora_repeated_cv_feature_stability=ora_repeated_cv_feature_stability,
+                ora_permutation_empirical=ora_permutation_empirical,
                 out_md=out,
                 figure_dir=figures,
                 source={"name": "test", "doi": "doi"},
@@ -460,6 +473,7 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("ORA Sensitivity", report_text)
             self.assertIn("collection_method__brush", report_text)
             self.assertIn("Repeated-CV ORA Stability", report_text)
+            self.assertIn("Shuffled-Age Null Test", report_text)
             self.assertIn("clr__cdc1", report_text)
             self.assertIn("ORA Calibration Diagnostics", report_text)
             self.assertIn("calibrated MAE", report_text)

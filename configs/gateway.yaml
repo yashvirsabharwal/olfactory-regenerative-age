@@ -225,5 +225,8 @@ outputs:
   ora_augmented_repeated_cv_feature_stability_tsv: "results/tables/ora_augmented_repeated_cv_feature_stability.tsv"
   ora_feature_set_model_comparison_tsv: "results/tables/ora_feature_set_model_comparison.tsv"
   ora_feature_set_model_deltas_tsv: "results/tables/ora_feature_set_model_deltas.tsv"
+  ora_permutation_repeat_performance_tsv: "results/tables/ora_permutation_repeat_performance.tsv"
+  ora_permutation_summary_tsv: "results/tables/ora_permutation_summary.tsv"
+  ora_permutation_empirical_tsv: "results/tables/ora_permutation_empirical.tsv"
   mvp_report_md: "results/reports/mvp_report.md"
   figure_dir: "results/figures"

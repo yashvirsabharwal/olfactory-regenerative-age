@@ -84,6 +84,39 @@ def biological_feature_columns(features: pd.DataFrame, model_config: dict[str, A
     return cols
 
 
+def model_names_from_config(model_config: dict[str, Any] | None = None) -> list[str]:
+    """Return configured model names in stable project order."""
+
+    model_config = model_config or {}
+    requested = None
+    for key in ["model_names", "models_to_run", "enabled_models"]:
+        if key in model_config:
+            requested = model_config[key]
+            break
+    if requested is not None:
+        requested_set = {str(name) for name in requested}
+        unknown = sorted(requested_set.difference(MODEL_ORDER))
+        if unknown:
+            raise ValueError(f"Unknown ORA model names requested: {', '.join(unknown)}")
+        selected = [name for name in MODEL_ORDER if name in requested_set]
+        if not selected:
+            raise ValueError("No ORA models were selected.")
+        return selected
+
+    models = model_config.get("models")
+    if isinstance(models, dict):
+        enabled = []
+        for name in MODEL_ORDER:
+            params = models.get(name, {})
+            if isinstance(params, dict) and params.get("enabled", True) is False:
+                continue
+            enabled.append(name)
+        if not enabled:
+            raise ValueError("No ORA models are enabled.")
+        return enabled
+    return list(MODEL_ORDER)
+
+
 def train_ora_models(
     features: pd.DataFrame,
     manifest: pd.DataFrame,
@@ -117,7 +150,7 @@ def train_ora_models(
     importances = []
     performance_rows = []
 
-    for model_name in MODEL_ORDER:
+    for model_name in model_names_from_config(model_config):
         pred = np.full(train.shape[0], np.nan, dtype=float)
         fold_importances = []
         for fold_id, (train_idx, test_idx) in enumerate(folds):
@@ -307,7 +340,7 @@ def project_ora_models(
     x_project = transform_preprocessor(project[feature_cols], prep)
     y_train = train["age"].astype(float).to_numpy()
     rows = []
-    for model_name in MODEL_ORDER:
+    for model_name in model_names_from_config(model_config):
         if model_name == "null_model":
             pred = np.full(project.shape[0], float(np.mean(y_train)))
         elif model_name == "ridge":

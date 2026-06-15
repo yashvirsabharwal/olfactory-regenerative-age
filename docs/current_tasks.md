@@ -1,6 +1,6 @@
 # ORA Current Tasks and Milestone Tracker
 
-Updated: 2026-06-14
+Updated: 2026-06-15
 
 This is the working task board for the olfactory-regenerative-age project. Checkboxes should be updated as implementation lands, tests pass, and real Gateway outputs are regenerated.
 
@@ -85,7 +85,7 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [x] Add feature stability selection across repeated CV.
 - [x] Add confidence intervals for MAE, Spearman r, and ORAA summaries.
 - [x] Compare composition-only vs module-augmented models formally.
-- [ ] Add permutation/null-model tests.
+- [x] Add permutation/null-model tests.
 - [x] Add model residual diagnostics by sex, chemistry, collection method, site, and cell yield.
 - [x] Add calibration slope/intercept and age-bin error summaries.
 - [ ] Add nested hyperparameter tuning for the top booster models without leaking donor folds.
@@ -171,3 +171,4 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - 2026-06-14: Added Extra Trees, gradient boosting, and a conservative tree-ensemble average to test whether random forest was the practical ceiling. In the sklearn-only 10-repeat donor-level CV pass, random forest was best by MAE (14.20), while the tree ensemble was close by MAE (14.27) and slightly stronger on RMSE/R2/Spearman (RMSE 17.64, R2 0.107, Spearman 0.332). Gradient boosting was competitive but less stable by MAE (14.48); this result was later superseded by native booster benchmarking.
 - 2026-06-14: Added optional XGBoost, LightGBM, CatBoost, and boosted-ensemble model families. XGBoost is now the top composition-only model in 20-repeat donor-level CV (mean MAE 14.15; 95% empirical interval 13.74-14.70; mean Spearman r 0.354), with random forest close behind (MAE 14.21). Module-augmented repeated CV is slightly better overall: CatBoost has the best mean MAE (14.08; 13.60-14.57), followed by augmented XGBoost (14.12). The module feature set improves MAE for most model families, but the gains are modest and the intervals overlap, so the current model claim should emphasize robust benchmarking rather than a decisive algorithmic breakthrough.
 - 2026-06-14: Added formal composition-vs-module comparison outputs (`ora_feature_set_model_comparison.tsv` and `ora_feature_set_model_deltas.tsv`) and integrated the ranked comparison into the MVP report. NDD projection and bootstrap uncertainty were regenerated with the expanded model set; negative AD/PD ORAA remains present across model families, but the interpretation remains exploratory because AD and PD each have only 5 donors and share FLEX v2/device chemistry/collection context.
+- 2026-06-15: Added donor-level shuffled-age permutation/null testing with model-subset support, a CLI, unit tests, config outputs, and MVP report integration. A 50-permutation, 2-repeat augmented-feature null run completed for random forest, XGBoost, CatBoost, and the boosted ensemble. All four observed models beat every shuffled-label permutation for MAE and Spearman r, giving empirical p=0.0196 at this permutation depth. CatBoost observed MAE is 14.08 versus shuffled null mean 15.99; XGBoost observed MAE is 14.12 versus null mean 16.56; boosted ensemble observed MAE is 14.16 versus null mean 16.37; random forest observed MAE is 14.19 versus null mean 16.02.

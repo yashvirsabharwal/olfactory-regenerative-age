@@ -11,6 +11,7 @@ from ora.age_model import (
     MODEL_ORDER,
     biological_feature_columns,
     donor_cv_folds,
+    model_names_from_config,
     project_ora_models,
     train_ora_models,
     train_ora_models_repeated,
@@ -80,6 +81,19 @@ class AgeModelTests(unittest.TestCase):
         self.assertEqual(set(result.performance["model"]), set(MODEL_ORDER))
         self.assertEqual(set(result.predictions["donor_id"]), set(donors[:10]))
         self.assertTrue(result.predictions["oraa"].notna().all())
+
+    def test_model_names_from_config_supports_subset_and_enabled_flags(self):
+        self.assertEqual(model_names_from_config({"model_names": ["xgboost", "random_forest"]}), ["random_forest", "xgboost"])
+        self.assertNotIn(
+            "catboost",
+            model_names_from_config({"models": {"catboost": {"enabled": False}}}),
+        )
+        with self.assertRaises(ValueError):
+            model_names_from_config({"model_names": ["not_a_model"]})
+        with self.assertRaises(ValueError):
+            model_names_from_config({"model_names": []})
+        with self.assertRaises(ValueError):
+            model_names_from_config({"models": {name: {"enabled": False} for name in MODEL_ORDER}})
 
     def test_repeated_models_return_intervals_and_feature_stability(self):
         donors = [f"d{i}" for i in range(12)]
