@@ -158,31 +158,7 @@ def train_ora_models(
             x_train = transform_preprocessor(train.iloc[train_idx][feature_cols], prep)
             x_test = transform_preprocessor(train.iloc[test_idx][feature_cols], prep)
             y_train = y[train_idx]
-            if model_name == "null_model":
-                fold_pred = np.full(test_idx.size, float(np.mean(y_train)))
-                coefs = np.zeros(len(feature_cols))
-            elif model_name == "ridge":
-                fold_pred, coefs = _fit_ridge_or_linear(x_train, y_train, x_test, model_config)
-            elif model_name == "lasso":
-                fold_pred, coefs = _fit_lasso_or_linear(x_train, y_train, x_test, model_config)
-            elif model_name == "elastic_net":
-                fold_pred, coefs = _fit_elastic_or_linear(x_train, y_train, x_test, model_config)
-            elif model_name == "random_forest":
-                fold_pred, coefs = _fit_random_forest_or_linear(x_train, y_train, x_test, model_config)
-            elif model_name == "extra_trees":
-                fold_pred, coefs = _fit_extra_trees_or_linear(x_train, y_train, x_test, model_config)
-            elif model_name == "gradient_boosting":
-                fold_pred, coefs = _fit_gradient_boosting_or_linear(x_train, y_train, x_test, model_config)
-            elif model_name == "tree_ensemble":
-                fold_pred, coefs = _fit_tree_ensemble_or_linear(x_train, y_train, x_test, model_config)
-            elif model_name == "xgboost":
-                fold_pred, coefs = _fit_xgboost_or_tree(x_train, y_train, x_test, model_config)
-            elif model_name == "lightgbm":
-                fold_pred, coefs = _fit_lightgbm_or_tree(x_train, y_train, x_test, model_config)
-            elif model_name == "catboost":
-                fold_pred, coefs = _fit_catboost_or_tree(x_train, y_train, x_test, model_config)
-            else:
-                fold_pred, coefs = _fit_boosted_ensemble_or_tree(x_train, y_train, x_test, model_config)
+            fold_pred, coefs = fit_model_predictions(model_name, x_train, y_train, x_test, model_config)
             pred[test_idx] = fold_pred
             if coefs is not None:
                 fold_importances.append(pd.DataFrame({"feature": feature_cols, "importance": coefs, "fold": fold_id}))
@@ -341,30 +317,7 @@ def project_ora_models(
     y_train = train["age"].astype(float).to_numpy()
     rows = []
     for model_name in model_names_from_config(model_config):
-        if model_name == "null_model":
-            pred = np.full(project.shape[0], float(np.mean(y_train)))
-        elif model_name == "ridge":
-            pred, _ = _fit_ridge_or_linear(x_train, y_train, x_project, model_config)
-        elif model_name == "lasso":
-            pred, _ = _fit_lasso_or_linear(x_train, y_train, x_project, model_config)
-        elif model_name == "elastic_net":
-            pred, _ = _fit_elastic_or_linear(x_train, y_train, x_project, model_config)
-        elif model_name == "random_forest":
-            pred, _ = _fit_random_forest_or_linear(x_train, y_train, x_project, model_config)
-        elif model_name == "extra_trees":
-            pred, _ = _fit_extra_trees_or_linear(x_train, y_train, x_project, model_config)
-        elif model_name == "gradient_boosting":
-            pred, _ = _fit_gradient_boosting_or_linear(x_train, y_train, x_project, model_config)
-        elif model_name == "tree_ensemble":
-            pred, _ = _fit_tree_ensemble_or_linear(x_train, y_train, x_project, model_config)
-        elif model_name == "xgboost":
-            pred, _ = _fit_xgboost_or_tree(x_train, y_train, x_project, model_config)
-        elif model_name == "lightgbm":
-            pred, _ = _fit_lightgbm_or_tree(x_train, y_train, x_project, model_config)
-        elif model_name == "catboost":
-            pred, _ = _fit_catboost_or_tree(x_train, y_train, x_project, model_config)
-        else:
-            pred, _ = _fit_boosted_ensemble_or_tree(x_train, y_train, x_project, model_config)
+        pred, _ = fit_model_predictions(model_name, x_train, y_train, x_project, model_config)
         frame = _projection_frame(project, model_name, pred, train.shape[0], len(feature_cols))
         rows.append(frame)
 
@@ -495,6 +448,42 @@ def summarize_projection(predictions: pd.DataFrame) -> pd.DataFrame:
         .sort_values(["model", "disease_group"])
     )
     return summary
+
+
+def fit_model_predictions(
+    model_name: str,
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    model_config: dict[str, Any],
+) -> tuple[np.ndarray, np.ndarray]:
+    """Fit one named ORA model and return predictions plus feature weights/importances."""
+
+    if model_name == "null_model":
+        return np.full(x_test.shape[0], float(np.mean(y_train))), np.zeros(x_train.shape[1])
+    if model_name == "ridge":
+        return _fit_ridge_or_linear(x_train, y_train, x_test, model_config)
+    if model_name == "lasso":
+        return _fit_lasso_or_linear(x_train, y_train, x_test, model_config)
+    if model_name == "elastic_net":
+        return _fit_elastic_or_linear(x_train, y_train, x_test, model_config)
+    if model_name == "random_forest":
+        return _fit_random_forest_or_linear(x_train, y_train, x_test, model_config)
+    if model_name == "extra_trees":
+        return _fit_extra_trees_or_linear(x_train, y_train, x_test, model_config)
+    if model_name == "gradient_boosting":
+        return _fit_gradient_boosting_or_linear(x_train, y_train, x_test, model_config)
+    if model_name == "tree_ensemble":
+        return _fit_tree_ensemble_or_linear(x_train, y_train, x_test, model_config)
+    if model_name == "xgboost":
+        return _fit_xgboost_or_tree(x_train, y_train, x_test, model_config)
+    if model_name == "lightgbm":
+        return _fit_lightgbm_or_tree(x_train, y_train, x_test, model_config)
+    if model_name == "catboost":
+        return _fit_catboost_or_tree(x_train, y_train, x_test, model_config)
+    if model_name == "boosted_ensemble":
+        return _fit_boosted_ensemble_or_tree(x_train, y_train, x_test, model_config)
+    raise ValueError(f"Unknown ORA model: {model_name}")
 
 
 def _fit_elastic_or_linear(

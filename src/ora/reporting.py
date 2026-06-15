@@ -68,6 +68,7 @@ def generate_mvp_report(
     ora_repeated_cv_feature_stability: pd.DataFrame | None = None,
     ora_feature_set_model_comparison: pd.DataFrame | None = None,
     ora_permutation_empirical: pd.DataFrame | None = None,
+    ora_nested_tuning_summary: pd.DataFrame | None = None,
     source: dict[str, Any] | None = None,
     paper_defaults: dict[str, Any] | None = None,
     schema: dict[str, Any] | None = None,
@@ -128,6 +129,7 @@ def generate_mvp_report(
         ora_repeated_cv_feature_stability=ora_repeated_cv_feature_stability,
         ora_feature_set_model_comparison=ora_feature_set_model_comparison,
         ora_permutation_empirical=ora_permutation_empirical,
+        ora_nested_tuning_summary=ora_nested_tuning_summary,
         out_md=out_md,
         figure_paths=figure_paths,
         source=source or {},
@@ -297,6 +299,7 @@ def render_mvp_markdown(
     ora_repeated_cv_feature_stability: pd.DataFrame | None,
     ora_feature_set_model_comparison: pd.DataFrame | None,
     ora_permutation_empirical: pd.DataFrame | None,
+    ora_nested_tuning_summary: pd.DataFrame | None,
     out_md: str | Path,
     figure_paths: dict[str, Path],
     source: dict[str, Any],
@@ -485,6 +488,30 @@ def render_mvp_markdown(
                             "observed_spearman_r",
                             "null_spearman_r_mean",
                             "empirical_p_spearman_r",
+                        ],
+                        max_rows=10,
+                    ),
+                    "",
+                ]
+            )
+        nested = _top_nested_tuning_summary(ora_nested_tuning_summary, top_n=10)
+        if not nested.empty:
+            lines.extend(
+                [
+                    "### Nested Booster Tuning",
+                    "",
+                    _markdown_table(
+                        nested,
+                        [
+                            "model",
+                            "repeats",
+                            "n",
+                            "mae_mean",
+                            "mae_ci_low",
+                            "mae_ci_high",
+                            "rmse_mean",
+                            "r2_mean",
+                            "spearman_r_mean",
                         ],
                         max_rows=10,
                     ),
@@ -1526,6 +1553,25 @@ def _top_permutation_empirical(permutation: pd.DataFrame | None, top_n: int) -> 
     frame = permutation.copy()
     frame["observed_mae"] = pd.to_numeric(frame["observed_mae"], errors="coerce")
     return frame.sort_values(["observed_mae", "model"]).head(top_n)[columns].reset_index(drop=True)
+
+
+def _top_nested_tuning_summary(summary: pd.DataFrame | None, top_n: int) -> pd.DataFrame:
+    columns = [
+        "model",
+        "repeats",
+        "n",
+        "mae_mean",
+        "mae_ci_low",
+        "mae_ci_high",
+        "rmse_mean",
+        "r2_mean",
+        "spearman_r_mean",
+    ]
+    if summary is None or summary.empty or not set(columns).issubset(summary.columns):
+        return pd.DataFrame(columns=columns)
+    frame = summary.copy()
+    frame["mae_mean"] = pd.to_numeric(frame["mae_mean"], errors="coerce")
+    return frame.sort_values(["mae_mean", "model"]).head(top_n)[columns].reset_index(drop=True)
 
 
 def _top_repeated_cv_features(feature_stability: pd.DataFrame | None, top_n: int) -> pd.DataFrame:

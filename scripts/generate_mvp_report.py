@@ -56,6 +56,7 @@ def main() -> None:
     parser.add_argument("--ora-repeated-cv-feature-stability", default=None)
     parser.add_argument("--ora-feature-set-model-comparison", default=None)
     parser.add_argument("--ora-permutation-empirical", default=None)
+    parser.add_argument("--ora-nested-tuning-summary", default=None)
     parser.add_argument("--schema", default=None)
     parser.add_argument("--out", default=None)
     parser.add_argument("--figure-dir", default=None)
@@ -132,6 +133,8 @@ def main() -> None:
         or outputs.get("ora_feature_set_model_comparison_tsv", "results/tables/ora_feature_set_model_comparison.tsv"),
         "ora_permutation_empirical": args.ora_permutation_empirical
         or outputs.get("ora_permutation_empirical_tsv", "results/tables/ora_permutation_empirical.tsv"),
+        "ora_nested_tuning_summary": args.ora_nested_tuning_summary
+        or outputs.get("ora_nested_tuning_summary_tsv", "results/tables/ora_nested_tuning_summary.tsv"),
         "schema": args.schema or outputs.get("schema_json", "results/reports/h5ad_schema.json"),
         "out": args.out or outputs.get("mvp_report_md", "results/reports/mvp_report.md"),
         "figure_dir": args.figure_dir or outputs.get("figure_dir", "results/figures"),
@@ -176,6 +179,7 @@ def main() -> None:
         ora_repeated_cv_feature_stability=_read_optional_tsv(paths["ora_repeated_cv_feature_stability"]),
         ora_feature_set_model_comparison=_read_optional_tsv(paths["ora_feature_set_model_comparison"]),
         ora_permutation_empirical=_read_optional_tsv(paths["ora_permutation_empirical"]),
+        ora_nested_tuning_summary=_read_optional_tsv(paths["ora_nested_tuning_summary"]),
         schema=load_schema(paths["schema"]),
         source=config.get("source", {}),
         paper_defaults=config.get("paper_defaults", {}),
