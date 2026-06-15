@@ -48,6 +48,7 @@ def generate_mvp_report(
     ndd_projection_context: pd.DataFrame | None = None,
     ndd_projection_feature_comparison: pd.DataFrame | None = None,
     ndd_projection_donor_appendix: pd.DataFrame | None = None,
+    ndd_projection_diagnostics: pd.DataFrame | None = None,
     module_summary: pd.DataFrame | None = None,
     module_coverage: pd.DataFrame | None = None,
     donor_module_features: pd.DataFrame | None = None,
@@ -112,6 +113,7 @@ def generate_mvp_report(
         ndd_projection_context=ndd_projection_context,
         ndd_projection_feature_comparison=ndd_projection_feature_comparison,
         ndd_projection_donor_appendix=ndd_projection_donor_appendix,
+        ndd_projection_diagnostics=ndd_projection_diagnostics,
         module_summary=module_summary,
         module_coverage=module_coverage,
         donor_module_features=donor_module_features,
@@ -285,6 +287,7 @@ def render_mvp_markdown(
     ndd_projection_context: pd.DataFrame | None,
     ndd_projection_feature_comparison: pd.DataFrame | None,
     ndd_projection_donor_appendix: pd.DataFrame | None,
+    ndd_projection_diagnostics: pd.DataFrame | None,
     module_summary: pd.DataFrame | None,
     module_coverage: pd.DataFrame | None,
     donor_module_features: pd.DataFrame | None,
@@ -639,6 +642,30 @@ def render_mvp_markdown(
                             "oraa",
                         ],
                         max_rows=12,
+                    ),
+                    "",
+                ]
+            )
+        ndd_diagnostics = _top_ndd_projection_diagnostics(ndd_projection_diagnostics, top_n=30)
+        if not ndd_diagnostics.empty:
+            lines.extend(
+                [
+                    "### Projection Diagnostics",
+                    "",
+                    _markdown_table(
+                        ndd_diagnostics,
+                        [
+                            "model",
+                            "disease_group",
+                            "diagnostic",
+                            "level",
+                            "n_donors",
+                            "mean_age",
+                            "median_total_cells",
+                            "mean_oraa",
+                            "status",
+                        ],
+                        max_rows=30,
                     ),
                     "",
                 ]
@@ -1480,6 +1507,31 @@ def _top_ndd_donor_appendix(appendix: pd.DataFrame | None, top_n: int) -> pd.Dat
         frame = appendix.copy()
     frame["abs_oraa"] = pd.to_numeric(frame["oraa"], errors="coerce").abs()
     return frame.sort_values(["abs_oraa", "feature_set", "model"], ascending=[False, True, True]).head(top_n)[columns].reset_index(drop=True)
+
+
+def _top_ndd_projection_diagnostics(diagnostics: pd.DataFrame | None, top_n: int) -> pd.DataFrame:
+    columns = [
+        "model",
+        "disease_group",
+        "diagnostic",
+        "level",
+        "n_donors",
+        "mean_age",
+        "median_total_cells",
+        "mean_oraa",
+        "status",
+    ]
+    if diagnostics is None or diagnostics.empty or not set(columns).issubset(diagnostics.columns):
+        return pd.DataFrame(columns=columns)
+    frame = diagnostics[diagnostics["model"].isin(["random_forest", "xgboost", "catboost", "boosted_ensemble"])].copy()
+    if frame.empty:
+        frame = diagnostics.copy()
+    frame["abs_mean_oraa"] = pd.to_numeric(frame["mean_oraa"], errors="coerce").abs()
+    return (
+        frame.sort_values(["status", "disease_group", "diagnostic", "abs_mean_oraa"], ascending=[True, True, True, False])
+        .head(top_n)[columns]
+        .reset_index(drop=True)
+    )
 
 
 def _has_pseudobulk_tables(

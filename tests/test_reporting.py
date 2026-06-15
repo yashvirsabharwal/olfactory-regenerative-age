@@ -434,6 +434,19 @@ class ReportingTests(unittest.TestCase):
                 "oraa": [4.5],
             }
         )
+        ndd_projection_diagnostics = pd.DataFrame(
+            {
+                "model": ["random_forest"],
+                "disease_group": ["ad"],
+                "diagnostic": ["sex"],
+                "level": ["female"],
+                "n_donors": [2],
+                "mean_age": [72.0],
+                "median_total_cells": [1000],
+                "mean_oraa": [-8.0],
+                "status": ["ok"],
+            }
+        )
         external_validation_summary = pd.DataFrame(
             {
                 "dataset_id": ["toy_external"],
@@ -477,6 +490,7 @@ class ReportingTests(unittest.TestCase):
                 ndd_projection_context=ndd_projection_context,
                 ndd_projection_feature_comparison=ndd_projection_feature_comparison,
                 ndd_projection_donor_appendix=ndd_projection_donor_appendix,
+                ndd_projection_diagnostics=ndd_projection_diagnostics,
                 ora_calibration=ora_calibration,
                 ora_age_bin_errors=ora_age_bin_errors,
                 ora_residual_diagnostics=ora_residual_diagnostics,
@@ -515,6 +529,7 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("flex_v2", report_text)
             self.assertIn("Feature-Set Projection Sensitivity", report_text)
             self.assertIn("Donor Appendix Preview", report_text)
+            self.assertIn("Projection Diagnostics", report_text)
             self.assertIn("Pseudobulk Differential Expression", report_text)
             self.assertIn("Covariate-Adjusted Pseudobulk DE", report_text)
             self.assertIn("Genome-Wide Pseudobulk Export", report_text)

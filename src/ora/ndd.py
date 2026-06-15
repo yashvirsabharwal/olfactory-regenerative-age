@@ -216,6 +216,66 @@ def donor_projection_appendix(
     return frame[columns].sort_values(["feature_set", "disease_group", "donor_id", "model"]).reset_index(drop=True)
 
 
+def ndd_projection_diagnostics(
+    projection: pd.DataFrame,
+    *,
+    models: Iterable[str] | None = None,
+    diseases: Iterable[str] = ("ad", "pd"),
+    min_donors_ok: int = 2,
+) -> pd.DataFrame:
+    """Summarize AD/PD projected ORAA by key covariate and yield strata."""
+
+    if projection is None or projection.empty:
+        return pd.DataFrame()
+    frame = projection.copy()
+    frame["model"] = frame["model"].astype(str)
+    frame["disease_group"] = frame["disease_group"].astype(str)
+    disease_set = {str(disease) for disease in diseases}
+    frame = frame[frame["disease_group"].isin(disease_set)].copy()
+    if models is not None:
+        model_set = {str(model) for model in models}
+        frame = frame[frame["model"].isin(model_set)].copy()
+    if frame.empty:
+        return pd.DataFrame()
+
+    for col in ["chronological_age", "total_cells", "ora", "oraa"]:
+        if col in frame:
+            frame[col] = pd.to_numeric(frame[col], errors="coerce")
+    frame["age_bin"] = _age_bin(frame.get("chronological_age", pd.Series(np.nan, index=frame.index)))
+    frame["cell_yield_quartile"] = _yield_quartile(frame)
+    diagnostics = ["sex", "age_bin", "chemistry", "collection_method", "site", "cell_yield_quartile"]
+    rows = []
+    for diagnostic in diagnostics:
+        if diagnostic not in frame:
+            continue
+        work = frame.copy()
+        work[diagnostic] = _clean_level(work[diagnostic])
+        grouped = work.groupby(["model", "disease_group", diagnostic], observed=True, dropna=False)
+        for (model, disease, level), group in grouped:
+            n_donors = int(group["donor_id"].nunique())
+            rows.append(
+                {
+                    "model": model,
+                    "disease_group": disease,
+                    "diagnostic": diagnostic,
+                    "level": level,
+                    "n_donors": n_donors,
+                    "mean_age": float(group["chronological_age"].mean()) if "chronological_age" in group else np.nan,
+                    "min_age": float(group["chronological_age"].min()) if "chronological_age" in group else np.nan,
+                    "max_age": float(group["chronological_age"].max()) if "chronological_age" in group else np.nan,
+                    "median_total_cells": float(group["total_cells"].median()) if "total_cells" in group else np.nan,
+                    "mean_ora": float(group["ora"].mean()) if "ora" in group else np.nan,
+                    "mean_oraa": float(group["oraa"].mean()) if "oraa" in group else np.nan,
+                    "sd_oraa": float(group["oraa"].std(ddof=0)) if "oraa" in group else np.nan,
+                    "donor_ids": ",".join(sorted(group["donor_id"].astype(str).unique())),
+                    "status": "ok" if n_donors >= int(min_donors_ok) else "single_donor_stratum",
+                }
+            )
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(rows).sort_values(["disease_group", "diagnostic", "level", "model"]).reset_index(drop=True)
+
+
 def _matched_healthy_reference(healthy: pd.DataFrame, disease: pd.DataFrame) -> pd.DataFrame:
     reference = healthy.copy()
     for col in ["chemistry", "collection_method"]:
@@ -233,6 +293,32 @@ def _row_value(row: object | None, field: str) -> float:
     if pd.isna(value):
         return float("nan")
     return float(value)
+
+
+def _age_bin(age: pd.Series) -> pd.Series:
+    values = pd.to_numeric(age, errors="coerce")
+    bins = [-np.inf, 59, 69, 79, np.inf]
+    labels = ["lt60", "60_69", "70_79", "80_plus"]
+    return pd.cut(values, bins=bins, labels=labels).astype("object").fillna("missing")
+
+
+def _yield_quartile(frame: pd.DataFrame) -> pd.Series:
+    if "total_cells" not in frame:
+        return pd.Series("missing", index=frame.index, dtype=object)
+    donor_yield = frame[["donor_id", "total_cells"]].drop_duplicates("donor_id").copy()
+    values = pd.to_numeric(donor_yield["total_cells"], errors="coerce")
+    labels = ["q1_low", "q2", "q3", "q4_high"]
+    try:
+        donor_yield["cell_yield_quartile"] = pd.qcut(values, q=4, labels=labels, duplicates="drop").astype("object")
+    except ValueError:
+        donor_yield["cell_yield_quartile"] = "unbinned"
+    donor_yield["cell_yield_quartile"] = donor_yield["cell_yield_quartile"].fillna("missing")
+    return frame["donor_id"].map(donor_yield.set_index("donor_id")["cell_yield_quartile"]).fillna("missing")
+
+
+def _clean_level(series: pd.Series) -> pd.Series:
+    cleaned = series.fillna("missing").astype(str).str.strip()
+    return cleaned.mask(cleaned.eq(""), "missing")
 
 
 def _uncertainty_row(
