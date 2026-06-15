@@ -314,6 +314,19 @@ class ReportingTests(unittest.TestCase):
                 "spearman_r_mean": [0.55],
             }
         )
+        ora_stacking_summary = pd.DataFrame(
+            {
+                "model": ["stacked_ensemble"],
+                "repeats": [2],
+                "n": [4],
+                "mae_mean": [8.6],
+                "mae_ci_low": [8.4],
+                "mae_ci_high": [8.8],
+                "rmse_mean": [10.0],
+                "r2_mean": [0.22],
+                "spearman_r_mean": [0.58],
+            }
+        )
         ora_calibration = pd.DataFrame(
             {
                 "model": ["ridge", "random_forest"],
@@ -461,6 +474,7 @@ class ReportingTests(unittest.TestCase):
                 ora_repeated_cv_feature_stability=ora_repeated_cv_feature_stability,
                 ora_permutation_empirical=ora_permutation_empirical,
                 ora_nested_tuning_summary=ora_nested_tuning_summary,
+                ora_stacking_summary=ora_stacking_summary,
                 out_md=out,
                 figure_dir=figures,
                 source={"name": "test", "doi": "doi"},
@@ -489,6 +503,7 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("Repeated-CV ORA Stability", report_text)
             self.assertIn("Shuffled-Age Null Test", report_text)
             self.assertIn("Nested Booster Tuning", report_text)
+            self.assertIn("Leakage-Safe OOF Stacking", report_text)
             self.assertIn("clr__cdc1", report_text)
             self.assertIn("ORA Calibration Diagnostics", report_text)
             self.assertIn("calibrated MAE", report_text)
