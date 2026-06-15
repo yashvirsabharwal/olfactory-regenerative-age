@@ -20,6 +20,7 @@ FIGURE_NAMES = {
     "predictions": "mvp_predicted_vs_age.png",
     "importance": "mvp_feature_importance.png",
     "ndd_projection": "mvp_ndd_projection.png",
+    "ndd_matched_reference": "mvp_ndd_matched_reference.png",
     "module_scores": "mvp_module_scores.png",
     "pseudobulk_de": "mvp_pseudobulk_de.png",
     "pseudobulk_covariate_de": "mvp_pseudobulk_covariate_de.png",
@@ -599,6 +600,8 @@ def render_mvp_markdown(
                 "",
                 _figure_link(report_path, figure_paths.get("ndd_projection"), "NDD ORA projection"),
                 "",
+                _figure_link(report_path, figure_paths.get("ndd_matched_reference"), "Matched NDD ORA reference"),
+                "",
             ]
         )
         ndd_feature_comparison = _top_ndd_feature_comparison(ndd_projection_feature_comparison, top_n=24)
@@ -949,8 +952,10 @@ def _write_figures(
     _plot_importance(importance, paths["importance"], plt)
     if ndd_projection is not None and not ndd_projection.empty:
         _plot_ndd_projection(ndd_projection, paths["ndd_projection"], plt)
+        _plot_ndd_matched_reference(ndd_projection, paths["ndd_matched_reference"], plt)
     else:
         paths.pop("ndd_projection", None)
+        paths.pop("ndd_matched_reference", None)
     if module_summary is not None and not module_summary.empty:
         _plot_module_scores(module_summary, paths["module_scores"], plt)
     else:
@@ -1146,6 +1151,64 @@ def _plot_ndd_projection(projection: pd.DataFrame, path: Path, plt: Any) -> None
         ax.set_ylabel("ORA acceleration")
         ax.spines[["top", "right"]].set_visible(False)
     fig.suptitle("Frozen Healthy-Trained ORA Projection")
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+
+
+def _plot_ndd_matched_reference(projection: pd.DataFrame, path: Path, plt: Any) -> None:
+    required = {"model", "disease_group", "chemistry", "collection_method", "oraa"}
+    if projection.empty or not required.issubset(projection.columns):
+        _blank_figure(path, plt, "No matched NDD reference available")
+        return
+    frame = projection.copy()
+    frame["disease_group"] = frame["disease_group"].astype(str)
+    frame["model"] = frame["model"].astype(str)
+    frame["oraa"] = pd.to_numeric(frame["oraa"], errors="coerce")
+    disease = frame[frame["disease_group"].isin(["ad", "pd"]) & frame["oraa"].notna()].copy()
+    healthy = frame[frame["disease_group"].eq("healthy") & frame["oraa"].notna()].copy()
+    if disease.empty or healthy.empty:
+        _blank_figure(path, plt, "No disease or healthy matched reference donors")
+        return
+    for col in ["chemistry", "collection_method"]:
+        values = set(disease[col].dropna().astype(str))
+        if values:
+            healthy = healthy[healthy[col].astype(str).isin(values)].copy()
+    if healthy.empty:
+        _blank_figure(path, plt, "No matched healthy reference donors")
+        return
+    models = [model for model in ["random_forest", "xgboost", "catboost", "boosted_ensemble"] if model in set(frame["model"])]
+    if not models:
+        models = list(frame["model"].drop_duplicates())[:4]
+    groups = ["matched_healthy", "ad", "pd"]
+    colors = {"matched_healthy": "#4d7fb8", "ad": "#c2674f", "pd": "#7a9f45"}
+    fig, axes = plt.subplots(1, len(models), figsize=(4.4 * len(models), 4), squeeze=False, constrained_layout=True)
+    for ax, model in zip(axes.ravel(), models):
+        pieces = [
+            healthy[healthy["model"].eq(model)].assign(reference_group="matched_healthy"),
+            disease[disease["model"].eq(model) & disease["disease_group"].eq("ad")].assign(reference_group="ad"),
+            disease[disease["model"].eq(model) & disease["disease_group"].eq("pd")].assign(reference_group="pd"),
+        ]
+        sub = pd.concat(pieces, ignore_index=True)
+        for pos, group in enumerate(groups):
+            values = sub[sub["reference_group"].eq(group)]["oraa"].to_numpy(dtype=float)
+            if values.size == 0:
+                continue
+            jitter = np.linspace(-0.09, 0.09, values.size) if values.size > 1 else np.array([0.0])
+            ax.scatter(
+                np.full(values.size, pos) + jitter,
+                values,
+                s=26,
+                alpha=0.75,
+                color=colors[group],
+                edgecolor="none",
+            )
+            ax.hlines(np.nanmean(values), pos - 0.23, pos + 0.23, color="#222222", linewidth=1.1)
+        ax.axhline(0, color="#555555", linewidth=0.8, linestyle="--")
+        ax.set_xticks(np.arange(len(groups)), ["Matched\nhealthy", "AD", "PD"])
+        ax.set_title(str(model).replace("_", " "))
+        ax.set_ylabel("ORA acceleration")
+        ax.spines[["top", "right"]].set_visible(False)
+    fig.suptitle("FLEX v2/Device-Matched NDD ORA Reference")
     fig.savefig(path, dpi=180)
     plt.close(fig)
 

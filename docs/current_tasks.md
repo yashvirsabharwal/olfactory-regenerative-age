@@ -21,7 +21,8 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [x] Run covariate-adjusted targeted pseudobulk DE.
 - [x] Keep generated data/results out of Git.
 - [x] Create local milestone commits for completed work.
-- [ ] Push/merge completed milestones to the private GitHub repo once GitHub auth is restored.
+- [x] Push completed milestone branch to the private GitHub repo.
+- [ ] Fast-forward or merge completed milestones into the private repo default branch.
 
 ## Phase 1: External Validation
 
@@ -102,7 +103,7 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [x] Compare NDD projection using composition-only vs module-augmented features.
 - [x] Add donor-level NDD projection appendix table.
 - [x] Add disease projection residual diagnostics by age, sex, chemistry, collection method, site, and yield.
-- [ ] Add matched healthy reference plots for FLEX v2/device-only donors.
+- [x] Add matched healthy reference plots for FLEX v2/device-only donors.
 - [ ] Add disease projection permutation test with labels shuffled within compatible strata where possible.
 - [x] Add projection uncertainty or bootstrap intervals.
 - [ ] Validate negative ORAA pattern in independent NDD olfactory datasets if available.
@@ -156,6 +157,77 @@ This is the working task board for the olfactory-regenerative-age project. Check
 3. ORA model calibration, interpretable baselines, and formal composition-vs-module comparison.
 4. Latent-space recovery or recomputation for trajectory/neighborhood analyses.
 
+## Detailed Remaining Work Queue
+
+### A. External Validation Tasks
+
+- [ ] For each external dataset candidate, add source URL, accession, download command, license/access notes, expected files, and donor/sample count.
+- [x] Add first concrete external validation source notes for `GSE184117` and `GSE151973`.
+- [ ] Build raw external AnnData/H5AD adapter that resolves donor ID, age, disease, sex, chemistry/batch, cell labels, counts, and gene symbols.
+- [ ] Build external donor-feature matrix adapter for studies that only provide summarized composition/module tables.
+- [ ] Add external feature harmonization report covering missing cell-state aliases, renamed labels, unavailable modules, and feature drop rates.
+- [ ] Add external composition/module feature generation using the same biological-feature contract as Gateway.
+- [ ] Run ORA signature replication tests for age-associated features in external healthy donors.
+- [ ] Run external NDD projection or contrast tests if independent AD/PD olfactory data are available.
+- [ ] Add external validation figures and a report section separating ready, blocked, and failed datasets.
+
+### B. Genome-Wide DE Sensitivity Tasks
+
+- [ ] Add donor-balance diagnostics per contrast and fine cell state before interpreting genome-wide DE.
+- [ ] Add sex-linked, mitochondrial, ribosomal, hemoglobin, and immunoglobulin audit flags to genome-wide DE summaries.
+- [ ] Re-run AD/PD genome-wide DE against matched healthy FLEX v2/device donors where donor counts are sufficient.
+- [ ] Run sex-stratified or sex-balanced genome-wide DE sensitivity where sample size allows.
+- [ ] Run chemistry-stratified genome-wide DE sensitivity where sample size allows.
+- [ ] Run collection-method-stratified genome-wide DE sensitivity where sample size allows.
+- [ ] Add limma-voom parity run on the exported pseudobulk matrix.
+- [ ] Add DESeq2 parity example or documented reason if the design is too underpowered for stable DESeq2 fits.
+- [ ] Add report table that separates robust non-sex-linked signals from likely confounded sentinel hits.
+
+### C. ORA/NDD Sensitivity Tasks
+
+- [x] Add NDD matched FLEX v2/device healthy reference plot.
+- [ ] Add matched healthy FLEX v2/device-only ORA training/projection sensitivity.
+- [ ] Add leave-collection-method-out ORA checks.
+- [ ] Add leave-chemistry-out or leave-site-out ORA checks where strata contain enough donors.
+- [ ] Add donor-yield sensitivity excluding top and bottom cell-count donors.
+- [ ] Add NDD disease-label permutation test within compatible FLEX v2/device strata if exchangeability is defensible.
+- [ ] Add NDD projection figure captions and caveats directly into manuscript-ready notes.
+
+### D. Modeling/Interpretability Tasks
+
+- [ ] Add final model-card table with model family, feature set, training cohort, exclusions, covariates, MAE, Spearman r, calibration slope, and limitations.
+- [ ] Add calibrated ORA plots and confidence interval ribbons to the report.
+- [ ] Decide whether TabPFN/AutoGluon is worth an exploratory run; if run, label it as non-primary because donor n is only 187.
+- [ ] Add top-feature biological interpretation table mapping ORA features to progenitor, neuronal maturation, immune, glandular, and injury/regeneration themes.
+
+### E. Trajectory/Neighborhood Tasks
+
+- [ ] Search Gateway paper/supplement/data portal for original scVI/scANVI latent embeddings.
+- [ ] If latent embeddings are unavailable, add reproducible scVI/scANVI recomputation workflow with HVG, batch covariates, chemistry, and donor/sample handling.
+- [ ] Add pseudotime or lineage-density workflow only after latent space is validated.
+- [ ] Add Milo neighborhood workflow only after latent space is validated.
+- [ ] Add cNMF program workflow only after latent space is validated.
+- [ ] Add negative-control check showing conclusions are not UMAP-only artifacts.
+
+### F. Manuscript/Package Hardening Tasks
+
+- [ ] Add `Makefile` or Snakemake profile for full real-data reruns.
+- [ ] Add command manifest with every real-data command, input, output, runtime, memory note, and software environment.
+- [ ] Add output provenance/checksum table for generated report tables and figures.
+- [ ] Add CI-friendly smoke tests that avoid real Gateway data.
+- [ ] Draft methods sections for cohort construction, ORA modeling, module scoring, pseudobulk DE, and NDD projection.
+- [ ] Draft limitations section covering external validation, NDD n=5, chemistry/device confounding, sex imbalance, and missing latent embeddings.
+- [ ] Draft claim ledger separating supported findings, exploratory findings, negative benchmarks, and deferred claims.
+- [ ] Draft figure plan for main figures, extended data, and supplement tables.
+
+### G. Paper Story/Novelty Tasks
+
+- [ ] Define primary claim in one sentence: olfactory epithelial composition encodes a regenerative aging axis in healthy donors.
+- [ ] Define secondary claim in one sentence: NDD projections are exploratory and hypothesis-generating.
+- [ ] Decide whether the manuscript is best framed as resource/methods, atlas reanalysis, aging biology, or NDD hypothesis paper.
+- [ ] Compare ORA conceptually against tissue clocks, olfactory dysfunction aging literature, and regenerative epithelial-state papers.
+- [ ] Draft title, abstract, and one-page significance statement after external validation status is clear.
+
 ## Progress Log
 
 - 2026-06-12: Added this living task tracker.
@@ -177,3 +249,4 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - 2026-06-15: Added leakage-safe out-of-fold stacking across ridge, random forest, XGBoost, and CatBoost with inner donor-fold meta-training, CLI outputs, unit tests, and MVP report integration. A 5-repeat augmented-feature run produced stacked-ensemble mean MAE 14.46 (13.98-14.88) and mean Spearman r 0.313, which is worse than tuned XGBoost MAE 14.04 and tuned CatBoost MAE 14.08. The ensemble weights were unstable across folds, so stacking is recorded as a negative benchmark rather than the preferred ORA model.
 - 2026-06-15: Added NDD projection feature-set sensitivity and donor appendix exports. The workflow reruns frozen ORA projection with composition-only and module-augmented features, emits a 24-row model/disease comparison, and writes a 240-row AD/PD donor appendix. Excluding the null model, all 11 model families show negative mean ORAA for both AD and PD under both feature sets; the largest feature-set shift was CatBoost AD, moving from -8.93 to -6.13 years. This supports directional stability of the exploratory NDD projection, but the sample size remains 5 AD and 5 PD donors.
 - 2026-06-15: Added NDD projection residual diagnostics by sex, age bin, chemistry, collection method, site, and cell-yield quartile, with single-donor strata explicitly flagged. The real augmented projection generated 288 diagnostic rows. Chemistry and collection method are fully confounded for disease donors because all AD/PD donors are FLEX v2/device; site is missing in the export. Among ok strata for the current display models, PD female and high-yield strata remain strongly negative, and AD male/70-79 strata remain negative, but many disease strata are too small for inference.
+- 2026-06-15: Added a matched FLEX v2/device healthy-reference NDD ORAA figure to the MVP report and expanded the task tracker into a granular remaining-work queue. External validation research identified GEO `GSE184117` as the first actionable human olfactory aging/presbyosmia single-cell validation target and `GSE151973` as a bulk olfactory neuroepithelium marker-sanity reference; source notes and download commands are now tracked in `docs/external_validation_sources.md`.

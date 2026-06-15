@@ -556,6 +556,7 @@ class ReportingTests(unittest.TestCase):
             self.assertGreaterEqual(len(written), 6)
             self.assertTrue((figures / "mvp_model_performance.png").exists())
             self.assertTrue((figures / "mvp_ndd_projection.png").exists())
+            self.assertTrue((figures / "mvp_ndd_matched_reference.png").exists())
             self.assertTrue((figures / "mvp_pseudobulk_de.png").exists())
             self.assertTrue((figures / "mvp_pseudobulk_covariate_de.png").exists())
 

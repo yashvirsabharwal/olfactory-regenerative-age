@@ -20,24 +20,58 @@ datasets:
     notes: "Use for lineage/cell-state feature replication once source files are supplied."
 
   oliva_2022:
-    title: "Presbyosmia / olfactory aging validation"
-    status: "metadata_pending"
+    title: "Aging-related olfactory loss is associated with olfactory stem cell transcriptional alterations in humans"
+    accession: "GSE184117"
+    bioproject: "PRJNA763212"
+    sra: "SRP337058"
+    source_url: "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE184117"
+    supplementary_url: "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE184nnn/GSE184117/suppl/GSE184117_RAW.tar"
+    status: "download_ready"
     validation_use: "aging and presbyosmia feature replication"
     species: "human"
     tissue: "olfactory epithelium"
     disease_context: ["aging", "presbyosmia"]
-    expected_level: "single_cell_or_bulk"
+    expected_level: "single_cell"
+    cohort_notes: "6 adult donors: 3 normosmic controls and 3 presbyosmic donors older than 65; plus one culture sample."
+    data_notes: "Processed supplementary TAR contains MTX/TSV files; raw data also available in SRA."
     path: null
     required_files:
-      expression: null
-      metadata: null
+      expression: "GSE184117_RAW.tar"
+      metadata: "GSE184117_RAW.tar"
       feature_matrix: null
+    download_command: "curl -L -o data/external/GSE184117_RAW.tar https://ftp.ncbi.nlm.nih.gov/geo/series/GSE184nnn/GSE184117/suppl/GSE184117_RAW.tar"
     required_columns:
       donor_id: ["donor_id", "individual", "subject_id"]
       age: ["age", "age_years"]
       disease_group: ["disease_group", "condition", "diagnosis"]
       cell_type: ["cell_type", "fine_cell_type", "annotation"]
-    notes: "Primary external aging validation target."
+    notes: "Primary external aging validation target. GEO summary states single-cell 3' RNA-seq of olfactory epithelium from normosmic and presbyosmic adults."
+
+  fodoulian_2020:
+    title: "A gateway for SARS-CoV-2 infection in the human olfactory neuroepithelium"
+    accession: "GSE151973"
+    bioproject: "PRJNA637909"
+    sra: "SRP266345"
+    source_url: "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE151973"
+    status: "download_ready_bulk_reference"
+    validation_use: "bulk olfactory versus respiratory epithelium marker sanity check"
+    species: "human"
+    tissue: "olfactory neuroepithelium"
+    disease_context: ["healthy_or_surgical_reference"]
+    expected_level: "bulk_rnaseq"
+    cohort_notes: "Bulk olfactory and nasal respiratory epithelium biopsies from adult surgical patients; useful for marker sanity checks but not donor-level ORA validation."
+    path: null
+    required_files:
+      expression: "GSE151973_Human_OE_RE_RNAseq_quantifications.rds.gz"
+      metadata: "GSE151973_Human_OE_RE_RNAseq_DE.csv.gz"
+      feature_matrix: null
+    download_command: "curl -L -O https://ftp.ncbi.nlm.nih.gov/geo/series/GSE151nnn/GSE151973/suppl/GSE151973_Human_OE_RE_RNAseq_DE.csv.gz"
+    required_columns:
+      donor_id: ["donor_id", "individual", "subject_id", "patient"]
+      age: ["age", "age_years"]
+      disease_group: ["disease_group", "condition", "diagnosis", "tissue"]
+      cell_type: ["cell_type", "fine_cell_type", "annotation"]
+    notes: "Not a primary ORA validation dataset because it is bulk tissue RNA-seq, but useful for olfactory epithelial marker and OE/RE contrast checks."
 
   danniballe_2026:
     title: "Alzheimer's olfactory biopsy validation"
