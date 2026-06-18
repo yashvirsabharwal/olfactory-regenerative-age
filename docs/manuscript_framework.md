@@ -49,10 +49,11 @@ The paper should be framed as a reproducible and interpretable donor-level analy
    - Result 7: Genome-wide pseudobulk disease DE is audited hypothesis generation.
      - edgeR and limma-voom parity.
      - Donor balance, sex-linked sentinel, matched subset, and method sensitivity.
-   - Result 8: Latent-space recovery has begun but trajectory claims remain deferred.
+   - Result 8: Full-scale latent neighborhoods reveal an exploratory regenerative aging layer.
      - CELLxGENE export has only `X_umap`.
      - A chunked reduced all-cell scVI run produced finite 10-dimensional `X_scvi` for all 4,028,275 Gateway cells, with 250k seed and lineage-focused models as sensitivity anchors.
-     - Full-model, seed, and lineage-specific marker gates are still required before trajectory, Milo, or cNMF.
+     - Full 4M Milo-style neighborhood analyses identify age-associated neighborhoods, especially negative age associations in immature OSN/INP/regenerative neighborhoods.
+     - Matched technical sensitivity, marker/program annotation, and implementation parity remain required before promoting the neighborhood result as a primary claim.
 
 4. Discussion
    - Interpretation: ORA detects a tissue-specific regenerative aging axis in a renewing human neuroepithelium.
@@ -101,7 +102,7 @@ The paper should be framed as a reproducible and interpretable donor-level analy
 - Extended Data 3: full external validation evidence ledger, marker-age concordance, marker-reference mapped-feature concordance, and scANVI-mapped feature concordance.
 - Extended Data 4: NDD donor appendix and matched FLEX v2/device projection sensitivity.
 - Extended Data 5: edgeR and limma-voom DE top-hit and audit tables.
-- Extended Data 6: all-cell, scaled-seed, and lineage scVI validation tables plus latent-space recovery plan.
+- Extended Data 6: all-cell, scaled-seed, and lineage scVI validation tables plus full 4M Milo-style neighborhood maps and claim gates.
 
 ## Current Publication Standing
 

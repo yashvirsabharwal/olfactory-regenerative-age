@@ -18,6 +18,7 @@ Updated: 2026-06-18
 - AD/PD donors project to negative ORAA across model families, but this is hypothesis-generating only because each disease group has 5 donors and all disease donors share FLEX v2/device context.
 - Genome-wide disease DE has method-sensitive significant rows; limma-voom is more conservative than edgeR and matched analyses reduce sentinel artifacts, but disease biology still needs audited cross-method support.
 - A chunked reduced all-cell Gateway scVI run successfully trained on 4,028,275 cells with a 3,000-gene HVG/marker feature set and wrote finite 10-dimensional `X_scvi` coordinates for all cells. Validation passed fine/coarse label-purity, FLEX/device/condition/sex mixing, and basal/OSN/sustentacular marker-continuity checks; progenitor and immune continuity remain limited in the full model and should be cross-checked against the 250k seed and lineage-focused models before mechanistic claims.
+- Full 4M Milo-style neighborhood analyses identify age-associated latent neighborhoods after donor-level adjustment, especially negative age associations in immature OSN/INP/regenerative neighborhoods. This is an exploratory mechanistic layer until matched FLEX/device sensitivity, neighborhood marker annotation, and implementation-parity checks are complete.
 
 ## Deferred Claims
 
