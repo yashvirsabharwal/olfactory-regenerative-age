@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +34,126 @@ DEFAULT_MARKER_PANELS = {
     "sustentacular": ("CYP2A13", "CYP2J2", "MUC1"),
     "immune": ("PTPRC", "LST1", "TYROBP"),
 }
+
+
+def summarize_scvi_validation_tables(validation_paths: dict[str, str | Path]) -> pd.DataFrame:
+    """Summarize multiple scVI validation TSVs into one comparison table."""
+
+    rows: list[dict[str, str | float]] = []
+    for model, path_like in validation_paths.items():
+        path = Path(path_like)
+        if not path.exists():
+            rows.append(
+                {
+                    "model": model,
+                    "metric": "validation_table",
+                    "status": "missing",
+                    "value": np.nan,
+                    "detail": str(path),
+                    "interpretation": "Validation table is absent; do not use this model for claim support.",
+                }
+            )
+            continue
+        validation = pd.read_csv(path, sep="\t")
+        for _, row in validation.iterrows():
+            check = str(row["check"])
+            status = str(row["status"])
+            detail = str(row["detail"])
+            if check == "pilot_h5ad":
+                cells, genes = _extract_shape(detail)
+                rows.extend(
+                    [
+                        _summary_row(model, "cells", status, cells, detail, "Cells represented by this latent model."),
+                        _summary_row(model, "genes", status, genes, detail, "Genes retained in the latent feature space."),
+                    ]
+                )
+            elif check == "embedding_dimensions":
+                _, dims = _extract_shape(detail)
+                rows.append(_summary_row(model, "latent_dimensions", status, dims, detail, "Latent dimensionality written to `.obsm`."))
+            elif check.startswith("neighbor_label_purity__"):
+                metric = check.replace("neighbor_label_purity__", "label_purity__")
+                rows.append(
+                    _summary_row(
+                        model,
+                        metric,
+                        status,
+                        _extract_float(detail, "mean_same_label"),
+                        detail,
+                        "Higher values mean nearest-neighbor neighborhoods preserve annotated cell states.",
+                    )
+                )
+            elif check.startswith("neighbor_mixing_entropy__"):
+                metric = check.replace("neighbor_mixing_entropy__", "mixing_entropy__")
+                rows.append(
+                    _summary_row(
+                        model,
+                        metric,
+                        status,
+                        _extract_float(detail, "normalized_entropy"),
+                        detail,
+                        "Higher values mean neighborhoods are less dominated by this metadata field.",
+                    )
+                )
+            elif check.startswith("marker_continuity__"):
+                metric = check.replace("marker_continuity__", "marker_continuity__")
+                rows.append(
+                    _summary_row(
+                        model,
+                        metric,
+                        status,
+                        _extract_float(detail, "top_decile_enrichment"),
+                        detail,
+                        "Higher values mean marker-high cells concentrate in an interpretable latent neighborhood.",
+                    )
+                )
+            elif check == "claim_gate":
+                rows.append(
+                    _summary_row(
+                        model,
+                        "claim_gate",
+                        status,
+                        np.nan,
+                        detail,
+                        "Mechanistic claims stay deferred unless this gate and model-specific diagnostics pass.",
+                    )
+                )
+    summary = pd.DataFrame(rows, columns=["model", "metric", "status", "value", "detail", "interpretation"])
+    if summary.empty:
+        return summary
+    return summary.sort_values(["metric", "model"]).reset_index(drop=True)
+
+
+def _summary_row(
+    model: str,
+    metric: str,
+    status: str,
+    value: float,
+    detail: str,
+    interpretation: str,
+) -> dict[str, str | float]:
+    return {
+        "model": model,
+        "metric": metric,
+        "status": status,
+        "value": value,
+        "detail": detail,
+        "interpretation": interpretation,
+    }
+
+
+def _extract_shape(detail: str) -> tuple[float, float]:
+    h5ad_match = re.search(r"(\d+)\s+cells\s+x\s+(\d+)", detail)
+    if h5ad_match:
+        return float(h5ad_match.group(1)), float(h5ad_match.group(2))
+    embedding_match = re.search(r"\((\d+),\s*(\d+)\)", detail)
+    if embedding_match:
+        return float(embedding_match.group(1)), float(embedding_match.group(2))
+    return np.nan, np.nan
+
+
+def _extract_float(detail: str, key: str) -> float:
+    match = re.search(rf"{re.escape(key)}=([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)", detail)
+    return float(match.group(1)) if match else np.nan
 
 
 def latent_recompute_feasibility(

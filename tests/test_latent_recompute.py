@@ -14,6 +14,7 @@ from scipy import sparse
 from ora.latent_recompute import (
     latent_recompute_feasibility,
     render_latent_recompute_workflow,
+    summarize_scvi_validation_tables,
     validate_scvi_pilot,
 )
 
@@ -167,6 +168,34 @@ class LatentRecomputeTests(unittest.TestCase):
         missing = validation[validation["check"].eq("metadata__missing_column")].iloc[0]
         self.assertEqual(dim["status"], "ok")
         self.assertEqual(sample["status"], "sparse_levels")
+        self.assertEqual(missing["status"], "missing")
+
+    def test_summarize_scvi_validation_tables_extracts_key_metrics(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "validation.tsv"
+            path.write_text(
+                "\t".join(["check", "status", "detail", "recommendation"])
+                + "\n"
+                + "\t".join(["pilot_h5ad", "ok", "250000 cells x 3003 HVGs", "ok"])
+                + "\n"
+                + "\t".join(["embedding_dimensions", "ok", "X_scvi:(250000, 10)", "ok"])
+                + "\n"
+                + "\t".join(["neighbor_label_purity__fine_celltype", "ok", "mean_same_label=0.72;k=16", "ok"])
+                + "\n"
+                + "\t".join(["neighbor_mixing_entropy__sex", "ok", "normalized_entropy=0.61;levels=3;k=16", "ok"])
+                + "\n"
+                + "\t".join(["marker_continuity__immune", "limited", "present_genes=3;top_label=matureDC;top_decile_enrichment=5.11", "review"])
+                + "\n",
+                encoding="utf-8",
+            )
+
+            summary = summarize_scvi_validation_tables({"model_a": path, "missing_model": Path(tmpdir) / "missing.tsv"})
+
+        fine = summary[(summary["model"].eq("model_a")) & (summary["metric"].eq("label_purity__fine_celltype"))].iloc[0]
+        dims = summary[(summary["model"].eq("model_a")) & (summary["metric"].eq("latent_dimensions"))].iloc[0]
+        missing = summary[summary["model"].eq("missing_model")].iloc[0]
+        self.assertEqual(float(fine["value"]), 0.72)
+        self.assertEqual(float(dims["value"]), 10.0)
         self.assertEqual(missing["status"], "missing")
 
 
