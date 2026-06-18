@@ -1,6 +1,6 @@
 # ORA Current Tasks and Milestone Tracker
 
-Updated: 2026-06-15
+Updated: 2026-06-18
 
 This is the working task board for the olfactory-regenerative-age project. Checkboxes should be updated as implementation lands, tests pass, and real Gateway outputs are regenerated.
 
@@ -115,11 +115,11 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [x] If unavailable, add workflow to recompute latent representations.
 - [x] Add preprocessing plan for recomputed latent space, including HVG selection, covariates, and batch keys.
 - [ ] Add pseudotime/lineage-density workflow using an appropriate latent space.
-- [ ] Add Milo neighborhood analysis external-compute workflow.
+- [x] Add Milo neighborhood analysis external-compute workflow.
 - [ ] Add cNMF program discovery external-compute workflow.
 - [ ] Add lineage bottleneck and density summaries.
-- [ ] Validate that trajectory/neighborhood findings are not UMAP-only artifacts.
-- [ ] Add trajectory/neighborhood report sections only after latent-space validation.
+- [x] Validate that neighborhood findings are not UMAP-only artifacts.
+- [x] Add full 4M Milo-style neighborhood report section after latent-space validation.
 
 ## Phase 7: Manuscript/Package Hardening
 
@@ -218,10 +218,15 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [x] Add scaled 250k-cell and lineage-focused scVI Make targets with stratified sampling.
 - [x] Run scaled 250k-cell stratified scVI and validate marker continuity, label purity, and metadata mixing.
 - [x] Run lineage-focused basal/progenitor/neural scVI and validate before pseudotime.
+- [x] Train a full 4,028,275-cell reduced Gateway scVI model on 3,003 HVG/marker genes.
+- [x] Run full 4M Milo-style neighborhood DA for broad all-cell, lineage-focused, and secretory-focused neighborhoods.
+- [x] Run matched FLEX v2/device full 4M Milo-style sensitivity.
+- [ ] Annotate significant neighborhoods by marker enrichment and ORA feature themes.
+- [ ] Add official MiloR parity or a documented implementation-parity rationale.
 - [ ] Add pseudotime or lineage-density workflow only after latent space is validated.
 - [x] Add first-pass Milo-style neighborhood workflow after latent space validation.
 - [x] Run publication-scale Milo-style workflow on the full 4M reduced scVI atlas.
-- [ ] Run matched/sensitivity Milo-style neighborhood workflow before biological claims.
+- [x] Run matched/sensitivity Milo-style neighborhood workflow before biological claims.
 - [ ] Add cNMF program workflow only after latent space is validated.
 - [ ] Add negative-control check showing conclusions are not UMAP-only artifacts.
 
@@ -288,4 +293,5 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - 2026-06-18: Added targeted `make milo-lineage` and `make milo-secretory` passes. Both tested 1,000 neighborhoods and found 0 age-associated neighborhoods at BH FDR < 0.10. The strongest nominal lineage neighborhoods were early mature mOSN, late iOSN, and cycling HBC with negative age coefficients; the strongest nominal secretory neighborhoods were serous, club, mucous gland, and proliferating secretory with negative age coefficients. These remain exploratory until matched sensitivity and/or full-model neighborhood transfer improve support.
 - 2026-06-18: Promoted the next Milo-style step to full-data scale. `make milo-full-4m`, `make milo-full-4m-lineage`, and `make milo-full-4m-secretory` target `data/processed/gateway_scvi_full_4m_reduced.h5ad` with 20,000 stratified neighborhoods, 100 nearest cells per neighborhood, minimum 30 donors, and donor-yield adjustment. These are the intended publishable runs; smaller atlas runs remain method checks and sensitivity anchors.
 - 2026-06-18: Completed the full 4M Milo-style run set on `mia`. The broad full run found 3,673/20,000 age-associated neighborhoods at FDR < 0.10, the lineage-focused run found 5,613/20,000, and the secretory-focused run found 285/20,000. The clearest biological signal is negative age association in immature olfactory neuronal/regenerative neighborhoods, with broad all-cell support for secretory/ciliated/immune neighborhood shifts. Added `docs/milo_full_4m_results.md` to capture interpretation and remaining claim gates.
+- 2026-06-18: Completed matched FLEX v2/device full 4M Milo-style sensitivity. With 27 healthy matched donors, the all-cell run retained 10 FDR < 0.10 neighborhoods, mostly negative Naive CD8/T-cell neighborhoods plus one late iOSN neighborhood; the lineage-focused run retained one negative Early iOSN neighborhood; and the secretory-focused run retained 0 significant neighborhoods. This narrows the manuscript-ready mechanistic language to technically matched regenerative neuronal-lineage depletion and keeps secretory-only neighborhood DA exploratory.
 - 2026-06-16: Added and ran the GSE184117 raw external AnnData adapter. `make external-gse184117-mapped` wrote `data/processed/gse184117_marker_mapped.h5ad` with 59,656 biopsy cells x 36,601 genes, `results/tables/external_10x_mapping_qc.tsv` for 6 usable samples, and `data/processed/gse184117_mapped_donor_features.tsv` with 25 ORA-compatible `prop__`, `clr__`, and `ratio__` features. Mapping QC reports 95.6-99.9% mapped cells and 43 marker genes present per sample. `make external-mapped-feature-concordance` generated 32 Gateway-mapped feature-direction rows: 16 concordant and 16 discordant, all explicitly `small_n_mapped`. The external evidence ledger now includes the mapped-feature candidate row, and output provenance reports 129 outputs with 0 missing.
