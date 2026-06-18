@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -27,6 +28,8 @@ def main() -> None:
     parser.add_argument("--n-neighbors", type=int, default=50)
     parser.add_argument("--min-donors", type=int, default=20)
     parser.add_argument("--seed", type=int, default=13)
+    parser.add_argument("--include-fine-regex", default=None, help="Regex of fine cell types to keep before neighborhood testing.")
+    parser.add_argument("--include-coarse-regex", default=None, help="Regex of coarse cell types to keep before neighborhood testing.")
     parser.add_argument("--include-disease", action="store_true", help="Do not restrict donor metadata to healthy donors.")
     args = parser.parse_args()
 
@@ -45,6 +48,10 @@ def main() -> None:
     if not args.include_disease and "is_healthy" in donor_metadata:
         donor_metadata = donor_metadata[donor_metadata["is_healthy"].astype(str).str.lower().eq("true")].copy()
     donor_metadata = donor_metadata[donor_metadata["age"].notna()].copy()
+    keep_cells = _cell_filter(cell_metadata, fine_regex=args.include_fine_regex, coarse_regex=args.include_coarse_regex)
+    if keep_cells is not None:
+        embedding = embedding[keep_cells, :]
+        cell_metadata = cell_metadata.loc[keep_cells].reset_index(drop=True)
 
     config = NeighborhoodConfig(
         n_neighborhoods=args.n_neighborhoods,
@@ -62,6 +69,33 @@ def main() -> None:
     summary.to_csv(ensure_parent(args.summary_out), sep="\t", index=False)
     print(f"Wrote Milo-style neighborhood DA: {args.out} ({neighborhoods.shape[0]} rows)")
     print(f"Wrote Milo-style summary: {args.summary_out} ({summary.shape[0]} rows)")
+
+
+def _cell_filter(
+    cell_metadata: pd.DataFrame,
+    *,
+    fine_regex: str | None = None,
+    coarse_regex: str | None = None,
+) -> pd.Series | None:
+    filters = []
+    if fine_regex:
+        if "fine_celltype" not in cell_metadata:
+            raise SystemExit("--include-fine-regex requires `fine_celltype` in AnnData.obs")
+        pattern = re.compile(fine_regex, flags=re.IGNORECASE)
+        filters.append(cell_metadata["fine_celltype"].astype(str).map(lambda value: bool(pattern.search(value))))
+    if coarse_regex:
+        if "coarse_celltype" not in cell_metadata:
+            raise SystemExit("--include-coarse-regex requires `coarse_celltype` in AnnData.obs")
+        pattern = re.compile(coarse_regex, flags=re.IGNORECASE)
+        filters.append(cell_metadata["coarse_celltype"].astype(str).map(lambda value: bool(pattern.search(value))))
+    if not filters:
+        return None
+    keep = filters[0].copy()
+    for item in filters[1:]:
+        keep &= item
+    if int(keep.sum()) == 0:
+        raise SystemExit("Cell filter kept 0 cells; revise the regex.")
+    return keep
 
 
 if __name__ == "__main__":

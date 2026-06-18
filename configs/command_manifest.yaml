@@ -306,6 +306,16 @@ commands:
     command: "make milo"
     inputs: ["data/processed/gateway_scvi_stratified_250k.h5ad", "data/processed/cohort_manifest.tsv"]
     outputs: ["results/tables/milo_pilot_neighborhood_da.tsv", "results/tables/milo_pilot_summary.tsv"]
+  milo_lineage:
+    description: "Run targeted Milo-style donor-level neighborhood testing on the lineage-focused scVI atlas."
+    command: "make milo-lineage"
+    inputs: ["data/processed/gateway_scvi_lineage_basal_neural_100k.h5ad", "data/processed/cohort_manifest.tsv"]
+    outputs: ["results/tables/milo_lineage_neighborhood_da.tsv", "results/tables/milo_lineage_summary.tsv"]
+  milo_secretory:
+    description: "Run targeted Milo-style donor-level neighborhood testing on secretory, sustentacular, and glandular neighborhoods."
+    command: "make milo-secretory"
+    inputs: ["data/processed/gateway_scvi_stratified_250k.h5ad", "data/processed/cohort_manifest.tsv"]
+    outputs: ["results/tables/milo_secretory_neighborhood_da.tsv", "results/tables/milo_secretory_summary.tsv"]
   report:
     description: "Regenerate Markdown report and summary figures from existing outputs."
     command: "make report"
