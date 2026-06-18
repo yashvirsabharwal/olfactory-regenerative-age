@@ -45,6 +45,8 @@ The matched theme summary is much narrower. Matched all-cell significant neighbo
 
 Gene-level marker/program enrichment is not yet complete. The current DA tables store top cell-state labels and model statistics, but not per-neighborhood cell memberships or expression summaries, so marker/program enrichment requires a follow-up membership-emitting or pseudobulk/program-scoring pass.
 
+The DA runner now supports that follow-up through `scripts/run_milo_pilot.py --membership-out`, which writes per-neighborhood cell indices, obs names, donors, and cell-state labels. The next enrichment pass should use this option on the full 4M lineage and matched-lineage runs before promoting marker-level mechanism language.
+
 ## Biological Reading
 
 The all-cell and lineage-focused full-scale runs now support a real neighborhood-level aging signal that was not visible in the 250k/100k pilots. The strongest recurring all-donor signal is reduced age-associated representation of regenerative neuronal-lineage neighborhoods, especially early iOSN, late iOSN, INP, and related HBC/suprabasal neighborhoods. The broad all-cell run also shows age-associated shifts in mucous gland/secretory, multiciliated, dendritic/T-cell, Bowman gland, sustentacular, and mature neuronal neighborhoods.

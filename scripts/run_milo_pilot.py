@@ -24,6 +24,7 @@ def main() -> None:
     parser.add_argument("--embedding-key", default="X_scvi")
     parser.add_argument("--out", default="results/tables/milo_pilot_neighborhood_da.tsv")
     parser.add_argument("--summary-out", default="results/tables/milo_pilot_summary.tsv")
+    parser.add_argument("--membership-out", default=None, help="Optional TSV of cell memberships for each neighborhood.")
     parser.add_argument("--n-neighborhoods", type=int, default=1000)
     parser.add_argument("--n-neighbors", type=int, default=50)
     parser.add_argument("--min-donors", type=int, default=20)
@@ -42,7 +43,10 @@ def main() -> None:
         if args.embedding_key not in adata.obsm:
             raise SystemExit(f"Embedding key `{args.embedding_key}` is missing from {args.h5ad}")
         embedding = adata.obsm[args.embedding_key][:]
-        cell_metadata = adata.obs.reset_index(drop=True)
+        cell_metadata = adata.obs.copy()
+        cell_metadata["_obs_name"] = cell_metadata.index.astype(str)
+        cell_metadata["_cell_index"] = range(cell_metadata.shape[0])
+        cell_metadata = cell_metadata.reset_index(drop=True)
     finally:
         close = getattr(adata, "file", None)
         if close is not None:
@@ -73,16 +77,25 @@ def main() -> None:
         numeric_covariates=_split_csv(args.numeric_covariates),
         seed_stratify_columns=_split_csv(args.seed_stratify_columns),
     )
-    neighborhoods, summary = run_neighborhood_da(
+    result = run_neighborhood_da(
         embedding,
         cell_metadata,
         donor_metadata,
         config=config,
+        return_memberships=bool(args.membership_out),
     )
+    if args.membership_out:
+        neighborhoods, summary, memberships = result
+    else:
+        neighborhoods, summary = result
+        memberships = None
     neighborhoods.to_csv(ensure_parent(args.out), sep="\t", index=False)
     summary.to_csv(ensure_parent(args.summary_out), sep="\t", index=False)
     print(f"Wrote Milo-style neighborhood DA: {args.out} ({neighborhoods.shape[0]} rows)")
     print(f"Wrote Milo-style summary: {args.summary_out} ({summary.shape[0]} rows)")
+    if args.membership_out and memberships is not None:
+        memberships.to_csv(ensure_parent(args.membership_out), sep="\t", index=False)
+        print(f"Wrote Milo-style memberships: {args.membership_out} ({memberships.shape[0]} rows)")
 
 
 def _cell_filter(

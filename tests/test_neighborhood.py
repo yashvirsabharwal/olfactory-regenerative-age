@@ -80,6 +80,46 @@ class NeighborhoodTests(unittest.TestCase):
         self.assertTrue(neighborhoods["n_donors"].le(9).all())
         self.assertTrue(neighborhoods["status"].isin(["tested", "too_few_donors"]).all())
 
+    def test_run_neighborhood_da_can_return_memberships(self):
+        rng = np.random.default_rng(4)
+        donor_metadata = pd.DataFrame(
+            {
+                "donor_id": [f"d{idx}" for idx in range(6)],
+                "age": np.linspace(30, 70, 6),
+                "sex": ["female", "male"] * 3,
+                "chemistry": ["flex_v2"] * 6,
+                "collection_method": ["device"] * 6,
+            }
+        )
+        cell_rows = []
+        embedding_rows = []
+        for idx, donor in enumerate(donor_metadata["donor_id"]):
+            for cell in range(5):
+                cell_rows.append(
+                    {
+                        "_cell_index": idx * 5 + cell,
+                        "_obs_name": f"cell-{idx}-{cell}",
+                        "donor_id": donor,
+                        "fine_celltype": "Early_iOSN",
+                        "coarse_celltype": "Olf_iOSNs",
+                    }
+                )
+                embedding_rows.append(rng.normal(size=2))
+
+        neighborhoods, summary, memberships = run_neighborhood_da(
+            np.vstack(embedding_rows),
+            pd.DataFrame(cell_rows),
+            donor_metadata,
+            config=NeighborhoodConfig(n_neighborhoods=4, n_neighbors=7, min_donors=2, seed=4),
+            return_memberships=True,
+        )
+
+        self.assertEqual(neighborhoods.shape[0], 4)
+        self.assertEqual(summary.loc[0, "metric"], "neighborhoods_total")
+        self.assertEqual(memberships.shape[0], 28)
+        self.assertIn("obs_name", memberships.columns)
+        self.assertTrue(memberships["cell_index"].between(0, 29).all())
+
 
 if __name__ == "__main__":
     unittest.main()

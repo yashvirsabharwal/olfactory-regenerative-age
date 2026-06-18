@@ -32,7 +32,8 @@ def run_neighborhood_da(
     donor_metadata: pd.DataFrame,
     *,
     config: NeighborhoodConfig | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
+    return_memberships: bool = False,
+) -> tuple[pd.DataFrame, pd.DataFrame] | tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Run a lightweight Milo-style donor-level DA screen over latent neighborhoods."""
 
     cfg = config or NeighborhoodConfig()
@@ -61,8 +62,11 @@ def run_neighborhood_da(
     total_cells_by_donor = cells[cfg.donor_column].value_counts().rename("donor_cells_in_latent")
 
     rows = []
+    membership_rows = []
     for neighborhood_id, indices in enumerate(neighbor_indices):
         neighborhood_cells = cells.iloc[indices]
+        if return_memberships:
+            membership_rows.extend(_membership_rows(neighborhood_id, neighborhood_cells, cfg))
         counts = neighborhood_cells[cfg.donor_column].value_counts()
         observed_donors = counts.index.intersection(donor_index.index)
         if len(observed_donors) < cfg.min_donors:
@@ -85,6 +89,12 @@ def run_neighborhood_da(
         neighborhood_table["age_fdr"] = np.nan
     neighborhood_table["age_fdr"] = neighborhood_table["age_fdr"].astype(float)
     summary = summarize_neighborhood_da(neighborhood_table)
+    if return_memberships:
+        memberships = pd.DataFrame(
+            membership_rows,
+            columns=["neighborhood_id", "cell_index", "obs_name", cfg.donor_column, cfg.fine_column, cfg.coarse_column],
+        )
+        return neighborhood_table, summary, memberships
     return neighborhood_table, summary
 
 
@@ -209,6 +219,26 @@ def _top_label(frame: pd.DataFrame, column: str) -> tuple[str, float]:
     if counts.empty:
         return "unknown", np.nan
     return str(counts.index[0]), float(counts.iloc[0] / counts.sum())
+
+
+def _membership_rows(
+    neighborhood_id: int,
+    neighborhood_cells: pd.DataFrame,
+    cfg: NeighborhoodConfig,
+) -> list[dict[str, int | str]]:
+    rows = []
+    for local_position, row in neighborhood_cells.iterrows():
+        rows.append(
+            {
+                "neighborhood_id": int(neighborhood_id),
+                "cell_index": int(row.get("_cell_index", local_position)),
+                "obs_name": str(row.get("_obs_name", local_position)),
+                cfg.donor_column: str(row.get(cfg.donor_column, "unknown")),
+                cfg.fine_column: str(row.get(cfg.fine_column, "unknown")),
+                cfg.coarse_column: str(row.get(cfg.coarse_column, "unknown")),
+            }
+        )
+    return rows
 
 
 def _seed_indices(
