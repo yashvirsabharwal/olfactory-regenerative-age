@@ -1,6 +1,6 @@
 # ORA Active Work Tracker
 
-Updated: 2026-06-17
+Updated: 2026-06-18
 
 This is the live tracker for the post-preprint upgrade path. Mark tasks here as they move from planned to implemented, validated, and manuscript-ready.
 

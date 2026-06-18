@@ -1521,7 +1521,7 @@ def render_mvp_markdown(
         "- ORA predictions are under-dispersed across chronological age; calibration diagnostics support using ORA as a relative tissue-state axis rather than an absolute biological-age estimator.",
         "- Genome-wide pseudobulk counts now have local edgeR quasi-likelihood and limma-voom workflows; DESeq2 remains an adapter hook.",
         "- Genome-wide NDD DE is discovery-oriented only: AD/PD sample sizes are five donors each and sex/chemistry/collection imbalance can dominate top hits.",
-        "- Trajectory density, Milo, and cNMF remain deferred commands.",
+        "- Full-scale Milo-style neighborhoods are available as a guarded mechanistic layer; pseudotime and cNMF remain deferred.",
         "- Chemistry, collection method, site, and yield are treated as covariates or sensitivity variables rather than biological ORA features.",
         "- AD/PD donors are excluded from ORA training and reserved for later frozen-model projection.",
         "",

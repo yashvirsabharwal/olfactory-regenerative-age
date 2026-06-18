@@ -23,7 +23,7 @@ Updated: 2026-06-18
 ## Deferred Claims
 
 - Larger donor-level external validation of ORA-associated cell-state composition features in independent olfactory aging or NDD datasets.
-- Pseudotime, lineage-density, Milo, and cNMF claims until full-model, 250k-seed, and lineage-focused latent diagnostics are compared and method-specific sensitivity checks pass.
+- Pseudotime, lineage-density, and cNMF claims until method-specific workflows and sensitivity checks pass. Milo-style neighborhood results are available from the full 4M run but remain exploratory until matched technical sensitivity, marker/program annotation, and implementation-parity checks pass.
 - Disease-specific biological interpretation from genome-wide DE without matched/sensitivity audits and edgeR/limma parity.
 
 ## Prohibited Framing For Current State
