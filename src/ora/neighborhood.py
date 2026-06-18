@@ -22,6 +22,8 @@ class NeighborhoodConfig:
     fine_column: str = "fine_celltype"
     coarse_column: str = "coarse_celltype"
     covariates: tuple[str, ...] = ("sex", "chemistry", "collection_method")
+    numeric_covariates: tuple[str, ...] = ("total_cells",)
+    seed_stratify_columns: tuple[str, ...] = ()
 
 
 def run_neighborhood_da(
@@ -51,8 +53,7 @@ def run_neighborhood_da(
     cells = cells.loc[keep_cells].reset_index(drop=True)
 
     rng = np.random.default_rng(cfg.seed)
-    n_seeds = min(cfg.n_neighborhoods, embedding.shape[0])
-    seed_indices = np.sort(rng.choice(embedding.shape[0], size=n_seeds, replace=False))
+    seed_indices = _seed_indices(cells, n_cells=embedding.shape[0], cfg=cfg, rng=rng)
     n_neighbors = min(cfg.n_neighbors, embedding.shape[0])
     nn = NearestNeighbors(n_neighbors=n_neighbors, metric="euclidean")
     nn.fit(embedding)
@@ -132,6 +133,11 @@ def _fit_neighborhood_model(model_df: pd.DataFrame, cfg: NeighborhoodConfig) -> 
             if values.nunique() > 1:
                 dummies = pd.get_dummies(values, prefix=covariate, drop_first=True, dtype=float)
                 design = pd.concat([design, dummies], axis=1)
+    for covariate in cfg.numeric_covariates:
+        if covariate in usable:
+            values = pd.to_numeric(usable[covariate], errors="coerce").to_numpy(dtype=float)
+            if np.isfinite(values).sum() >= cfg.min_donors and float(np.nanstd(values)) > 0:
+                design[covariate] = _zscore(np.log1p(np.nan_to_num(values, nan=np.nanmedian(values))))
     design = sm.add_constant(design, has_constant="add")
     try:
         fit = sm.OLS(usable["logit_fraction"].astype(float), design.astype(float)).fit()
@@ -203,6 +209,39 @@ def _top_label(frame: pd.DataFrame, column: str) -> tuple[str, float]:
     if counts.empty:
         return "unknown", np.nan
     return str(counts.index[0]), float(counts.iloc[0] / counts.sum())
+
+
+def _seed_indices(
+    cells: pd.DataFrame,
+    *,
+    n_cells: int,
+    cfg: NeighborhoodConfig,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    n_seeds = min(cfg.n_neighborhoods, n_cells)
+    columns = [column for column in cfg.seed_stratify_columns if column in cells]
+    if not columns:
+        return np.sort(rng.choice(n_cells, size=n_seeds, replace=False))
+
+    strata = cells[columns].astype(str).agg("|".join, axis=1)
+    groups = [index.to_numpy(dtype=int) for _, index in pd.Series(np.arange(n_cells)).groupby(strata, observed=True)]
+    if not groups:
+        return np.sort(rng.choice(n_cells, size=n_seeds, replace=False))
+
+    per_group = max(1, int(np.ceil(n_seeds / len(groups))))
+    selected: list[np.ndarray] = []
+    for group in groups:
+        take = min(per_group, group.shape[0])
+        selected.append(rng.choice(group, size=take, replace=False))
+    seeds = np.unique(np.concatenate(selected)) if selected else np.array([], dtype=int)
+    if seeds.shape[0] < n_seeds:
+        remaining = np.setdiff1d(np.arange(n_cells), seeds, assume_unique=False)
+        take = min(n_seeds - seeds.shape[0], remaining.shape[0])
+        if take:
+            seeds = np.concatenate([seeds, rng.choice(remaining, size=take, replace=False)])
+    elif seeds.shape[0] > n_seeds:
+        seeds = rng.choice(seeds, size=n_seeds, replace=False)
+    return np.sort(seeds.astype(int))
 
 
 def _zscore(values: np.ndarray) -> np.ndarray:

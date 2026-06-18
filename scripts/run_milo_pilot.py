@@ -30,6 +30,9 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=13)
     parser.add_argument("--include-fine-regex", default=None, help="Regex of fine cell types to keep before neighborhood testing.")
     parser.add_argument("--include-coarse-regex", default=None, help="Regex of coarse cell types to keep before neighborhood testing.")
+    parser.add_argument("--covariates", default="sex,chemistry,collection_method")
+    parser.add_argument("--numeric-covariates", default="total_cells")
+    parser.add_argument("--seed-stratify-columns", default="", help="Comma-separated cell metadata columns for balanced seed-neighborhood selection.")
     parser.add_argument("--include-disease", action="store_true", help="Do not restrict donor metadata to healthy donors.")
     args = parser.parse_args()
 
@@ -58,6 +61,9 @@ def main() -> None:
         n_neighbors=args.n_neighbors,
         min_donors=args.min_donors,
         seed=args.seed,
+        covariates=_split_csv(args.covariates),
+        numeric_covariates=_split_csv(args.numeric_covariates),
+        seed_stratify_columns=_split_csv(args.seed_stratify_columns),
     )
     neighborhoods, summary = run_neighborhood_da(
         embedding,
@@ -96,6 +102,10 @@ def _cell_filter(
     if int(keep.sum()) == 0:
         raise SystemExit("Cell filter kept 0 cells; revise the regex.")
     return keep
+
+
+def _split_csv(value: str) -> tuple[str, ...]:
+    return tuple(item.strip() for item in value.split(",") if item.strip())
 
 
 if __name__ == "__main__":

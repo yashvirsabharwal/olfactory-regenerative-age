@@ -316,6 +316,24 @@ commands:
     command: "make milo-secretory"
     inputs: ["data/processed/gateway_scvi_stratified_250k.h5ad", "data/processed/cohort_manifest.tsv"]
     outputs: ["results/tables/milo_secretory_neighborhood_da.tsv", "results/tables/milo_secretory_summary.tsv"]
+  milo_full_4m:
+    description: "Run publication-scale Milo-style donor-level neighborhood testing on the all-cell 4M reduced scVI atlas."
+    command: "make milo-full-4m"
+    deferred: true
+    inputs: ["data/processed/gateway_scvi_full_4m_reduced.h5ad", "data/processed/cohort_manifest.tsv"]
+    outputs: ["results/tables/milo_full_4m_neighborhood_da.tsv", "results/tables/milo_full_4m_summary.tsv"]
+  milo_full_4m_lineage:
+    description: "Run publication-scale Milo-style donor-level neighborhood testing on lineage compartments in the all-cell 4M reduced scVI atlas."
+    command: "make milo-full-4m-lineage"
+    deferred: true
+    inputs: ["data/processed/gateway_scvi_full_4m_reduced.h5ad", "data/processed/cohort_manifest.tsv"]
+    outputs: ["results/tables/milo_full_4m_lineage_neighborhood_da.tsv", "results/tables/milo_full_4m_lineage_summary.tsv"]
+  milo_full_4m_secretory:
+    description: "Run publication-scale Milo-style donor-level neighborhood testing on secretory, sustentacular, and glandular compartments in the all-cell 4M reduced scVI atlas."
+    command: "make milo-full-4m-secretory"
+    deferred: true
+    inputs: ["data/processed/gateway_scvi_full_4m_reduced.h5ad", "data/processed/cohort_manifest.tsv"]
+    outputs: ["results/tables/milo_full_4m_secretory_neighborhood_da.tsv", "results/tables/milo_full_4m_secretory_summary.tsv"]
   report:
     description: "Regenerate Markdown report and summary figures from existing outputs."
     command: "make report"

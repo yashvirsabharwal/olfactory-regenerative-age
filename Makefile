@@ -3,8 +3,15 @@ PYTHON ?= $(shell if [ -x .venv/bin/python ]; then printf ".venv/bin/python"; el
 R_ENV ?= .mamba/ora-r
 MICROMAMBA ?= $(HOME)/.local/bin/micromamba
 RSCRIPT ?= $(MICROMAMBA) run -p $(R_ENV) Rscript
+MILO_H5AD ?= data/processed/gateway_scvi_stratified_250k.h5ad
+MILO_FULL_H5AD ?= data/processed/gateway_scvi_full_4m_reduced.h5ad
+MILO_LINEAGE_H5AD ?= data/processed/gateway_scvi_lineage_basal_neural_100k.h5ad
+MILO_NEIGHBORHOODS ?= 1000
+MILO_FULL_NEIGHBORHOODS ?= 20000
+MILO_NEIGHBORS ?= 50
+MILO_FULL_NEIGHBORS ?= 100
 
-.PHONY: setup test download-gateway download-info download-gse184117 inspect-gse184117 external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-scanvi-reference-map external-scanvi-feature-concordance external-mapped-feature-concordance external-marker-age-concordance external-evidence toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-diagnostics model-ora-repeated model-ora-augmented model-ora-candidate-repeated feature-interpretation project-ndd project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation report manuscript manuscript-figures modules published-gene-modules external-validation external-feature-harmonization trajectory latent-space-audit latent-space-recompute-plan latent-space-plan scvi-pilot scvi-pilot-validation scvi-scaled-250k scvi-scaled-250k-seed23 scvi-scaled-validation scvi-scaled-comparison scvi-scaled-500k scvi-scaled-1m scvi-reduced-4m scvi-full-4m scvi-full-4m-safe scvi-full-4m-reduced scvi-full-validation scvi-lineage-basal-neural scvi-lineage-validation pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-genomewide-edger pseudobulk-genomewide-edger-matched pseudobulk-genomewide-limma pseudobulk-genomewide-limma-matched pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-audit-matched pseudobulk-covariate-de ora-sensitivity ora-sensitivity-rf model-card output-provenance all-summary milo milo-lineage milo-secretory cnmf clean
+.PHONY: setup test download-gateway download-info download-gse184117 inspect-gse184117 external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-scanvi-reference-map external-scanvi-feature-concordance external-mapped-feature-concordance external-marker-age-concordance external-evidence toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-diagnostics model-ora-repeated model-ora-augmented model-ora-candidate-repeated feature-interpretation project-ndd project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation report manuscript manuscript-figures modules published-gene-modules external-validation external-feature-harmonization trajectory latent-space-audit latent-space-recompute-plan latent-space-plan scvi-pilot scvi-pilot-validation scvi-scaled-250k scvi-scaled-250k-seed23 scvi-scaled-validation scvi-scaled-comparison scvi-scaled-500k scvi-scaled-1m scvi-reduced-4m scvi-full-4m scvi-full-4m-safe scvi-full-4m-reduced scvi-full-validation scvi-lineage-basal-neural scvi-lineage-validation pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-genomewide-edger pseudobulk-genomewide-edger-matched pseudobulk-genomewide-limma pseudobulk-genomewide-limma-matched pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-audit-matched pseudobulk-covariate-de ora-sensitivity ora-sensitivity-rf model-card output-provenance all-summary milo milo-lineage milo-secretory milo-full-4m milo-full-4m-lineage milo-full-4m-secretory cnmf clean
 
 setup:
 	$(PYTHON) -m pip install -e ".[dev]"
@@ -244,13 +251,22 @@ output-provenance:
 all-summary: external-validation external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-marker-age-concordance external-mapped-feature-concordance external-evidence model-ora-diagnostics feature-interpretation pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-limma-de-audit-matched project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation model-card latent-space-audit latent-space-recompute-plan output-provenance report
 
 milo:
-	$(PYTHON) scripts/run_milo_pilot.py --h5ad data/processed/gateway_scvi_stratified_250k.h5ad --manifest data/processed/cohort_manifest.tsv --out results/tables/milo_pilot_neighborhood_da.tsv --summary-out results/tables/milo_pilot_summary.tsv
+	$(PYTHON) scripts/run_milo_pilot.py --h5ad $(MILO_H5AD) --manifest data/processed/cohort_manifest.tsv --n-neighborhoods $(MILO_NEIGHBORHOODS) --n-neighbors $(MILO_NEIGHBORS) --seed-stratify-columns coarse_celltype,fine_celltype --out results/tables/milo_pilot_neighborhood_da.tsv --summary-out results/tables/milo_pilot_summary.tsv
 
 milo-lineage:
-	$(PYTHON) scripts/run_milo_pilot.py --h5ad data/processed/gateway_scvi_lineage_basal_neural_100k.h5ad --manifest data/processed/cohort_manifest.tsv --include-coarse-regex "Resp_HBC|Olf_INPs|Olf_iOSNs|Olf_mOSNs|Olf_Sus" --n-neighborhoods 1000 --n-neighbors 50 --out results/tables/milo_lineage_neighborhood_da.tsv --summary-out results/tables/milo_lineage_summary.tsv
+	$(PYTHON) scripts/run_milo_pilot.py --h5ad $(MILO_LINEAGE_H5AD) --manifest data/processed/cohort_manifest.tsv --include-coarse-regex "Resp_HBC|Olf_INPs|Olf_iOSNs|Olf_mOSNs|Olf_Sus" --n-neighborhoods $(MILO_NEIGHBORHOODS) --n-neighbors $(MILO_NEIGHBORS) --seed-stratify-columns coarse_celltype,fine_celltype --out results/tables/milo_lineage_neighborhood_da.tsv --summary-out results/tables/milo_lineage_summary.tsv
 
 milo-secretory:
-	$(PYTHON) scripts/run_milo_pilot.py --h5ad data/processed/gateway_scvi_stratified_250k.h5ad --manifest data/processed/cohort_manifest.tsv --include-coarse-regex "Resp_Secretory|Olf_Sus|Bowman_Gland" --n-neighborhoods 1000 --n-neighbors 50 --out results/tables/milo_secretory_neighborhood_da.tsv --summary-out results/tables/milo_secretory_summary.tsv
+	$(PYTHON) scripts/run_milo_pilot.py --h5ad $(MILO_H5AD) --manifest data/processed/cohort_manifest.tsv --include-coarse-regex "Resp_Secretory|Olf_Sus|Bowman_Gland" --n-neighborhoods $(MILO_NEIGHBORHOODS) --n-neighbors $(MILO_NEIGHBORS) --seed-stratify-columns coarse_celltype,fine_celltype --out results/tables/milo_secretory_neighborhood_da.tsv --summary-out results/tables/milo_secretory_summary.tsv
+
+milo-full-4m:
+	$(PYTHON) scripts/run_milo_pilot.py --h5ad $(MILO_FULL_H5AD) --manifest data/processed/cohort_manifest.tsv --n-neighborhoods $(MILO_FULL_NEIGHBORHOODS) --n-neighbors $(MILO_FULL_NEIGHBORS) --min-donors 30 --seed-stratify-columns coarse_celltype,fine_celltype --out results/tables/milo_full_4m_neighborhood_da.tsv --summary-out results/tables/milo_full_4m_summary.tsv
+
+milo-full-4m-lineage:
+	$(PYTHON) scripts/run_milo_pilot.py --h5ad $(MILO_FULL_H5AD) --manifest data/processed/cohort_manifest.tsv --include-coarse-regex "Resp_HBC|Olf_INPs|Olf_iOSNs|Olf_mOSNs|Olf_Sus" --n-neighborhoods $(MILO_FULL_NEIGHBORHOODS) --n-neighbors $(MILO_FULL_NEIGHBORS) --min-donors 30 --seed-stratify-columns coarse_celltype,fine_celltype --out results/tables/milo_full_4m_lineage_neighborhood_da.tsv --summary-out results/tables/milo_full_4m_lineage_summary.tsv
+
+milo-full-4m-secretory:
+	$(PYTHON) scripts/run_milo_pilot.py --h5ad $(MILO_FULL_H5AD) --manifest data/processed/cohort_manifest.tsv --include-coarse-regex "Resp_Secretory|Olf_Sus|Bowman_Gland" --n-neighborhoods $(MILO_FULL_NEIGHBORHOODS) --n-neighbors $(MILO_FULL_NEIGHBORS) --min-donors 30 --seed-stratify-columns coarse_celltype,fine_celltype --out results/tables/milo_full_4m_secretory_neighborhood_da.tsv --summary-out results/tables/milo_full_4m_secretory_summary.tsv
 
 cnmf:
 	$(PYTHON) scripts/run_cnmf.py --config configs/gateway.yaml
