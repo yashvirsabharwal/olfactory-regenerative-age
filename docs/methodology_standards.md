@@ -30,7 +30,7 @@ This document defines the analysis standard for manuscript-facing results. Small
 - Manuscript-facing neighborhood results should use full 4M scVI targets unless explicitly labeled as sensitivity/pilot.
 - Current full 4M standards: 20,000 stratified seed neighborhoods, 100 nearest cells, at least 30 donors, donor-level logit-fraction regression, and adjustment for sex, chemistry, collection method, and donor yield.
 - Because neighborhoods overlap, significant-neighborhood counts are maps of recurring local signal, not independent discovery counts.
-- Full 4M Milo-style results can support an exploratory mechanistic layer. Matched FLEX v2/device sensitivity is now complete and should govern claim language: regenerative neuronal-lineage signal is more defensible than secretory-only neighborhood DA. Main-text promotion still requires marker/program annotation and either MiloR parity or a documented reason to retain the Python implementation.
+- Full 4M Milo-style results can support an exploratory mechanistic layer. Matched FLEX v2/device sensitivity and ORA-theme annotation are now complete and should govern claim language: regenerative neuronal-lineage signal is more defensible than secretory-only neighborhood DA. Main-text promotion still requires gene-level marker/program enrichment and either MiloR parity or a documented reason to retain the Python implementation.
 
 ## External Validation Standards
 

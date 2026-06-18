@@ -352,6 +352,19 @@ commands:
     deferred: true
     inputs: ["data/processed/gateway_scvi_full_4m_reduced.h5ad", "data/processed/cohort_manifest.tsv"]
     outputs: ["results/tables/milo_full_4m_secretory_matched_neighborhood_da.tsv", "results/tables/milo_full_4m_secretory_matched_summary.tsv"]
+  milo_full_4m_annotation:
+    description: "Annotate full 4M Milo-style neighborhood results with cell-state themes and manuscript claim gates."
+    command: "make milo-full-4m-annotation"
+    inputs:
+      - "results/tables/milo_full_4m_neighborhood_da.tsv"
+      - "results/tables/milo_full_4m_lineage_neighborhood_da.tsv"
+      - "results/tables/milo_full_4m_secretory_neighborhood_da.tsv"
+      - "results/tables/milo_full_4m_matched_neighborhood_da.tsv"
+      - "results/tables/milo_full_4m_lineage_matched_neighborhood_da.tsv"
+      - "results/tables/milo_full_4m_secretory_matched_neighborhood_da.tsv"
+    outputs:
+      - "results/tables/milo_full_4m_top_neighborhood_themes.tsv"
+      - "results/tables/milo_full_4m_theme_summary.tsv"
   report:
     description: "Regenerate Markdown report and summary figures from existing outputs."
     command: "make report"

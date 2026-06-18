@@ -37,6 +37,14 @@ The matched sensitivity restricts healthy donors to the same major chemistry and
 
 The matched all-cell significant neighborhoods were mostly Naive CD8/T-cell neighborhoods with negative age coefficients. One late iOSN neighborhood also survived in the matched all-cell analysis, and one Early iOSN neighborhood survived in the matched lineage-focused analysis. The secretory-only neighborhood signal did not survive matched correction.
 
+## Theme Annotation
+
+`make milo-full-4m-annotation` summarizes the six all-donor and matched DA tables into ORA biology themes and claim gates. The all-donor theme map is broad: negative age-associated neighborhoods are dominated by supporting/secretory epithelium, immune/inflammatory compartment, neuronal-lineage maturation, and regenerative/progenitor epithelium. In the lineage-focused all-donor run, the strongest theme is negative neuronal-lineage maturation neighborhoods, followed by negative regenerative/progenitor neighborhoods and negative supporting/sustentacular neighborhoods.
+
+The matched theme summary is much narrower. Matched all-cell significant neighborhoods are mostly negative immune/T-cell neighborhoods, with one negative late iOSN neighborhood. The matched lineage-focused run contributes one negative Early iOSN neighborhood. These rows carry the strongest current mechanistic claim gate: `matched_regenerative_neuronal_support`.
+
+Gene-level marker/program enrichment is not yet complete. The current DA tables store top cell-state labels and model statistics, but not per-neighborhood cell memberships or expression summaries, so marker/program enrichment requires a follow-up membership-emitting or pseudobulk/program-scoring pass.
+
 ## Biological Reading
 
 The all-cell and lineage-focused full-scale runs now support a real neighborhood-level aging signal that was not visible in the 250k/100k pilots. The strongest recurring all-donor signal is reduced age-associated representation of regenerative neuronal-lineage neighborhoods, especially early iOSN, late iOSN, INP, and related HBC/suprabasal neighborhoods. The broad all-cell run also shows age-associated shifts in mucous gland/secretory, multiciliated, dendritic/T-cell, Bowman gland, sustentacular, and mature neuronal neighborhoods.
@@ -54,7 +62,7 @@ Supported as an exploratory mechanistic layer:
 
 Still gated before main-text promotion:
 
-- marker/program annotation;
+- gene-level marker/program enrichment;
 - age-bin robustness;
 - comparison with official MiloR or a clearly documented reason to keep the Python implementation;
 - replication against the 250k seed and lineage-focused sensitivity runs.
