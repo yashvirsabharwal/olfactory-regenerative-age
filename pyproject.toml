@@ -41,6 +41,12 @@ full = [
   "decoupler>=1.8",
   "snakemake>=8.0"
 ]
+latent = [
+  "scanpy>=1.10",
+  "scvi-tools>=1.2",
+  "torch>=2.2",
+  "dask[array]>=2024.0"
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

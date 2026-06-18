@@ -26,6 +26,7 @@ datasets:
     sra: "SRP337058"
     source_url: "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE184117"
     supplementary_url: "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE184nnn/GSE184117/suppl/GSE184117_RAW.tar"
+    series_matrix_url: "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE184nnn/GSE184117/matrix/GSE184117_series_matrix.txt.gz"
     status: "download_ready"
     validation_use: "aging and presbyosmia feature replication"
     species: "human"
@@ -34,10 +35,10 @@ datasets:
     expected_level: "single_cell"
     cohort_notes: "6 adult donors: 3 normosmic controls and 3 presbyosmic donors older than 65; plus one culture sample."
     data_notes: "Processed supplementary TAR contains MTX/TSV files; raw data also available in SRA."
-    path: null
+    path: "data/external/GSE184117_RAW.tar"
     required_files:
-      expression: "GSE184117_RAW.tar"
-      metadata: "GSE184117_RAW.tar"
+      expression: "data/external/GSE184117_RAW.tar"
+      metadata: "data/external/GSE184117_series_matrix.txt.gz"
       feature_matrix: null
     download_command: "curl -L -o data/external/GSE184117_RAW.tar https://ftp.ncbi.nlm.nih.gov/geo/series/GSE184nnn/GSE184117/suppl/GSE184117_RAW.tar"
     required_columns:
@@ -60,10 +61,10 @@ datasets:
     disease_context: ["healthy_or_surgical_reference"]
     expected_level: "bulk_rnaseq"
     cohort_notes: "Bulk olfactory and nasal respiratory epithelium biopsies from adult surgical patients; useful for marker sanity checks but not donor-level ORA validation."
-    path: null
+    path: "data/external/GSE151973_Human_OE_RE_RNAseq_DE.csv.gz"
     required_files:
-      expression: "GSE151973_Human_OE_RE_RNAseq_quantifications.rds.gz"
-      metadata: "GSE151973_Human_OE_RE_RNAseq_DE.csv.gz"
+      expression: "data/external/GSE151973_Human_OE_RE_RNAseq_quantifications.rds.gz"
+      metadata: "data/external/GSE151973_Human_OE_RE_RNAseq_DE.csv.gz"
       feature_matrix: null
     download_command: "curl -L -O https://ftp.ncbi.nlm.nih.gov/geo/series/GSE151nnn/GSE151973/suppl/GSE151973_Human_OE_RE_RNAseq_DE.csv.gz"
     required_columns:
@@ -111,6 +112,41 @@ published_gene_lists:
     source: "curated_initial"
     genes: [AIF1, C1QA, C1QB, C1QC, TREM2, TYROBP, LST1]
 
+marker_panels:
+  quiescent_hbc:
+    description: "Horizontal basal-cell markers used for marker-only external composition sanity checks."
+    genes: [TP63, KRT5, KRT14, CXCL14]
+  activated_hbc:
+    description: "Activated basal and wound-response epithelial markers."
+    genes: [KRT6A, KRT6B, KRT16, SERPINB3]
+  cycling:
+    description: "Cycling/proliferative markers."
+    genes: [MKI67, TOP2A, UBE2C, HMGB2]
+  neural_progenitor:
+    description: "Early olfactory neuronal progenitor markers."
+    genes: [ASCL1, NEUROG1, NEUROD1, STMN2]
+  immature_osn:
+    description: "Immature olfactory sensory neuron markers."
+    genes: [GAP43, DCX, TUBB3, STMN2]
+  mature_osn:
+    description: "Mature olfactory sensory neuron markers."
+    genes: [OMP, ADCY3, GNAL, RTP1]
+  sustentacular:
+    description: "Sustentacular/supporting epithelial markers."
+    genes: [CYP2A13, CYP2J2, MUC1, SOX2]
+  bowman_gland:
+    description: "Bowman gland/secretory gland markers."
+    genes: [LTF, BPIFB1, MUC5B, BPIFA1]
+  respiratory_ciliated:
+    description: "Respiratory/ciliated epithelial markers."
+    genes: [FOXJ1, PIFO, TPPP3, DNAH5]
+  goblet_secretory:
+    description: "Goblet and secretory epithelial markers."
+    genes: [MUC5AC, MUC5B, SPDEF, AGR2]
+  immune:
+    description: "Pan-immune and leukocyte markers."
+    genes: [PTPRC, LST1, TYROBP, CD3D, MS4A1]
+
 feature_matrix_contract:
   description: "Minimum donor-level table needed to test ORA feature replication outside Gateway."
   required_columns:
@@ -135,3 +171,20 @@ outputs:
   published_module_score_summary_tsv: "results/tables/published_module_score_summary.tsv"
   published_module_gene_list_coverage_tsv: "results/tables/published_module_gene_list_coverage.tsv"
   published_donor_module_features_tsv: "data/processed/published_donor_module_features.tsv"
+  external_sample_metadata_tsv: "results/tables/external_sample_metadata.tsv"
+  external_10x_sample_qc_tsv: "results/tables/external_10x_sample_qc.tsv"
+  external_10x_module_scores_tsv: "results/tables/external_10x_module_scores.tsv"
+  external_10x_module_contrasts_tsv: "results/tables/external_10x_module_contrasts.tsv"
+  external_10x_marker_coverage_tsv: "results/tables/external_10x_marker_coverage.tsv"
+  external_10x_marker_composition_tsv: "results/tables/external_10x_marker_composition.tsv"
+  external_10x_marker_contrasts_tsv: "results/tables/external_10x_marker_contrasts.tsv"
+  external_marker_age_concordance_tsv: "results/tables/external_marker_age_concordance.tsv"
+  external_10x_mapped_h5ad: "data/processed/gse184117_marker_mapped.h5ad"
+  external_10x_mapping_qc_tsv: "results/tables/external_10x_mapping_qc.tsv"
+  external_10x_mapped_donor_features_tsv: "data/processed/gse184117_mapped_donor_features.tsv"
+  external_mapped_feature_concordance_tsv: "results/tables/external_mapped_feature_concordance.tsv"
+  external_scanvi_mapped_h5ad: "data/processed/gse184117_scanvi_mapped.h5ad"
+  external_scanvi_mapping_qc_tsv: "results/tables/external_scanvi_mapping_qc.tsv"
+  external_scanvi_donor_features_tsv: "data/processed/gse184117_scanvi_donor_features.tsv"
+  external_scanvi_feature_concordance_tsv: "results/tables/external_scanvi_feature_concordance.tsv"
+  external_validation_evidence_tsv: "results/tables/external_validation_evidence.tsv"

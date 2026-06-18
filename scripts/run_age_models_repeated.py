@@ -23,6 +23,7 @@ def main() -> None:
     parser.add_argument("--model-config", default="configs/models.yaml")
     parser.add_argument("--gateway-config", default="configs/gateway.yaml")
     parser.add_argument("--repeats", type=int, default=None)
+    parser.add_argument("--models", nargs="*", default=None, help="Optional model subset, e.g. --models xgboost hist_gradient_boosting.")
     parser.add_argument("--repeat-performance-out", default=None)
     parser.add_argument("--summary-out", default=None)
     parser.add_argument("--scores-out", default=None)
@@ -30,6 +31,8 @@ def main() -> None:
     args = parser.parse_args()
 
     model_config = load_config(args.model_config)
+    if args.models:
+        model_config["model_names"] = args.models
     gateway_config = load_config(args.gateway_config)
     outputs = gateway_config.get("outputs", {})
     features = pd.read_csv(args.features, sep="\t")

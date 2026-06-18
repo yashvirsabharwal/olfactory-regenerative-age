@@ -57,6 +57,14 @@ models:
     max_depth: 2
     min_samples_leaf: 5
     subsample: 0.8
+  hist_gradient_boosting:
+    enabled: true
+    max_iter: 250
+    learning_rate: 0.03
+    max_leaf_nodes: 7
+    min_samples_leaf: 8
+    l2_regularization: 5.0
+    importance_repeats: 0
   tree_ensemble:
     enabled: true
   xgboost:

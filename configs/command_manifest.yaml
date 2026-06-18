@@ -1,0 +1,316 @@
+commands:
+  inspect:
+    description: "Inspect Gateway H5AD schema in backed mode."
+    command: "make inspect"
+    inputs: ["data/raw/gateway.h5ad"]
+    outputs: ["results/reports/h5ad_schema.json", "data/metadata/gateway_obs_columns.tsv", "data/metadata/gateway_var_columns.tsv"]
+  cohort:
+    description: "Build donor/sample cohort manifest and cohort summary."
+    command: "make cohort"
+    inputs: ["data/raw/gateway.h5ad", "configs/scvi_full_4m_genes.txt", "configs/gateway.yaml"]
+    outputs: ["data/processed/cohort_manifest.tsv", "results/tables/cohort_summary.tsv"]
+  aggregate:
+    description: "Aggregate donor/fine-cell-state counts and composition features."
+    command: "make aggregate"
+    inputs: ["data/raw/gateway.h5ad", "data/processed/cohort_manifest.tsv"]
+    outputs: ["data/processed/donor_cell_state_counts.tsv", "data/processed/donor_cell_state_features.tsv"]
+  features:
+    description: "Build composition-only ORA feature matrix."
+    command: "make features"
+    inputs: ["data/processed/donor_cell_state_features.tsv"]
+    outputs: ["data/processed/ora_feature_matrix.tsv"]
+  modules:
+    description: "Score curated modules and build donor module features."
+    command: "make modules"
+    inputs: ["data/raw/gateway.h5ad", "configs/gene_sets.yaml"]
+    outputs: ["results/tables/module_score_summary.tsv", "results/tables/module_gene_coverage.tsv", "data/processed/donor_module_features.tsv"]
+  features_augmented:
+    description: "Build composition-plus-module ORA feature matrix."
+    command: "make features-augmented"
+    inputs: ["data/processed/donor_cell_state_features.tsv", "data/processed/donor_module_features.tsv"]
+    outputs: ["data/processed/ora_augmented_feature_matrix.tsv"]
+  age_associations:
+    description: "Run donor-level age association tests for ORA features."
+    command: "make age-associations"
+    inputs: ["data/processed/donor_cell_state_features.tsv", "data/processed/cohort_manifest.tsv"]
+    outputs: ["results/tables/age_cell_state_associations.tsv"]
+  model_ora:
+    description: "Train donor-split ORA models on healthy donors."
+    command: "make model-ora"
+    inputs: ["data/processed/ora_feature_matrix.tsv", "data/processed/cohort_manifest.tsv", "configs/models.yaml"]
+    outputs: ["results/tables/ora_model_performance.tsv", "results/tables/donor_ora_scores.tsv", "results/tables/ora_feature_importance.tsv"]
+  model_ora_augmented:
+    description: "Train donor-split ORA models with composition plus module features."
+    command: "make model-ora-augmented"
+    inputs: ["data/processed/ora_augmented_feature_matrix.tsv", "data/processed/cohort_manifest.tsv", "configs/models.yaml"]
+    outputs: ["results/tables/ora_augmented_model_performance.tsv", "results/tables/augmented_donor_ora_scores.tsv", "results/tables/ora_augmented_feature_importance.tsv"]
+  model_ora_diagnostics:
+    description: "Summarize ORA calibration, age-bin errors, and residual diagnostics."
+    command: "make model-ora-diagnostics"
+    inputs: ["results/tables/donor_ora_scores.tsv", "data/processed/cohort_manifest.tsv", "configs/models.yaml"]
+    outputs: ["results/tables/ora_calibration.tsv", "results/tables/ora_age_bin_errors.tsv", "results/tables/ora_residual_diagnostics.tsv", "results/tables/ora_calibrated_scores.tsv"]
+  model_ora_repeated:
+    description: "Run repeated donor-level CV and feature stability."
+    command: "make model-ora-repeated"
+    inputs: ["data/processed/ora_feature_matrix.tsv", "data/processed/cohort_manifest.tsv", "configs/models.yaml"]
+    outputs: ["results/tables/ora_repeated_cv_summary.tsv", "results/tables/ora_repeated_cv_feature_stability.tsv"]
+  model_ora_candidate_repeated:
+    description: "Run targeted repeated CV for module-augmented boosted candidate models."
+    command: "make model-ora-candidate-repeated"
+    inputs: ["data/processed/ora_augmented_feature_matrix.tsv", "data/processed/cohort_manifest.tsv", "configs/models.yaml"]
+    outputs: ["results/tables/ora_augmented_candidate_repeated_cv_performance.tsv", "results/tables/ora_augmented_candidate_repeated_cv_summary.tsv", "results/tables/ora_augmented_candidate_repeated_cv_scores.tsv", "results/tables/ora_augmented_candidate_repeated_cv_feature_stability.tsv"]
+  feature_interpretation:
+    description: "Map stable ORA features to broad regenerative, neuronal, immune, secretory, and stress themes."
+    command: "make feature-interpretation"
+    inputs: ["results/tables/ora_augmented_repeated_cv_feature_stability.tsv", "results/tables/age_cell_state_associations.tsv"]
+    outputs: ["results/tables/ora_feature_interpretation.tsv"]
+  project_ndd:
+    description: "Project frozen healthy-trained ORA models onto AD/PD donors."
+    command: "make project-ndd"
+    inputs: ["data/processed/ora_augmented_feature_matrix.tsv", "data/processed/cohort_manifest.tsv", "configs/models.yaml"]
+    outputs: ["results/tables/ndd_ora_projection.tsv", "results/tables/ndd_ora_projection_summary.tsv"]
+  project_ndd_uncertainty:
+    description: "Bootstrap NDD ORAA uncertainty and matched healthy context."
+    command: "make project-ndd-uncertainty"
+    inputs: ["results/tables/ndd_ora_projection.tsv"]
+    outputs: ["results/tables/ndd_ora_projection_uncertainty.tsv", "results/tables/ndd_ora_projection_context.tsv"]
+  pseudobulk_targeted:
+    description: "Aggregate curated-gene pseudobulk and run targeted contrasts."
+    command: "make pseudobulk"
+    inputs: ["data/raw/gateway.h5ad", "configs/gene_sets.yaml"]
+    outputs: ["data/processed/pseudobulk_counts.tsv.gz", "data/processed/pseudobulk_metadata.tsv", "results/tables/pseudobulk_de.tsv"]
+  pseudobulk_covariate_de:
+    description: "Run targeted covariate-adjusted donor-level pseudobulk models."
+    command: "make pseudobulk-covariate-de"
+    inputs: ["data/processed/pseudobulk_counts.tsv.gz", "data/processed/pseudobulk_metadata.tsv", "data/processed/cohort_manifest.tsv"]
+    outputs: ["results/tables/pseudobulk_covariate_de.tsv"]
+  pseudobulk_genomewide_export:
+    description: "Stream all genes into genome-wide pseudobulk count matrix."
+    command: "make pseudobulk-genomewide"
+    inputs: ["data/raw/gateway.h5ad", "configs/gateway.yaml"]
+    outputs: ["data/processed/pseudobulk_genomewide_counts.tsv.gz", "data/processed/pseudobulk_genomewide_metadata.tsv", "data/processed/pseudobulk_genomewide_genes.tsv"]
+  pseudobulk_genomewide_qc:
+    description: "Summarize genome-wide pseudobulk matrix QC."
+    command: "make pseudobulk-genomewide-qc"
+    inputs: ["data/processed/pseudobulk_genomewide_counts.tsv.gz", "data/processed/pseudobulk_genomewide_metadata.tsv"]
+    outputs: ["results/tables/pseudobulk_genomewide_qc_summary.tsv", "results/tables/pseudobulk_genomewide_gene_qc.tsv", "results/tables/pseudobulk_genomewide_group_qc.tsv"]
+  pseudobulk_genomewide_edger:
+    description: "Run genome-wide edgeR quasi-likelihood models."
+    command: "make pseudobulk-genomewide-edger"
+    inputs: ["data/processed/pseudobulk_genomewide_counts.tsv.gz", "data/processed/pseudobulk_genomewide_metadata.tsv", "data/processed/cohort_manifest.tsv"]
+    outputs: ["results/tables/pseudobulk_genomewide_edger.tsv.gz", "results/tables/pseudobulk_genomewide_edger_summary.tsv"]
+  pseudobulk_genomewide_edger_matched:
+    description: "Run genome-wide edgeR on the matched FLEX v2/device donor subset."
+    command: "make pseudobulk-genomewide-edger-matched"
+    inputs: ["data/processed/pseudobulk_genomewide_counts.tsv.gz", "data/processed/pseudobulk_genomewide_metadata.tsv", "data/processed/cohort_manifest.tsv"]
+    outputs: ["results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device.tsv.gz", "results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device_summary.tsv"]
+  pseudobulk_genomewide_limma_voom:
+    description: "Run genome-wide limma-voom models as a parity analysis."
+    command: "make pseudobulk-genomewide-limma"
+    inputs: ["data/processed/pseudobulk_genomewide_counts.tsv.gz", "data/processed/pseudobulk_genomewide_metadata.tsv", "data/processed/cohort_manifest.tsv"]
+    outputs: ["results/tables/pseudobulk_genomewide_limma_voom.tsv.gz", "results/tables/pseudobulk_genomewide_limma_voom_summary.tsv"]
+  pseudobulk_genomewide_limma_voom_matched:
+    description: "Run genome-wide limma-voom on the matched FLEX v2/device donor subset."
+    command: "make pseudobulk-genomewide-limma-matched"
+    inputs: ["data/processed/pseudobulk_genomewide_counts.tsv.gz", "data/processed/pseudobulk_genomewide_metadata.tsv", "data/processed/cohort_manifest.tsv"]
+    outputs: ["results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device.tsv.gz", "results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device_summary.tsv"]
+  pseudobulk_genomewide_de_summary:
+    description: "Summarize all-donor genome-wide edgeR outputs for the report."
+    command: "make pseudobulk-genomewide-de-summary"
+    inputs: ["results/tables/pseudobulk_genomewide_edger.tsv.gz", "results/tables/pseudobulk_genomewide_edger_summary.tsv"]
+    outputs: ["results/tables/pseudobulk_genomewide_de_summary.tsv", "results/tables/pseudobulk_genomewide_de_top_hits.tsv"]
+  pseudobulk_genomewide_de_summary_matched:
+    description: "Summarize matched FLEX v2/device genome-wide edgeR outputs for the report."
+    command: "make pseudobulk-genomewide-de-summary-matched"
+    inputs: ["results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device.tsv.gz", "results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device_summary.tsv"]
+    outputs: ["results/tables/pseudobulk_genomewide_de_summary_matched_flex_v2_device.tsv", "results/tables/pseudobulk_genomewide_de_top_hits_matched_flex_v2_device.tsv"]
+  pseudobulk_genomewide_de_audit:
+    description: "Summarize genome-wide DE donor balance and sentinel-gene audit flags."
+    command: "make pseudobulk-genomewide-de-audit"
+    inputs: ["results/tables/pseudobulk_genomewide_edger.tsv.gz", "results/tables/pseudobulk_genomewide_edger_summary.tsv", "data/processed/pseudobulk_genomewide_metadata.tsv"]
+    outputs: ["results/tables/pseudobulk_genomewide_de_audit.tsv", "results/tables/pseudobulk_genomewide_donor_balance.tsv", "results/tables/pseudobulk_genomewide_matched_feasibility.tsv"]
+  pseudobulk_genomewide_de_audit_matched:
+    description: "Audit matched FLEX v2/device genome-wide DE for donor balance and sentinel-gene flags."
+    command: "make pseudobulk-genomewide-de-audit-matched"
+    inputs: ["results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device.tsv.gz", "results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device_summary.tsv", "data/processed/pseudobulk_genomewide_metadata.tsv"]
+    outputs: ["results/tables/pseudobulk_genomewide_de_audit_matched_flex_v2_device.tsv", "results/tables/pseudobulk_genomewide_donor_balance_matched_flex_v2_device.tsv", "results/tables/pseudobulk_genomewide_matched_feasibility_matched_flex_v2_device.tsv"]
+  pseudobulk_genomewide_limma_de_summary:
+    description: "Summarize all-donor genome-wide limma-voom outputs for the report."
+    command: "make pseudobulk-genomewide-limma-de-summary"
+    inputs: ["results/tables/pseudobulk_genomewide_limma_voom.tsv.gz", "results/tables/pseudobulk_genomewide_limma_voom_summary.tsv"]
+    outputs: ["results/tables/pseudobulk_genomewide_limma_voom_de_summary.tsv", "results/tables/pseudobulk_genomewide_limma_voom_de_top_hits.tsv"]
+  pseudobulk_genomewide_limma_de_summary_matched:
+    description: "Summarize matched FLEX v2/device genome-wide limma-voom outputs for the report."
+    command: "make pseudobulk-genomewide-limma-de-summary-matched"
+    inputs: ["results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device.tsv.gz", "results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device_summary.tsv"]
+    outputs: ["results/tables/pseudobulk_genomewide_limma_voom_de_summary_matched_flex_v2_device.tsv", "results/tables/pseudobulk_genomewide_limma_voom_de_top_hits_matched_flex_v2_device.tsv"]
+  pseudobulk_genomewide_limma_de_audit:
+    description: "Audit all-donor genome-wide limma-voom results for donor balance and sentinel-gene flags."
+    command: "make pseudobulk-genomewide-limma-de-audit"
+    inputs: ["results/tables/pseudobulk_genomewide_limma_voom.tsv.gz", "results/tables/pseudobulk_genomewide_limma_voom_summary.tsv", "data/processed/pseudobulk_genomewide_metadata.tsv"]
+    outputs: ["results/tables/pseudobulk_genomewide_limma_voom_de_audit.tsv", "results/tables/pseudobulk_genomewide_limma_voom_donor_balance.tsv", "results/tables/pseudobulk_genomewide_limma_voom_matched_feasibility.tsv"]
+  pseudobulk_genomewide_limma_de_audit_matched:
+    description: "Audit matched FLEX v2/device genome-wide limma-voom results for donor balance and sentinel-gene flags."
+    command: "make pseudobulk-genomewide-limma-de-audit-matched"
+    inputs: ["results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device.tsv.gz", "results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device_summary.tsv", "data/processed/pseudobulk_genomewide_metadata.tsv"]
+    outputs: ["results/tables/pseudobulk_genomewide_limma_voom_de_audit_matched_flex_v2_device.tsv", "results/tables/pseudobulk_genomewide_limma_voom_donor_balance_matched_flex_v2_device.tsv", "results/tables/pseudobulk_genomewide_limma_voom_matched_feasibility_matched_flex_v2_device.tsv"]
+  external_validation:
+    description: "Summarize external dataset readiness and published validation gene-list coverage."
+    command: "make external-validation"
+    inputs: ["configs/external_datasets.yaml", "data/metadata/gateway_var_columns.tsv"]
+    outputs: ["results/tables/external_validation_summary.tsv", "results/tables/external_gene_list_coverage.tsv", "results/tables/external_feature_contract.tsv"]
+  external_gse184117_inventory:
+    description: "Download and inventory the GSE184117 raw 10x-style validation archive."
+    command: "make download-gse184117 && make inspect-gse184117"
+    inputs: ["configs/external_datasets.yaml"]
+    outputs: ["data/external/GSE184117_RAW.tar", "data/external/GSE184117_series_matrix.txt.gz", "results/tables/external_raw_inventory.tsv"]
+  external_gse184117_modules:
+    description: "Parse GSE184117 sample metadata and score sample-level raw 10x modules."
+    command: "make external-gse184117-modules"
+    inputs: ["data/external/GSE184117_RAW.tar", "data/external/GSE184117_series_matrix.txt.gz", "configs/gene_sets.yaml", "configs/external_datasets.yaml"]
+    outputs: ["results/tables/external_sample_metadata.tsv", "results/tables/external_10x_sample_qc.tsv", "results/tables/external_10x_module_scores.tsv", "results/tables/external_10x_module_contrasts.tsv"]
+  external_gse184117_markers:
+    description: "Run marker-only coarse composition sanity checks on the GSE184117 raw 10x archive."
+    command: "make external-gse184117-markers"
+    inputs: ["data/external/GSE184117_RAW.tar", "data/external/GSE184117_series_matrix.txt.gz", "configs/external_datasets.yaml"]
+    outputs: ["results/tables/external_10x_marker_coverage.tsv", "results/tables/external_10x_marker_composition.tsv", "results/tables/external_10x_marker_contrasts.tsv"]
+  external_gse184117_mapped:
+    description: "Build a marker-reference mapped GSE184117 AnnData and ORA-compatible donor-feature matrix."
+    command: "make external-gse184117-mapped"
+    inputs: ["data/external/GSE184117_RAW.tar", "data/external/GSE184117_series_matrix.txt.gz", "configs/external_datasets.yaml"]
+    outputs: ["data/processed/gse184117_marker_mapped.h5ad", "results/tables/external_10x_mapping_qc.tsv", "data/processed/gse184117_mapped_donor_features.tsv"]
+  external_scanvi_reference_map:
+    description: "Train a Gateway scANVI reference and map GSE184117 through scArches-style query transfer."
+    command: "make external-scanvi-reference-map"
+    inputs: ["data/processed/gateway_scvi_stratified_250k.h5ad", "data/processed/gse184117_marker_mapped.h5ad"]
+    outputs: ["results/models/gateway_scanvi_reference", "data/processed/gse184117_scanvi_mapped.h5ad", "results/tables/external_scanvi_mapping_qc.tsv", "data/processed/gse184117_scanvi_donor_features.tsv", "results/tables/gateway_scanvi_reference_metadata.tsv"]
+  external_scanvi_feature_concordance:
+    description: "Compare scANVI/scArches-mapped GSE184117 donor-feature shifts with same-named Gateway age associations."
+    command: "make external-scanvi-feature-concordance"
+    inputs: ["data/processed/gse184117_scanvi_donor_features.tsv", "results/tables/age_cell_state_associations.tsv"]
+    outputs: ["results/tables/external_scanvi_feature_concordance.tsv"]
+  external_mapped_feature_concordance:
+    description: "Compare GSE184117 marker-reference mapped donor-feature shifts with Gateway age associations."
+    command: "make external-mapped-feature-concordance"
+    inputs: ["data/processed/gse184117_mapped_donor_features.tsv", "results/tables/age_cell_state_associations.tsv"]
+    outputs: ["results/tables/external_mapped_feature_concordance.tsv"]
+  external_marker_age_concordance:
+    description: "Compare GSE184117 marker-only presbyosmia shifts with Gateway donor-level age-association directions."
+    command: "make external-marker-age-concordance"
+    inputs: ["results/tables/external_10x_marker_contrasts.tsv", "results/tables/age_cell_state_associations.tsv"]
+    outputs: ["results/tables/external_marker_age_concordance.tsv"]
+  external_validation_evidence:
+    description: "Build a claim-gated evidence ledger for all configured external validation sources."
+    command: "make external-evidence"
+    inputs: ["configs/external_datasets.yaml", "results/tables/external_validation_summary.tsv", "results/tables/external_sample_metadata.tsv", "results/tables/external_10x_module_contrasts.tsv", "results/tables/external_10x_marker_contrasts.tsv", "data/processed/gse184117_mapped_donor_features.tsv", "data/processed/gse184117_scanvi_donor_features.tsv"]
+    outputs: ["results/tables/external_validation_evidence.tsv"]
+  latent_space_audit:
+    description: "Audit local H5AD and CELLxGENE portal embeddings before trajectory/neighborhood work."
+    command: "make latent-space-audit"
+    inputs: ["data/raw/gateway.h5ad", "configs/gateway.yaml"]
+    outputs: ["results/tables/latent_space_local_audit.tsv", "results/tables/latent_space_portal_assets.tsv", "results/tables/latent_space_readiness.tsv", "docs/latent_space_recovery_plan.md"]
+  latent_space_recompute_plan:
+    description: "Write dry-run scVI recomputation feasibility and workflow notes."
+    command: "make latent-space-recompute-plan"
+    inputs: ["results/reports/h5ad_schema.json", "configs/gateway.yaml"]
+    outputs: ["results/tables/latent_recompute_feasibility.tsv", "docs/latent_recompute_workflow.md"]
+  scvi_pilot_validation:
+    description: "Validate the bounded local scVI pilot embedding and keep latent claims gated."
+    command: "make scvi-pilot-validation"
+    inputs: ["data/processed/gateway_scvi_pilot_25k.h5ad", "configs/gateway.yaml"]
+    outputs: ["results/tables/scvi_pilot_validation.tsv"]
+  scvi_scaled_250k:
+    description: "Train a 250k-cell stratified scVI latent atlas balanced across biological and technical strata."
+    command: "make scvi-scaled-250k"
+    inputs: ["data/raw/gateway.h5ad", "configs/gateway.yaml"]
+    outputs: ["data/processed/gateway_scvi_stratified_250k.h5ad"]
+  scvi_scaled_250k_seed23:
+    description: "Train a second stratified 250k-cell scVI atlas for seed/scale stability checks using the known-good row-sampling/HVG path."
+    command: "make scvi-scaled-250k-seed23"
+    deferred: true
+    inputs: ["data/raw/gateway.h5ad", "configs/gateway.yaml"]
+    outputs: ["data/processed/gateway_scvi_stratified_250k_seed23.h5ad", "results/models/gateway_scvi_stratified_250k_seed23"]
+  scvi_scaled_validation:
+    description: "Validate the 250k-cell scVI atlas with label-purity, marker-continuity, and metadata-mixing diagnostics."
+    command: "make scvi-scaled-validation"
+    inputs: ["data/processed/gateway_scvi_stratified_250k.h5ad", "configs/gateway.yaml"]
+    outputs: ["results/tables/scvi_scaled_250k_validation.tsv"]
+  scvi_scaled_500k:
+    description: "Train a 500k-cell stratified Gateway scVI atlas with the full 3003-gene selected feature set for memory-safe seed/scale comparison."
+    command: "make scvi-scaled-500k"
+    deferred: true
+    inputs: ["data/raw/gateway.h5ad", "configs/scvi_full_4m_genes.txt", "configs/gateway.yaml"]
+    outputs: ["data/processed/gateway_scvi_stratified_500k.h5ad", "results/models/gateway_scvi_stratified_500k"]
+  scvi_scaled_1m:
+    description: "Train a 1M-cell stratified Gateway scVI atlas with the full 3003-gene selected feature set as the large-scale fallback when all-cell materialization is memory-limited."
+    command: "make scvi-scaled-1m"
+    deferred: true
+    inputs: ["data/raw/gateway.h5ad", "configs/scvi_full_4m_genes.txt", "configs/gateway.yaml"]
+    outputs: ["data/processed/gateway_scvi_stratified_1m.h5ad", "results/models/gateway_scvi_stratified_1m"]
+  scvi_reduced_4m:
+    description: "Build a reduced all-cell Gateway H5AD in row chunks using the 3003-gene HVG/marker feature set, avoiding large backed row/column fancy slices."
+    command: "make scvi-reduced-4m"
+    deferred: true
+    inputs: ["data/raw/gateway.h5ad", "configs/scvi_full_4m_genes.txt"]
+    outputs: ["data/processed/gateway_hvg3003_4m.h5ad"]
+  scvi_full_4m:
+    description: "Train a full Gateway scVI latent atlas across all available cells for maximum atlas-scale reference completeness."
+    command: "make scvi-full-4m"
+    deferred: true
+    inputs: ["data/raw/gateway.h5ad", "configs/scvi_full_4m_genes.txt", "configs/gateway.yaml"]
+    outputs: ["data/processed/gateway_scvi_full_4m.h5ad", "results/models/gateway_scvi_full_4m"]
+  scvi_full_4m_safe:
+    description: "Train an all-cell Gateway scVI latent atlas with a reduced marker-preserving 1500-gene feature set for memory-constrained servers."
+    command: "make scvi-full-4m-safe"
+    deferred: true
+    inputs: ["data/raw/gateway.h5ad", "configs/scvi_full_4m_genes_1500.txt", "configs/gateway.yaml"]
+    outputs: ["data/processed/gateway_scvi_full_4m_safe.h5ad", "results/models/gateway_scvi_full_4m_safe"]
+  scvi_full_4m_reduced:
+    description: "Train scVI on all Gateway cells after chunked reduction to the 3003-gene HVG/marker feature set."
+    command: "make scvi-full-4m-reduced"
+    deferred: true
+    inputs: ["data/processed/gateway_hvg3003_4m.h5ad", "configs/gateway.yaml"]
+    outputs: ["data/processed/gateway_scvi_full_4m_reduced.h5ad", "results/models/gateway_scvi_full_4m_reduced"]
+  scvi_full_validation:
+    description: "Validate the full Gateway scVI atlas with sampled label-purity, marker-continuity, and metadata-mixing diagnostics."
+    command: "make scvi-full-validation"
+    deferred: true
+    inputs: ["data/processed/gateway_scvi_full_4m.h5ad", "configs/gateway.yaml"]
+    outputs: ["results/tables/scvi_full_4m_validation.tsv"]
+  scvi_lineage_basal_neural:
+    description: "Train a lineage-focused scVI model for basal, progenitor, neural, secretory, and sustentacular compartments."
+    command: "make scvi-lineage-basal-neural"
+    inputs: ["data/raw/gateway.h5ad", "configs/gateway.yaml"]
+    outputs: ["data/processed/gateway_scvi_lineage_basal_neural_100k.h5ad"]
+  scvi_lineage_validation:
+    description: "Validate the lineage-focused scVI model before pseudotime, Milo, or cNMF interpretation."
+    command: "make scvi-lineage-validation"
+    inputs: ["data/processed/gateway_scvi_lineage_basal_neural_100k.h5ad", "configs/gateway.yaml"]
+    outputs: ["results/tables/scvi_lineage_basal_neural_validation.tsv"]
+  model_card:
+    description: "Build concise model-card table for manuscript methods and limitations."
+    command: "make model-card"
+    inputs: ["results/tables/ora_feature_set_model_comparison.tsv", "results/tables/ora_calibration.tsv", "results/tables/ora_permutation_empirical.tsv"]
+    outputs: ["results/tables/ora_model_card.tsv"]
+  report:
+    description: "Regenerate Markdown report and summary figures from existing outputs."
+    command: "make report"
+    inputs: ["results/tables", "data/processed", "configs/gateway.yaml"]
+    outputs: ["results/reports/mvp_report.md", "results/figures/mvp_*.png"]
+  manuscript_figures:
+    description: "Build polished main-text manuscript figures from existing result tables."
+    command: "make manuscript-figures"
+    inputs: ["results/tables", "scripts/build_manuscript_figures.py"]
+    outputs:
+      - "results/figures/manuscript_figure1_design.png"
+      - "results/figures/manuscript_figure1_design.pdf"
+      - "results/figures/manuscript_figure2_age_composition.png"
+      - "results/figures/manuscript_figure2_age_composition.pdf"
+      - "results/figures/manuscript_figure3_modeling.png"
+      - "results/figures/manuscript_figure3_modeling.pdf"
+      - "results/figures/manuscript_figure4_feature_biology.png"
+      - "results/figures/manuscript_figure4_feature_biology.pdf"
+      - "results/figures/manuscript_figure5_external_ndd.png"
+      - "results/figures/manuscript_figure5_external_ndd.pdf"
+      - "results/figures/manuscript_figure6_de_latent.png"
+      - "results/figures/manuscript_figure6_de_latent.pdf"

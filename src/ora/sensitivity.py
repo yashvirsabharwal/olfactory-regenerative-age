@@ -35,6 +35,29 @@ def default_ora_scenarios(manifest: pd.DataFrame, min_cell_thresholds: list[int]
                 "filter_value": int(threshold),
             }
         )
+    if {"chemistry", "collection_method"}.issubset(manifest.columns):
+        scenarios.append(
+            {
+                "scenario": "matched_flex_v2_device",
+                "filter_type": "compound",
+                "filter_value": "chemistry=flex_v2;collection_method=device",
+            }
+        )
+    if "total_cells" in manifest:
+        scenarios.extend(
+            [
+                {
+                    "scenario": "exclude_yield_extremes__10pct",
+                    "filter_type": "exclude_yield_extremes",
+                    "filter_value": 0.10,
+                },
+                {
+                    "scenario": "exclude_yield_extremes__20pct",
+                    "filter_type": "exclude_yield_extremes",
+                    "filter_value": 0.20,
+                },
+            ]
+        )
     scenarios.append({"scenario": "healthy_only", "filter_type": "disease_group", "filter_value": "healthy"})
     return scenarios
 
@@ -109,6 +132,24 @@ def filter_manifest_for_scenario(manifest: pd.DataFrame, scenario: dict[str, obj
     if filter_type == "min_total_cells":
         total_cells = pd.to_numeric(manifest.get("total_cells"), errors="coerce").fillna(0)
         return manifest[total_cells >= int(value)].copy()
+    if filter_type == "exclude_yield_extremes":
+        total_cells = pd.to_numeric(manifest.get("total_cells"), errors="coerce")
+        if total_cells.notna().sum() < 4:
+            return manifest.copy()
+        fraction = float(value)
+        low = total_cells.quantile(fraction)
+        high = total_cells.quantile(1.0 - fraction)
+        return manifest[total_cells.between(low, high, inclusive="both")].copy()
+    if filter_type == "compound":
+        subset = manifest.copy()
+        for token in str(value).split(";"):
+            if "=" not in token:
+                continue
+            col, expected = token.split("=", 1)
+            if col not in subset:
+                return subset.iloc[0:0].copy()
+            subset = subset[subset[col].astype(str).eq(expected)].copy()
+        return subset
     if filter_type not in manifest:
         return manifest.iloc[0:0].copy()
     return manifest[manifest[filter_type].astype(str).eq(str(value))].copy()

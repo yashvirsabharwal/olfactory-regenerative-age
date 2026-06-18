@@ -24,12 +24,15 @@ def main() -> None:
     parser.add_argument("--gateway-config", default="configs/gateway.yaml")
     parser.add_argument("--min-cell-thresholds", nargs="*", type=int, default=[500, 1000, 5000, 10000])
     parser.add_argument("--min-train-donors", type=int, default=20)
+    parser.add_argument("--models", nargs="*", default=None, help="Optional model subset for faster sensitivity runs.")
     parser.add_argument("--scenarios-out", default=None)
     parser.add_argument("--performance-out", default=None)
     parser.add_argument("--scores-out", default=None)
     args = parser.parse_args()
 
     model_config = load_config(args.model_config)
+    if args.models:
+        model_config["model_names"] = args.models
     gateway_config = load_config(args.gateway_config)
     outputs = gateway_config.get("outputs", {})
     features = pd.read_csv(args.features, sep="\t")

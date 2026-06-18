@@ -38,6 +38,7 @@ MODEL_ORDER = [
     "random_forest",
     "extra_trees",
     "gradient_boosting",
+    "hist_gradient_boosting",
     "tree_ensemble",
     "xgboost",
     "lightgbm",
@@ -473,6 +474,8 @@ def fit_model_predictions(
         return _fit_extra_trees_or_linear(x_train, y_train, x_test, model_config)
     if model_name == "gradient_boosting":
         return _fit_gradient_boosting_or_linear(x_train, y_train, x_test, model_config)
+    if model_name == "hist_gradient_boosting":
+        return _fit_hist_gradient_boosting_or_linear(x_train, y_train, x_test, model_config)
     if model_name == "tree_ensemble":
         return _fit_tree_ensemble_or_linear(x_train, y_train, x_test, model_config)
     if model_name == "xgboost":
@@ -628,6 +631,45 @@ def _fit_gradient_boosting_or_linear(
         return x_test @ coef + intercept, np.abs(coef)
 
 
+def _fit_hist_gradient_boosting_or_linear(
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    model_config: dict[str, Any],
+) -> tuple[np.ndarray, np.ndarray]:
+    try:
+        from sklearn.inspection import permutation_importance  # type: ignore
+        from sklearn.ensemble import HistGradientBoostingRegressor  # type: ignore
+
+        params = model_config.get("models", {}).get("hist_gradient_boosting", {})
+        model = HistGradientBoostingRegressor(
+            max_iter=int(params.get("max_iter", 250)),
+            learning_rate=float(params.get("learning_rate", 0.03)),
+            max_leaf_nodes=int(params.get("max_leaf_nodes", 7)),
+            min_samples_leaf=int(params.get("min_samples_leaf", 8)),
+            l2_regularization=float(params.get("l2_regularization", 5.0)),
+            random_state=int(model_config.get("random_seed", 42)),
+        )
+        model.fit(x_train, y_train)
+        pred = model.predict(x_test)
+        repeats = int(params.get("importance_repeats", 0))
+        if repeats <= 0 or x_train.shape[0] < 8:
+            importance = np.zeros(x_train.shape[1], dtype=float)
+        else:
+            importance = permutation_importance(
+                model,
+                x_train,
+                y_train,
+                n_repeats=repeats,
+                random_state=int(model_config.get("random_seed", 42)),
+                n_jobs=-1,
+            ).importances_mean
+        return pred, np.asarray(importance, dtype=float)
+    except ModuleNotFoundError:
+        coef, intercept = _ridge_closed_form(x_train, y_train, alpha=10.0)
+        return x_test @ coef + intercept, np.abs(coef)
+
+
 def _fit_tree_ensemble_or_linear(
     x_train: np.ndarray,
     y_train: np.ndarray,
@@ -636,7 +678,12 @@ def _fit_tree_ensemble_or_linear(
 ) -> tuple[np.ndarray, np.ndarray]:
     preds = []
     importances = []
-    for fitter in [_fit_random_forest_or_linear, _fit_extra_trees_or_linear, _fit_gradient_boosting_or_linear]:
+    for fitter in [
+        _fit_random_forest_or_linear,
+        _fit_extra_trees_or_linear,
+        _fit_gradient_boosting_or_linear,
+        _fit_hist_gradient_boosting_or_linear,
+    ]:
         pred, importance = fitter(x_train, y_train, x_test, model_config)
         preds.append(pred)
         importances.append(importance)

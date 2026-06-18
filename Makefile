@@ -1,10 +1,10 @@
-PYTHON ?= python3
+PYTHON ?= $(shell if [ -x .venv/bin/python ]; then printf ".venv/bin/python"; else printf "python3"; fi)
 
 R_ENV ?= .mamba/ora-r
 MICROMAMBA ?= $(HOME)/.local/bin/micromamba
 RSCRIPT ?= $(MICROMAMBA) run -p $(R_ENV) Rscript
 
-.PHONY: setup test download-gateway download-info toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-diagnostics model-ora-repeated model-ora-augmented project-ndd project-ndd-uncertainty report modules published-gene-modules external-validation trajectory pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-genomewide-edger pseudobulk-genomewide-de-summary pseudobulk-covariate-de ora-sensitivity milo cnmf clean
+.PHONY: setup test download-gateway download-info download-gse184117 inspect-gse184117 external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-scanvi-reference-map external-scanvi-feature-concordance external-mapped-feature-concordance external-marker-age-concordance external-evidence toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-diagnostics model-ora-repeated model-ora-augmented model-ora-candidate-repeated feature-interpretation project-ndd project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation report manuscript manuscript-figures modules published-gene-modules external-validation external-feature-harmonization trajectory latent-space-audit latent-space-recompute-plan latent-space-plan scvi-pilot scvi-pilot-validation scvi-scaled-250k scvi-scaled-250k-seed23 scvi-scaled-validation scvi-scaled-500k scvi-scaled-1m scvi-reduced-4m scvi-full-4m scvi-full-4m-safe scvi-full-4m-reduced scvi-full-validation scvi-lineage-basal-neural scvi-lineage-validation pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-genomewide-edger pseudobulk-genomewide-edger-matched pseudobulk-genomewide-limma pseudobulk-genomewide-limma-matched pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-audit-matched pseudobulk-covariate-de ora-sensitivity ora-sensitivity-rf model-card output-provenance all-summary milo cnmf clean
 
 setup:
 	$(PYTHON) -m pip install -e ".[dev]"
@@ -17,6 +17,35 @@ download-gateway:
 
 download-info:
 	$(PYTHON) scripts/download_cellxgene.py --config configs/gateway.yaml --dry-run
+
+download-gse184117:
+	mkdir -p data/external
+	curl -L -C - -o data/external/GSE184117_RAW.tar https://ftp.ncbi.nlm.nih.gov/geo/series/GSE184nnn/GSE184117/suppl/GSE184117_RAW.tar
+	curl -L -C - -o data/external/GSE184117_series_matrix.txt.gz https://ftp.ncbi.nlm.nih.gov/geo/series/GSE184nnn/GSE184117/matrix/GSE184117_series_matrix.txt.gz
+
+inspect-gse184117:
+	$(PYTHON) scripts/inspect_external_raw_archive.py --archive data/external/GSE184117_RAW.tar --dataset-id oliva_2022
+
+external-gse184117-modules:
+	$(PYTHON) scripts/score_external_10x_modules.py --archive data/external/GSE184117_RAW.tar --metadata data/external/GSE184117_series_matrix.txt.gz --dataset-id oliva_2022
+
+external-gse184117-markers:
+	$(PYTHON) scripts/score_external_10x_markers.py --archive data/external/GSE184117_RAW.tar --metadata data/external/GSE184117_series_matrix.txt.gz --dataset-id oliva_2022
+
+external-gse184117-mapped:
+	$(PYTHON) scripts/build_external_10x_anndata.py --archive data/external/GSE184117_RAW.tar --metadata data/external/GSE184117_series_matrix.txt.gz --dataset-id oliva_2022
+
+external-scanvi-reference-map:
+	$(PYTHON) scripts/run_scanvi_reference_mapping.py --reference-h5ad data/processed/gateway_scvi_stratified_250k.h5ad --query-h5ad data/processed/gse184117_marker_mapped.h5ad --model-dir results/models/gateway_scanvi_reference --query-out data/processed/gse184117_scanvi_mapped.h5ad --qc-out results/tables/external_scanvi_mapping_qc.tsv --donor-features-out data/processed/gse184117_scanvi_donor_features.tsv --metadata-out results/tables/gateway_scanvi_reference_metadata.tsv --overwrite-model
+
+external-scanvi-feature-concordance:
+	$(PYTHON) scripts/compare_external_mapped_features.py --external-config configs/external_datasets.yaml --gateway-config configs/gateway.yaml --mapped-features data/processed/gse184117_scanvi_donor_features.tsv --out results/tables/external_scanvi_feature_concordance.tsv --direct-feature-map
+
+external-mapped-feature-concordance:
+	$(PYTHON) scripts/compare_external_mapped_features.py --external-config configs/external_datasets.yaml --gateway-config configs/gateway.yaml
+
+external-marker-age-concordance:
+	$(PYTHON) scripts/compare_external_marker_age.py --gateway-config configs/gateway.yaml
 
 toy-data:
 	$(PYTHON) scripts/create_toy_gateway_h5ad.py --out data/raw/toy_gateway.h5ad
@@ -54,17 +83,85 @@ model-ora-repeated:
 model-ora-augmented:
 	$(PYTHON) scripts/run_age_models.py --features data/processed/ora_augmented_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --config configs/models.yaml --performance-out results/tables/ora_augmented_model_performance.tsv --scores-out results/tables/augmented_donor_ora_scores.tsv --importance-out results/tables/ora_augmented_feature_importance.tsv
 
+model-ora-candidate-repeated:
+	$(PYTHON) scripts/run_age_models_repeated.py --features data/processed/ora_augmented_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --model-config configs/models.yaml --gateway-config configs/gateway.yaml --models hist_gradient_boosting xgboost catboost boosted_ensemble --repeat-performance-out results/tables/ora_augmented_candidate_repeated_cv_performance.tsv --summary-out results/tables/ora_augmented_candidate_repeated_cv_summary.tsv --scores-out results/tables/ora_augmented_candidate_repeated_cv_scores.tsv --feature-stability-out results/tables/ora_augmented_candidate_repeated_cv_feature_stability.tsv --repeats 10
+
+feature-interpretation:
+	$(PYTHON) scripts/build_feature_interpretation.py --gateway-config configs/gateway.yaml
+
 project-ndd:
 	$(PYTHON) scripts/project_ndd_ora.py --gateway-config configs/gateway.yaml --model-config configs/models.yaml
 
 project-ndd-uncertainty:
 	$(PYTHON) scripts/summarize_ndd_projection_uncertainty.py --gateway-config configs/gateway.yaml
 
+project-ndd-diagnostics:
+	$(PYTHON) scripts/summarize_ndd_projection_diagnostics.py --gateway-config configs/gateway.yaml
+
+project-ndd-label-permutation:
+	$(PYTHON) scripts/run_ndd_label_permutation.py --gateway-config configs/gateway.yaml
+
 report:
 	$(PYTHON) scripts/generate_mvp_report.py --config configs/gateway.yaml
 
+manuscript-figures:
+	$(PYTHON) scripts/build_manuscript_figures.py --tables-dir results/tables --figures-dir results/figures
+
+manuscript:
+	cd manuscript && if command -v latexmk >/dev/null 2>&1; then latexmk -pdf main.tex; elif command -v pdflatex >/dev/null 2>&1 && command -v bibtex >/dev/null 2>&1; then pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex; else echo "No LaTeX engine found. Install latexmk or pdflatex+bibtex to build manuscript/main.pdf."; exit 2; fi
+
 trajectory:
 	$(PYTHON) scripts/run_trajectory.py --config configs/gateway.yaml
+
+latent-space-audit:
+	$(PYTHON) scripts/audit_latent_space.py --config configs/gateway.yaml
+
+latent-space-recompute-plan:
+	$(PYTHON) scripts/plan_latent_recompute.py --config configs/gateway.yaml
+
+latent-space-plan: latent-space-audit
+
+scvi-pilot:
+	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_pilot_25k.h5ad --max-cells 25000 --n-top-genes 2000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 20 --seed 13
+
+scvi-pilot-validation:
+	$(PYTHON) scripts/validate_scvi_pilot.py --config configs/gateway.yaml
+
+scvi-scaled-250k:
+	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_stratified_250k.h5ad --max-cells 250000 --sampling-strategy stratified --stratify-keys condition,fine_celltype,sex,flex_version,device_guided --n-top-genes 3000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 50 --seed 13
+
+scvi-scaled-250k-seed23:
+	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_stratified_250k_seed23.h5ad --model-dir results/models/gateway_scvi_stratified_250k_seed23 --max-cells 250000 --sampling-strategy stratified --stratify-keys condition,fine_celltype,sex,flex_version,device_guided --n-top-genes 3000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 100 --accelerator auto --devices auto --seed 23
+
+scvi-scaled-validation:
+	$(PYTHON) scripts/validate_scvi_pilot.py --config configs/gateway.yaml --h5ad data/processed/gateway_scvi_stratified_250k.h5ad --out results/tables/scvi_scaled_250k_validation.tsv --max-validation-cells 50000 --seed 13
+
+scvi-scaled-500k:
+	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_stratified_500k.h5ad --model-dir results/models/gateway_scvi_stratified_500k --max-cells 500000 --sampling-strategy stratified --stratify-keys condition,fine_celltype,sex,flex_version,device_guided --gene-list-file configs/scvi_full_4m_genes.txt --n-top-genes 3000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 100 --accelerator auto --devices auto --seed 23
+
+scvi-scaled-1m:
+	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_stratified_1m.h5ad --model-dir results/models/gateway_scvi_stratified_1m --max-cells 1000000 --sampling-strategy stratified --stratify-keys condition,fine_celltype,sex,flex_version,device_guided --gene-list-file configs/scvi_full_4m_genes.txt --n-top-genes 3000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 100 --accelerator auto --devices auto --seed 23
+
+scvi-reduced-4m:
+	$(PYTHON) scripts/build_reduced_h5ad.py --h5ad data/raw/gateway.h5ad --gene-list-file configs/scvi_full_4m_genes.txt --out data/processed/gateway_hvg3003_4m.h5ad --chunk-dir data/processed/gateway_hvg3003_4m_chunks --chunk-size 25000 --overwrite
+
+scvi-full-4m:
+	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_full_4m.h5ad --model-dir results/models/gateway_scvi_full_4m --gene-list-file configs/scvi_full_4m_genes.txt --n-top-genes 3000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 100 --accelerator auto --devices auto --seed 23
+
+scvi-full-4m-safe:
+	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_full_4m_safe.h5ad --model-dir results/models/gateway_scvi_full_4m_safe --gene-list-file configs/scvi_full_4m_genes_1500.txt --n-top-genes 1500 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 100 --accelerator auto --devices auto --seed 23
+
+scvi-full-4m-reduced:
+	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/processed/gateway_hvg3003_4m.h5ad --out data/processed/gateway_scvi_full_4m_reduced.h5ad --model-dir results/models/gateway_scvi_full_4m_reduced --n-top-genes 3000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 100 --accelerator auto --devices auto --seed 23
+
+scvi-full-validation:
+	$(PYTHON) scripts/validate_scvi_pilot.py --config configs/gateway.yaml --h5ad data/processed/gateway_scvi_full_4m.h5ad --out results/tables/scvi_full_4m_validation.tsv --max-validation-cells 100000 --seed 23
+
+scvi-lineage-basal-neural:
+	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_lineage_basal_neural_100k.h5ad --max-cells 100000 --sampling-strategy stratified --stratify-keys condition,fine_celltype,sex,flex_version,device_guided --include-fine-celltype-regex "basal|HBC|GBC|INP|OSN|neuro|globose|horizontal|microvillar|secretory|sustentacular" --n-top-genes 3000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 50 --seed 17
+
+scvi-lineage-validation:
+	$(PYTHON) scripts/validate_scvi_pilot.py --config configs/gateway.yaml --h5ad data/processed/gateway_scvi_lineage_basal_neural_100k.h5ad --out results/tables/scvi_lineage_basal_neural_validation.tsv --max-validation-cells 50000 --seed 17
 
 modules:
 	$(PYTHON) scripts/score_gene_sets.py --config configs/gateway.yaml --gene-sets configs/gene_sets.yaml
@@ -74,6 +171,12 @@ published-gene-modules:
 
 external-validation:
 	$(PYTHON) scripts/summarize_external_validation.py --external-config configs/external_datasets.yaml --gateway-config configs/gateway.yaml
+
+external-evidence:
+	$(PYTHON) scripts/summarize_external_evidence.py --external-config configs/external_datasets.yaml
+
+external-feature-harmonization:
+	$(PYTHON) scripts/import_external_feature_matrix.py --external-config configs/external_datasets.yaml --gateway-config configs/gateway.yaml
 
 pseudobulk:
 	$(PYTHON) scripts/aggregate_pseudobulk.py --config configs/gateway.yaml --gene-sets configs/gene_sets.yaml
@@ -87,14 +190,55 @@ pseudobulk-genomewide-qc:
 pseudobulk-genomewide-edger:
 	$(RSCRIPT) scripts/run_genomewide_edger.R --counts data/processed/pseudobulk_genomewide_counts.tsv.gz --metadata data/processed/pseudobulk_genomewide_metadata.tsv --manifest data/processed/cohort_manifest.tsv --out results/tables/pseudobulk_genomewide_edger.tsv.gz --summary-out results/tables/pseudobulk_genomewide_edger_summary.tsv
 
+pseudobulk-genomewide-edger-matched:
+	$(RSCRIPT) scripts/run_genomewide_edger.R --counts data/processed/pseudobulk_genomewide_counts.tsv.gz --metadata data/processed/pseudobulk_genomewide_metadata.tsv --manifest data/processed/cohort_manifest.tsv --chemistry flex_v2 --collection-method device --out results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device.tsv.gz --summary-out results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device_summary.tsv
+
+pseudobulk-genomewide-limma:
+	$(RSCRIPT) scripts/run_genomewide_limma_voom.R --counts data/processed/pseudobulk_genomewide_counts.tsv.gz --metadata data/processed/pseudobulk_genomewide_metadata.tsv --manifest data/processed/cohort_manifest.tsv --out results/tables/pseudobulk_genomewide_limma_voom.tsv.gz --summary-out results/tables/pseudobulk_genomewide_limma_voom_summary.tsv
+
+pseudobulk-genomewide-limma-matched:
+	$(RSCRIPT) scripts/run_genomewide_limma_voom.R --counts data/processed/pseudobulk_genomewide_counts.tsv.gz --metadata data/processed/pseudobulk_genomewide_metadata.tsv --manifest data/processed/cohort_manifest.tsv --chemistry flex_v2 --collection-method device --out results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device.tsv.gz --summary-out results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device_summary.tsv
+
 pseudobulk-genomewide-de-summary:
 	$(PYTHON) scripts/summarize_genomewide_de.py --config configs/gateway.yaml
+
+pseudobulk-genomewide-de-summary-matched:
+	$(PYTHON) scripts/summarize_genomewide_de.py --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device.tsv.gz --run-summary results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device_summary.tsv --summary-out results/tables/pseudobulk_genomewide_de_summary_matched_flex_v2_device.tsv --top-hits-out results/tables/pseudobulk_genomewide_de_top_hits_matched_flex_v2_device.tsv
+
+pseudobulk-genomewide-limma-de-summary:
+	$(PYTHON) scripts/summarize_genomewide_de.py --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_limma_voom.tsv.gz --run-summary results/tables/pseudobulk_genomewide_limma_voom_summary.tsv --summary-out results/tables/pseudobulk_genomewide_limma_voom_de_summary.tsv --top-hits-out results/tables/pseudobulk_genomewide_limma_voom_de_top_hits.tsv
+
+pseudobulk-genomewide-limma-de-summary-matched:
+	$(PYTHON) scripts/summarize_genomewide_de.py --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device.tsv.gz --run-summary results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device_summary.tsv --summary-out results/tables/pseudobulk_genomewide_limma_voom_de_summary_matched_flex_v2_device.tsv --top-hits-out results/tables/pseudobulk_genomewide_limma_voom_de_top_hits_matched_flex_v2_device.tsv
+
+pseudobulk-genomewide-de-audit:
+	$(PYTHON) scripts/audit_genomewide_de.py --config configs/gateway.yaml
+
+pseudobulk-genomewide-de-audit-matched:
+	$(PYTHON) scripts/audit_genomewide_de.py --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device.tsv.gz --run-summary results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device_summary.tsv --audit-out results/tables/pseudobulk_genomewide_de_audit_matched_flex_v2_device.tsv --donor-balance-out results/tables/pseudobulk_genomewide_donor_balance_matched_flex_v2_device.tsv --matched-feasibility-out results/tables/pseudobulk_genomewide_matched_feasibility_matched_flex_v2_device.tsv
+
+pseudobulk-genomewide-limma-de-audit:
+	$(PYTHON) scripts/audit_genomewide_de.py --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_limma_voom.tsv.gz --run-summary results/tables/pseudobulk_genomewide_limma_voom_summary.tsv --audit-out results/tables/pseudobulk_genomewide_limma_voom_de_audit.tsv --donor-balance-out results/tables/pseudobulk_genomewide_limma_voom_donor_balance.tsv --matched-feasibility-out results/tables/pseudobulk_genomewide_limma_voom_matched_feasibility.tsv
+
+pseudobulk-genomewide-limma-de-audit-matched:
+	$(PYTHON) scripts/audit_genomewide_de.py --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device.tsv.gz --run-summary results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device_summary.tsv --audit-out results/tables/pseudobulk_genomewide_limma_voom_de_audit_matched_flex_v2_device.tsv --donor-balance-out results/tables/pseudobulk_genomewide_limma_voom_donor_balance_matched_flex_v2_device.tsv --matched-feasibility-out results/tables/pseudobulk_genomewide_limma_voom_matched_feasibility_matched_flex_v2_device.tsv
 
 pseudobulk-covariate-de:
 	$(PYTHON) scripts/run_pseudobulk_covariate_de.py --config configs/gateway.yaml
 
 ora-sensitivity:
 	$(PYTHON) scripts/run_ora_sensitivity.py --gateway-config configs/gateway.yaml --model-config configs/models.yaml
+
+ora-sensitivity-rf:
+	$(PYTHON) scripts/run_ora_sensitivity.py --gateway-config configs/gateway.yaml --model-config configs/models.yaml --models random_forest
+
+model-card:
+	$(PYTHON) scripts/build_model_card.py --gateway-config configs/gateway.yaml
+
+output-provenance:
+	$(PYTHON) scripts/write_output_provenance.py --gateway-config configs/gateway.yaml --command-manifest configs/command_manifest.yaml
+
+all-summary: external-validation external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-marker-age-concordance external-mapped-feature-concordance external-evidence model-ora-diagnostics feature-interpretation pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-limma-de-audit-matched project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation model-card latent-space-audit latent-space-recompute-plan output-provenance report
 
 milo:
 	Rscript scripts/run_milo.R configs/gateway.yaml

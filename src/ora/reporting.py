@@ -18,6 +18,8 @@ FIGURE_NAMES = {
     "performance_comparison": "mvp_model_comparison.png",
     "associations": "mvp_top_age_associations.png",
     "predictions": "mvp_predicted_vs_age.png",
+    "calibrated_predictions": "mvp_calibrated_predicted_vs_age.png",
+    "calibration_age_bins": "mvp_calibration_age_bins.png",
     "importance": "mvp_feature_importance.png",
     "ndd_projection": "mvp_ndd_projection.png",
     "ndd_matched_reference": "mvp_ndd_matched_reference.png",
@@ -43,6 +45,7 @@ def generate_mvp_report(
     ora_calibration: pd.DataFrame | None = None,
     ora_age_bin_errors: pd.DataFrame | None = None,
     ora_residual_diagnostics: pd.DataFrame | None = None,
+    ora_calibrated_scores: pd.DataFrame | None = None,
     ndd_projection: pd.DataFrame | None = None,
     ndd_projection_summary: pd.DataFrame | None = None,
     ndd_projection_uncertainty: pd.DataFrame | None = None,
@@ -56,6 +59,13 @@ def generate_mvp_report(
     external_validation_summary: pd.DataFrame | None = None,
     external_gene_list_coverage: pd.DataFrame | None = None,
     external_feature_contract: pd.DataFrame | None = None,
+    external_sample_metadata: pd.DataFrame | None = None,
+    external_10x_sample_qc: pd.DataFrame | None = None,
+    external_10x_module_contrasts: pd.DataFrame | None = None,
+    external_10x_marker_composition: pd.DataFrame | None = None,
+    external_10x_marker_contrasts: pd.DataFrame | None = None,
+    external_marker_age_concordance: pd.DataFrame | None = None,
+    external_validation_evidence: pd.DataFrame | None = None,
     pseudobulk_de: pd.DataFrame | None = None,
     pseudobulk_coverage: pd.DataFrame | None = None,
     pseudobulk_metadata: pd.DataFrame | None = None,
@@ -66,14 +76,36 @@ def generate_mvp_report(
     pseudobulk_genomewide_disease_summary: pd.DataFrame | None = None,
     pseudobulk_genomewide_de_summary: pd.DataFrame | None = None,
     pseudobulk_genomewide_de_top_hits: pd.DataFrame | None = None,
+    pseudobulk_genomewide_de_audit: pd.DataFrame | None = None,
+    pseudobulk_genomewide_donor_balance: pd.DataFrame | None = None,
+    pseudobulk_genomewide_matched_feasibility: pd.DataFrame | None = None,
+    pseudobulk_genomewide_de_summary_matched: pd.DataFrame | None = None,
+    pseudobulk_genomewide_de_top_hits_matched: pd.DataFrame | None = None,
+    pseudobulk_genomewide_de_audit_matched: pd.DataFrame | None = None,
+    pseudobulk_genomewide_limma_de_summary: pd.DataFrame | None = None,
+    pseudobulk_genomewide_limma_de_top_hits: pd.DataFrame | None = None,
+    pseudobulk_genomewide_limma_de_audit: pd.DataFrame | None = None,
+    pseudobulk_genomewide_limma_de_summary_matched: pd.DataFrame | None = None,
+    pseudobulk_genomewide_limma_de_top_hits_matched: pd.DataFrame | None = None,
+    pseudobulk_genomewide_limma_de_audit_matched: pd.DataFrame | None = None,
     ora_sensitivity_scenarios: pd.DataFrame | None = None,
     ora_sensitivity_performance: pd.DataFrame | None = None,
     ora_repeated_cv_summary: pd.DataFrame | None = None,
     ora_repeated_cv_feature_stability: pd.DataFrame | None = None,
+    ora_augmented_candidate_repeated_cv_summary: pd.DataFrame | None = None,
+    ora_feature_interpretation: pd.DataFrame | None = None,
     ora_feature_set_model_comparison: pd.DataFrame | None = None,
     ora_permutation_empirical: pd.DataFrame | None = None,
     ora_nested_tuning_summary: pd.DataFrame | None = None,
     ora_stacking_summary: pd.DataFrame | None = None,
+    ora_model_card: pd.DataFrame | None = None,
+    ndd_label_permutation: pd.DataFrame | None = None,
+    latent_space_readiness: pd.DataFrame | None = None,
+    latent_space_local_audit: pd.DataFrame | None = None,
+    latent_space_portal_assets: pd.DataFrame | None = None,
+    latent_recompute_feasibility: pd.DataFrame | None = None,
+    scvi_pilot_validation: pd.DataFrame | None = None,
+    output_provenance: pd.DataFrame | None = None,
     source: dict[str, Any] | None = None,
     paper_defaults: dict[str, Any] | None = None,
     schema: dict[str, Any] | None = None,
@@ -89,6 +121,9 @@ def generate_mvp_report(
         performance=performance,
         scores=scores,
         importance=importance,
+        ora_calibrated_scores=ora_calibrated_scores,
+        ora_age_bin_errors=ora_age_bin_errors,
+        ora_calibration=ora_calibration,
         augmented_performance=augmented_performance,
         ndd_projection=ndd_projection,
         module_summary=module_summary,
@@ -106,6 +141,7 @@ def generate_mvp_report(
         ora_calibration=ora_calibration,
         ora_age_bin_errors=ora_age_bin_errors,
         ora_residual_diagnostics=ora_residual_diagnostics,
+        ora_calibrated_scores=ora_calibrated_scores,
         augmented_performance=augmented_performance,
         augmented_importance=augmented_importance,
         ndd_projection=ndd_projection,
@@ -121,6 +157,13 @@ def generate_mvp_report(
         external_validation_summary=external_validation_summary,
         external_gene_list_coverage=external_gene_list_coverage,
         external_feature_contract=external_feature_contract,
+        external_sample_metadata=external_sample_metadata,
+        external_10x_sample_qc=external_10x_sample_qc,
+        external_10x_module_contrasts=external_10x_module_contrasts,
+        external_10x_marker_composition=external_10x_marker_composition,
+        external_10x_marker_contrasts=external_10x_marker_contrasts,
+        external_marker_age_concordance=external_marker_age_concordance,
+        external_validation_evidence=external_validation_evidence,
         pseudobulk_de=pseudobulk_de,
         pseudobulk_coverage=pseudobulk_coverage,
         pseudobulk_metadata=pseudobulk_metadata,
@@ -131,14 +174,36 @@ def generate_mvp_report(
         pseudobulk_genomewide_disease_summary=pseudobulk_genomewide_disease_summary,
         pseudobulk_genomewide_de_summary=pseudobulk_genomewide_de_summary,
         pseudobulk_genomewide_de_top_hits=pseudobulk_genomewide_de_top_hits,
+        pseudobulk_genomewide_de_audit=pseudobulk_genomewide_de_audit,
+        pseudobulk_genomewide_donor_balance=pseudobulk_genomewide_donor_balance,
+        pseudobulk_genomewide_matched_feasibility=pseudobulk_genomewide_matched_feasibility,
+        pseudobulk_genomewide_de_summary_matched=pseudobulk_genomewide_de_summary_matched,
+        pseudobulk_genomewide_de_top_hits_matched=pseudobulk_genomewide_de_top_hits_matched,
+        pseudobulk_genomewide_de_audit_matched=pseudobulk_genomewide_de_audit_matched,
+        pseudobulk_genomewide_limma_de_summary=pseudobulk_genomewide_limma_de_summary,
+        pseudobulk_genomewide_limma_de_top_hits=pseudobulk_genomewide_limma_de_top_hits,
+        pseudobulk_genomewide_limma_de_audit=pseudobulk_genomewide_limma_de_audit,
+        pseudobulk_genomewide_limma_de_summary_matched=pseudobulk_genomewide_limma_de_summary_matched,
+        pseudobulk_genomewide_limma_de_top_hits_matched=pseudobulk_genomewide_limma_de_top_hits_matched,
+        pseudobulk_genomewide_limma_de_audit_matched=pseudobulk_genomewide_limma_de_audit_matched,
         ora_sensitivity_scenarios=ora_sensitivity_scenarios,
         ora_sensitivity_performance=ora_sensitivity_performance,
         ora_repeated_cv_summary=ora_repeated_cv_summary,
         ora_repeated_cv_feature_stability=ora_repeated_cv_feature_stability,
+        ora_augmented_candidate_repeated_cv_summary=ora_augmented_candidate_repeated_cv_summary,
+        ora_feature_interpretation=ora_feature_interpretation,
         ora_feature_set_model_comparison=ora_feature_set_model_comparison,
         ora_permutation_empirical=ora_permutation_empirical,
         ora_nested_tuning_summary=ora_nested_tuning_summary,
         ora_stacking_summary=ora_stacking_summary,
+        ora_model_card=ora_model_card,
+        ndd_label_permutation=ndd_label_permutation,
+        latent_space_readiness=latent_space_readiness,
+        latent_space_local_audit=latent_space_local_audit,
+        latent_space_portal_assets=latent_space_portal_assets,
+        latent_recompute_feasibility=latent_recompute_feasibility,
+        scvi_pilot_validation=scvi_pilot_validation,
+        output_provenance=output_provenance,
         out_md=out_md,
         figure_paths=figure_paths,
         source=source or {},
@@ -280,6 +345,7 @@ def render_mvp_markdown(
     ora_calibration: pd.DataFrame | None,
     ora_age_bin_errors: pd.DataFrame | None,
     ora_residual_diagnostics: pd.DataFrame | None,
+    ora_calibrated_scores: pd.DataFrame | None,
     augmented_performance: pd.DataFrame | None,
     augmented_importance: pd.DataFrame | None,
     ndd_projection: pd.DataFrame | None,
@@ -295,6 +361,13 @@ def render_mvp_markdown(
     external_validation_summary: pd.DataFrame | None,
     external_gene_list_coverage: pd.DataFrame | None,
     external_feature_contract: pd.DataFrame | None,
+    external_sample_metadata: pd.DataFrame | None,
+    external_10x_sample_qc: pd.DataFrame | None,
+    external_10x_module_contrasts: pd.DataFrame | None,
+    external_10x_marker_composition: pd.DataFrame | None,
+    external_10x_marker_contrasts: pd.DataFrame | None,
+    external_marker_age_concordance: pd.DataFrame | None,
+    external_validation_evidence: pd.DataFrame | None,
     pseudobulk_de: pd.DataFrame | None,
     pseudobulk_coverage: pd.DataFrame | None,
     pseudobulk_metadata: pd.DataFrame | None,
@@ -305,14 +378,36 @@ def render_mvp_markdown(
     pseudobulk_genomewide_disease_summary: pd.DataFrame | None,
     pseudobulk_genomewide_de_summary: pd.DataFrame | None,
     pseudobulk_genomewide_de_top_hits: pd.DataFrame | None,
+    pseudobulk_genomewide_de_audit: pd.DataFrame | None,
+    pseudobulk_genomewide_donor_balance: pd.DataFrame | None,
+    pseudobulk_genomewide_matched_feasibility: pd.DataFrame | None,
+    pseudobulk_genomewide_de_summary_matched: pd.DataFrame | None,
+    pseudobulk_genomewide_de_top_hits_matched: pd.DataFrame | None,
+    pseudobulk_genomewide_de_audit_matched: pd.DataFrame | None,
+    pseudobulk_genomewide_limma_de_summary: pd.DataFrame | None,
+    pseudobulk_genomewide_limma_de_top_hits: pd.DataFrame | None,
+    pseudobulk_genomewide_limma_de_audit: pd.DataFrame | None,
+    pseudobulk_genomewide_limma_de_summary_matched: pd.DataFrame | None,
+    pseudobulk_genomewide_limma_de_top_hits_matched: pd.DataFrame | None,
+    pseudobulk_genomewide_limma_de_audit_matched: pd.DataFrame | None,
     ora_sensitivity_scenarios: pd.DataFrame | None,
     ora_sensitivity_performance: pd.DataFrame | None,
     ora_repeated_cv_summary: pd.DataFrame | None,
     ora_repeated_cv_feature_stability: pd.DataFrame | None,
+    ora_augmented_candidate_repeated_cv_summary: pd.DataFrame | None,
+    ora_feature_interpretation: pd.DataFrame | None,
     ora_feature_set_model_comparison: pd.DataFrame | None,
     ora_permutation_empirical: pd.DataFrame | None,
     ora_nested_tuning_summary: pd.DataFrame | None,
     ora_stacking_summary: pd.DataFrame | None,
+    ora_model_card: pd.DataFrame | None,
+    ndd_label_permutation: pd.DataFrame | None,
+    latent_space_readiness: pd.DataFrame | None,
+    latent_space_local_audit: pd.DataFrame | None,
+    latent_space_portal_assets: pd.DataFrame | None,
+    latent_recompute_feasibility: pd.DataFrame | None,
+    scvi_pilot_validation: pd.DataFrame | None,
+    output_provenance: pd.DataFrame | None,
     out_md: str | Path,
     figure_paths: dict[str, Path],
     source: dict[str, Any],
@@ -398,6 +493,10 @@ def render_mvp_markdown(
                     max_rows=20,
                 ),
                 "",
+                _figure_link(report_path, figure_paths.get("calibrated_predictions"), "Calibrated predicted age versus chronological age"),
+                "",
+                _figure_link(report_path, figure_paths.get("calibration_age_bins"), "Raw and calibrated age-bin error"),
+                "",
             ]
         )
     if augmented_performance is not None and not augmented_performance.empty:
@@ -461,6 +560,54 @@ def render_mvp_markdown(
                 "",
             ]
         )
+        if _has_feature_interpretation(ora_feature_interpretation):
+            lines.extend(
+                [
+                    "### Top Feature Biological Interpretation",
+                    "",
+                    _feature_interpretation_summary_sentence(ora_feature_interpretation),
+                    "",
+                    _markdown_table(
+                        ora_feature_interpretation if ora_feature_interpretation is not None else pd.DataFrame(),
+                        [
+                            "feature",
+                            "biology_theme",
+                            "supporting_models",
+                            "age_direction",
+                            "interpretation",
+                            "caution",
+                        ],
+                        max_rows=16,
+                    ),
+                    "",
+                ]
+            )
+        candidate_repeats = _top_candidate_repeated_cv(ora_augmented_candidate_repeated_cv_summary, top_n=10)
+        if not candidate_repeats.empty:
+            lines.extend(
+                [
+                    "### Augmented Candidate Model Repeated CV",
+                    "",
+                    "This targeted benchmark reruns the strongest boosted candidates on the module-augmented feature set without rerunning every baseline model.",
+                    "",
+                    _markdown_table(
+                        candidate_repeats,
+                        [
+                            "model",
+                            "repeats",
+                            "n",
+                            "mae_mean",
+                            "mae_ci_low",
+                            "mae_ci_high",
+                            "spearman_r_mean",
+                            "spearman_r_ci_low",
+                            "spearman_r_ci_high",
+                        ],
+                        max_rows=10,
+                    ),
+                    "",
+                ]
+            )
         comparison = _top_feature_set_model_comparison(ora_feature_set_model_comparison, top_n=10)
         if not comparison.empty:
             lines.extend(
@@ -555,6 +702,30 @@ def render_mvp_markdown(
                     "",
                 ]
             )
+    if ora_model_card is not None and not ora_model_card.empty:
+        lines.extend(
+            [
+                "## ORA Model Card",
+                "",
+                _markdown_table(
+                    ora_model_card,
+                    [
+                        "model",
+                        "feature_set",
+                        "role",
+                        "n",
+                        "repeats",
+                        "mae_mean",
+                        "spearman_r_mean",
+                        "calibration_slope",
+                        "permutation_p_mae",
+                        "limitations",
+                    ],
+                    max_rows=16,
+                ),
+                "",
+            ]
+        )
     if _has_ndd_projection(ndd_projection, ndd_projection_summary):
         lines.extend(
             [
@@ -673,6 +844,33 @@ def render_mvp_markdown(
                     "",
                 ]
             )
+        if ndd_label_permutation is not None and not ndd_label_permutation.empty:
+            ndd_label_display = ndd_label_permutation
+            if "model" in ndd_label_display:
+                ndd_label_display = ndd_label_display[~ndd_label_display["model"].eq("null_model")]
+            lines.extend(
+                [
+                    "### NDD Label Permutation",
+                    "",
+                    "Frozen-score label permutations test whether AD/PD ORAA differences are unusually negative within matched chemistry and collection-method context.",
+                    "",
+                    _markdown_table(
+                        ndd_label_display,
+                        [
+                            "model",
+                            "disease_group",
+                            "n_disease",
+                            "n_reference",
+                            "observed_difference_vs_reference",
+                            "null_mean",
+                            "empirical_p_negative",
+                            "status",
+                        ],
+                        max_rows=24,
+                    ),
+                    "",
+                ]
+            )
     if _has_module_tables(module_summary, module_coverage, donor_module_features):
         lines.extend(
             [
@@ -708,6 +906,7 @@ def render_mvp_markdown(
                         "status",
                         "validation_use",
                         "expected_level",
+                        "readiness_class",
                         "ready_for_feature_validation",
                         "ready_for_raw_adapter",
                         "files_missing",
@@ -724,6 +923,198 @@ def render_mvp_markdown(
                 _markdown_table(
                     external_feature_contract if external_feature_contract is not None else pd.DataFrame(),
                     ["field", "kind"],
+                    max_rows=20,
+                ),
+                "",
+            ]
+        )
+        if _has_external_validation_evidence(external_validation_evidence):
+            lines.extend(
+                [
+                    "### External Evidence Ledger",
+                    "",
+                    _external_evidence_summary_sentence(external_validation_evidence),
+                    "",
+                    _markdown_table(
+                        external_validation_evidence if external_validation_evidence is not None else pd.DataFrame(),
+                        [
+                            "dataset_id",
+                            "evidence_type",
+                            "feature_level",
+                            "validation_strength",
+                            "n_samples",
+                            "n_donors",
+                            "n_features",
+                            "supports_primary_claim",
+                            "supports_ndd_claim",
+                            "next_action",
+                        ],
+                        max_rows=20,
+                    ),
+                    "",
+                ]
+            )
+        if _has_external_10x_tables(external_sample_metadata, external_10x_sample_qc, external_10x_module_contrasts):
+            lines.extend(
+                [
+                    "### GSE184117 Sample-Level Module Sanity Check",
+                    "",
+                    _external_10x_summary_sentence(
+                        external_sample_metadata,
+                        external_10x_sample_qc,
+                        external_10x_module_contrasts,
+                    ),
+                    "",
+                    _markdown_table(
+                        external_sample_metadata if external_sample_metadata is not None else pd.DataFrame(),
+                        [
+                            "sample_id",
+                            "donor_id",
+                            "age",
+                            "disease_state",
+                            "disease_group",
+                            "sample_class",
+                            "usable_for_external_validation",
+                        ],
+                        max_rows=12,
+                    ),
+                    "",
+                    _markdown_table(
+                        external_10x_sample_qc if external_10x_sample_qc is not None else pd.DataFrame(),
+                        ["sample_id", "disease_group", "sample_class", "n_cells", "n_genes", "detected_genes", "total_counts"],
+                        max_rows=12,
+                    ),
+                    "",
+                    _markdown_table(
+                        _top_external_module_contrasts(external_10x_module_contrasts),
+                        [
+                            "module",
+                            "n_healthy",
+                            "n_presbyosmia",
+                            "mean_healthy",
+                            "mean_presbyosmia",
+                            "presbyosmia_minus_healthy",
+                            "p_value",
+                            "direction",
+                            "status",
+                        ],
+                        max_rows=16,
+                    ),
+                    "",
+                ]
+            )
+        if _has_external_marker_tables(external_10x_marker_composition, external_10x_marker_contrasts):
+            lines.extend(
+                [
+                    "### GSE184117 Marker-Only Composition Sanity Check",
+                    "",
+                    _external_marker_summary_sentence(external_10x_marker_composition, external_10x_marker_contrasts),
+                    "",
+                    _markdown_table(
+                        _top_external_marker_contrasts(external_10x_marker_contrasts),
+                        [
+                            "marker_panel",
+                            "n_healthy",
+                            "n_presbyosmia",
+                            "mean_fraction_healthy",
+                            "mean_fraction_presbyosmia",
+                            "presbyosmia_minus_healthy",
+                            "p_value",
+                            "direction",
+                            "status",
+                        ],
+                        max_rows=16,
+                    ),
+                    "",
+                ]
+            )
+            if _has_external_marker_age_concordance(external_marker_age_concordance):
+                lines.extend(
+                    [
+                        "### GSE184117 Marker-Age Concordance",
+                        "",
+                        _external_marker_age_concordance_sentence(external_marker_age_concordance),
+                        "",
+                        _markdown_table(
+                            _top_external_marker_age_concordance(external_marker_age_concordance),
+                            [
+                                "marker_panel",
+                                "gateway_feature",
+                                "external_direction",
+                                "gateway_age_direction",
+                                "concordance",
+                                "external_delta",
+                                "gateway_beta_per_10_years",
+                                "gateway_fdr",
+                                "status",
+                            ],
+                            max_rows=20,
+                        ),
+                        "",
+                    ]
+                )
+    if _has_latent_space_audit(
+        latent_space_readiness,
+        latent_space_local_audit,
+        latent_space_portal_assets,
+    ) or _has_scvi_pilot_validation(scvi_pilot_validation):
+        lines.extend(
+            [
+                "## Latent-Space Readiness",
+                "",
+                _latent_space_summary_sentence(latent_space_readiness),
+                "",
+                _markdown_table(
+                    latent_space_readiness if latent_space_readiness is not None else pd.DataFrame(),
+                    [
+                        "status",
+                        "local_embeddings",
+                        "portal_embeddings",
+                        "usable_local_embeddings",
+                        "visualization_only_embeddings",
+                        "recommendation",
+                    ],
+                    max_rows=5,
+                ),
+                "",
+                _markdown_table(
+                    latent_space_local_audit if latent_space_local_audit is not None else pd.DataFrame(),
+                    [
+                        "embedding_key",
+                        "n_cells",
+                        "n_dimensions",
+                        "readiness",
+                        "recommended_use",
+                        "notes",
+                    ],
+                    max_rows=20,
+                ),
+                "",
+                _markdown_table(
+                    latent_space_portal_assets if latent_space_portal_assets is not None else pd.DataFrame(),
+                    [
+                        "dataset_id",
+                        "dataset_version_id",
+                        "asset_filetype",
+                        "asset_filesize_bytes",
+                        "portal_embeddings",
+                        "default_embedding",
+                        "status",
+                    ],
+                    max_rows=10,
+                ),
+                "",
+                _markdown_table(
+                    latent_recompute_feasibility if latent_recompute_feasibility is not None else pd.DataFrame(),
+                    ["check", "status", "detail", "recommendation"],
+                    max_rows=20,
+                ),
+                "",
+                _scvi_pilot_summary_sentence(scvi_pilot_validation),
+                "",
+                _markdown_table(
+                    scvi_pilot_validation if scvi_pilot_validation is not None else pd.DataFrame(),
+                    ["check", "status", "detail", "recommendation"],
                     max_rows=20,
                 ),
                 "",
@@ -862,6 +1253,225 @@ def render_mvp_markdown(
                 "",
             ]
         )
+        if pseudobulk_genomewide_de_audit is not None and not pseudobulk_genomewide_de_audit.empty:
+            lines.extend(
+                [
+                    "### Genome-Wide DE Audit",
+                    "",
+                    _markdown_table(
+                        pseudobulk_genomewide_de_audit,
+                        [
+                            "contrast",
+                            "significant_rows",
+                            "is_sex_linked_initial_significant_rows",
+                            "is_mitochondrial_significant_rows",
+                            "is_ribosomal_significant_rows",
+                            "is_hemoglobin_significant_rows",
+                            "is_immunoglobulin_significant_rows",
+                        ],
+                        max_rows=10,
+                    ),
+                    "",
+                ]
+            )
+        donor_balance = _top_donor_balance_issues(pseudobulk_genomewide_donor_balance, top_n=20)
+        if not donor_balance.empty:
+            lines.extend(
+                [
+                    "### Genome-Wide Donor Balance",
+                    "",
+                    _markdown_table(
+                        donor_balance,
+                        ["contrast", "fine_cell_type", "n_case", "n_control", "status", "balance_status"],
+                        max_rows=20,
+                    ),
+                    "",
+                ]
+            )
+        matched_feasibility = _top_matched_de_feasibility(pseudobulk_genomewide_matched_feasibility, top_n=20)
+        if not matched_feasibility.empty:
+            lines.extend(
+                [
+                    "### Matched FLEX v2/Device DE Feasibility",
+                    "",
+                    _markdown_table(
+                        matched_feasibility,
+                        [
+                            "contrast",
+                            "fine_cell_type",
+                            "n_case",
+                            "n_matched_healthy",
+                            "ready_for_matched_de",
+                        ],
+                        max_rows=20,
+                    ),
+                    "",
+                ]
+            )
+        if pseudobulk_genomewide_de_summary_matched is not None and not pseudobulk_genomewide_de_summary_matched.empty:
+            lines.extend(
+                [
+                    "### Matched FLEX v2/Device edgeR DE Sensitivity",
+                    "",
+                    _matched_genomewide_de_sentence(pseudobulk_genomewide_de_summary_matched),
+                    "",
+                    _markdown_table(
+                        pseudobulk_genomewide_de_summary_matched,
+                        [
+                            "contrast",
+                            "tested_rows",
+                            "tested_genes",
+                            "tested_cell_states",
+                            "ok_cell_state_models",
+                            "significant_rows",
+                            "significant_genes",
+                            "significant_cell_states",
+                            "sex_linked_significant_rows",
+                        ],
+                        max_rows=10,
+                    ),
+                    "",
+                    _markdown_table(
+                        _non_sex_linked_genomewide_de_hits(pseudobulk_genomewide_de_top_hits_matched, top_n=top_n),
+                        ["contrast", "fine_cell_type", "gene_symbol", "log2fc", "p_value", "fdr", "is_sex_linked_initial"],
+                        max_rows=top_n,
+                    ),
+                    "",
+                ]
+            )
+            if pseudobulk_genomewide_de_audit_matched is not None and not pseudobulk_genomewide_de_audit_matched.empty:
+                lines.extend(
+                    [
+                        "Matched sentinel audit:",
+                        "",
+                        _markdown_table(
+                            pseudobulk_genomewide_de_audit_matched,
+                            [
+                                "contrast",
+                                "significant_rows",
+                                "is_sex_linked_initial_significant_rows",
+                                "is_mitochondrial_significant_rows",
+                                "is_ribosomal_significant_rows",
+                                "is_hemoglobin_significant_rows",
+                                "is_immunoglobulin_significant_rows",
+                            ],
+                            max_rows=10,
+                        ),
+                        "",
+                    ]
+                )
+    if pseudobulk_genomewide_limma_de_summary is not None and not pseudobulk_genomewide_limma_de_summary.empty:
+        lines.extend(
+            [
+                "## Genome-Wide limma-voom DE Parity",
+                "",
+                _genomewide_de_method_sentence(pseudobulk_genomewide_limma_de_summary, "limma-voom"),
+                "",
+                _markdown_table(
+                    pseudobulk_genomewide_limma_de_summary,
+                    [
+                        "contrast",
+                        "tested_rows",
+                        "tested_genes",
+                        "tested_cell_states",
+                        "ok_cell_state_models",
+                        "significant_rows",
+                        "significant_genes",
+                        "significant_cell_states",
+                        "sex_linked_significant_rows",
+                    ],
+                    max_rows=10,
+                ),
+                "",
+                "Top non-sex-linked limma-voom hits:",
+                "",
+                _markdown_table(
+                    _non_sex_linked_genomewide_de_hits(pseudobulk_genomewide_limma_de_top_hits, top_n=top_n),
+                    ["contrast", "fine_cell_type", "gene_symbol", "log2fc", "p_value", "fdr", "is_sex_linked_initial"],
+                    max_rows=top_n,
+                ),
+                "",
+            ]
+        )
+        if pseudobulk_genomewide_limma_de_audit is not None and not pseudobulk_genomewide_limma_de_audit.empty:
+            lines.extend(
+                [
+                    "### limma-voom Sentinel Audit",
+                    "",
+                    _markdown_table(
+                        pseudobulk_genomewide_limma_de_audit,
+                        [
+                            "contrast",
+                            "significant_rows",
+                            "is_sex_linked_initial_significant_rows",
+                            "is_mitochondrial_significant_rows",
+                            "is_ribosomal_significant_rows",
+                            "is_hemoglobin_significant_rows",
+                            "is_immunoglobulin_significant_rows",
+                        ],
+                        max_rows=10,
+                    ),
+                    "",
+                ]
+            )
+        if pseudobulk_genomewide_limma_de_summary_matched is not None and not pseudobulk_genomewide_limma_de_summary_matched.empty:
+            lines.extend(
+                [
+                    "### Matched FLEX v2/Device limma-voom DE Sensitivity",
+                    "",
+                    _genomewide_de_method_sentence(
+                        pseudobulk_genomewide_limma_de_summary_matched,
+                        "Matched FLEX v2/device limma-voom",
+                    ),
+                    "",
+                    _markdown_table(
+                        pseudobulk_genomewide_limma_de_summary_matched,
+                        [
+                            "contrast",
+                            "tested_rows",
+                            "tested_genes",
+                            "tested_cell_states",
+                            "ok_cell_state_models",
+                            "significant_rows",
+                            "significant_genes",
+                            "significant_cell_states",
+                            "sex_linked_significant_rows",
+                        ],
+                        max_rows=10,
+                    ),
+                    "",
+                    _markdown_table(
+                        _non_sex_linked_genomewide_de_hits(pseudobulk_genomewide_limma_de_top_hits_matched, top_n=top_n),
+                        ["contrast", "fine_cell_type", "gene_symbol", "log2fc", "p_value", "fdr", "is_sex_linked_initial"],
+                        max_rows=top_n,
+                    ),
+                    "",
+                ]
+            )
+            if (
+                pseudobulk_genomewide_limma_de_audit_matched is not None
+                and not pseudobulk_genomewide_limma_de_audit_matched.empty
+            ):
+                lines.extend(
+                    [
+                        "Matched limma-voom sentinel audit:",
+                        "",
+                        _markdown_table(
+                            pseudobulk_genomewide_limma_de_audit_matched,
+                            [
+                                "contrast",
+                                "significant_rows",
+                                "is_sex_linked_initial_significant_rows",
+                                "is_mitochondrial_significant_rows",
+                                "is_ribosomal_significant_rows",
+                                "is_hemoglobin_significant_rows",
+                                "is_immunoglobulin_significant_rows",
+                            ],
+                            max_rows=10,
+                        ),
+                        "",
+                    ]
+                )
     if ora_sensitivity_performance is not None and not ora_sensitivity_performance.empty:
         lines.extend(
             [
@@ -882,7 +1492,7 @@ def render_mvp_markdown(
         "## Age Associations",
         "",
         f"- Association tests with status ok: {_format_int(int(associations['status'].eq('ok').sum())) if 'status' in associations else 'not recorded'}",
-        f"- Top table is ranked by FDR, then p-value; beta is per 10 years.",
+        "- Top table is ranked by FDR, then p-value; beta is per 10 years.",
         "",
         _markdown_table(
             top_assoc,
@@ -898,6 +1508,10 @@ def render_mvp_markdown(
         "",
         _figure_link(report_path, figure_paths.get("importance"), "Top model features"),
         "",
+        "## Reproducibility Snapshot",
+        "",
+        _output_provenance_sentence(output_provenance),
+        "",
         "## Interpretation Notes",
         "",
         "- The composition baseline and module-augmented ORA models are trained only on healthy donors with valid age.",
@@ -905,7 +1519,7 @@ def render_mvp_markdown(
         "- Module scores are average log1p expression over curated marker sets, summarized at donor and cell-state levels.",
         "- Pseudobulk DE includes both unadjusted donor-level logCPM Welch contrasts and targeted covariate-adjusted linear models.",
         "- ORA predictions are under-dispersed across chronological age; calibration diagnostics support using ORA as a relative tissue-state axis rather than an absolute biological-age estimator.",
-        "- Genome-wide pseudobulk counts now have a local edgeR quasi-likelihood workflow; limma-voom and DESeq2 remain adapter hooks.",
+        "- Genome-wide pseudobulk counts now have local edgeR quasi-likelihood and limma-voom workflows; DESeq2 remains an adapter hook.",
         "- Genome-wide NDD DE is discovery-oriented only: AD/PD sample sizes are five donors each and sex/chemistry/collection imbalance can dominate top hits.",
         "- Trajectory density, Milo, and cNMF remain deferred commands.",
         "- Chemistry, collection method, site, and yield are treated as covariates or sensitivity variables rather than biological ORA features.",
@@ -923,6 +1537,9 @@ def _write_figures(
     performance: pd.DataFrame,
     scores: pd.DataFrame,
     importance: pd.DataFrame,
+    ora_calibrated_scores: pd.DataFrame | None,
+    ora_age_bin_errors: pd.DataFrame | None,
+    ora_calibration: pd.DataFrame | None,
     augmented_performance: pd.DataFrame | None,
     ndd_projection: pd.DataFrame | None,
     module_summary: pd.DataFrame | None,
@@ -949,6 +1566,14 @@ def _write_figures(
         paths.pop("performance_comparison", None)
     _plot_associations(rank_associations(associations, top_n=top_n), paths["associations"], plt)
     _plot_predictions(scores, paths["predictions"], plt)
+    if ora_calibrated_scores is not None and not ora_calibrated_scores.empty:
+        _plot_calibrated_predictions(ora_calibrated_scores, ora_calibration, paths["calibrated_predictions"], plt)
+    else:
+        paths.pop("calibrated_predictions", None)
+    if ora_age_bin_errors is not None and not ora_age_bin_errors.empty:
+        _plot_calibration_age_bins(ora_age_bin_errors, ora_calibration, paths["calibration_age_bins"], plt)
+    else:
+        paths.pop("calibration_age_bins", None)
     _plot_importance(importance, paths["importance"], plt)
     if ndd_projection is not None and not ndd_projection.empty:
         _plot_ndd_projection(ndd_projection, paths["ndd_projection"], plt)
@@ -1084,6 +1709,87 @@ def _plot_predictions(scores: pd.DataFrame, path: Path, plt: Any) -> None:
         ax.set_ylabel("Predicted age")
         ax.spines[["top", "right"]].set_visible(False)
     fig.suptitle("Donor-Level ORA Predictions")
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+
+
+def _plot_calibrated_predictions(
+    calibrated_scores: pd.DataFrame,
+    calibration: pd.DataFrame | None,
+    path: Path,
+    plt: Any,
+) -> None:
+    required = {"model", "chronological_age", "ora", "calibrated_ora"}
+    if calibrated_scores.empty or not required.issubset(calibrated_scores.columns):
+        _blank_figure(path, plt, "No calibrated ORA predictions available")
+        return
+    models = _calibration_display_models(calibration, calibrated_scores, max_models=4)
+    frame = calibrated_scores[calibrated_scores["model"].astype(str).isin(models)].copy()
+    if frame.empty:
+        _blank_figure(path, plt, "No calibrated display models available")
+        return
+    fig, axes = plt.subplots(1, len(models), figsize=(4.4 * len(models), 4), squeeze=False, constrained_layout=True)
+    for ax, model in zip(axes.ravel(), models):
+        sub = frame[frame["model"].astype(str).eq(model)].copy()
+        x = pd.to_numeric(sub["chronological_age"], errors="coerce")
+        raw = pd.to_numeric(sub["ora"], errors="coerce")
+        calibrated = pd.to_numeric(sub["calibrated_ora"], errors="coerce")
+        valid = x.notna() & raw.notna() & calibrated.notna()
+        if not valid.any():
+            continue
+        ax.scatter(x[valid], raw[valid], s=16, alpha=0.34, color="#8a8f98", edgecolor="none", label="Raw")
+        ax.scatter(x[valid], calibrated[valid], s=20, alpha=0.72, color="#287c8e", edgecolor="none", label="Calibrated")
+        low = float(np.nanmin([x[valid].min(), raw[valid].min(), calibrated[valid].min()]))
+        high = float(np.nanmax([x[valid].max(), raw[valid].max(), calibrated[valid].max()]))
+        ax.plot([low, high], [low, high], color="#555555", linewidth=0.9, linestyle="--")
+        ax.set_title(str(model).replace("_", " "))
+        ax.set_xlabel("Chronological age")
+        ax.set_ylabel("Predicted age")
+        ax.spines[["top", "right"]].set_visible(False)
+    axes.ravel()[0].legend(frameon=False, fontsize=8, loc="upper left")
+    fig.suptitle("Raw Versus Recalibrated ORA Predictions")
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+
+
+def _plot_calibration_age_bins(
+    age_bin_errors: pd.DataFrame,
+    calibration: pd.DataFrame | None,
+    path: Path,
+    plt: Any,
+) -> None:
+    required = {"model", "group", "level", "mae", "calibrated_mae"}
+    if age_bin_errors.empty or not required.issubset(age_bin_errors.columns):
+        _blank_figure(path, plt, "No age-bin calibration errors available")
+        return
+    models = _calibration_display_models(calibration, age_bin_errors, max_models=4)
+    frame = age_bin_errors[
+        age_bin_errors["model"].astype(str).isin(models)
+        & age_bin_errors["group"].astype(str).eq("age_bin")
+    ].copy()
+    if frame.empty:
+        _blank_figure(path, plt, "No age-bin calibration display models available")
+        return
+    frame["mae"] = pd.to_numeric(frame["mae"], errors="coerce")
+    frame["calibrated_mae"] = pd.to_numeric(frame["calibrated_mae"], errors="coerce")
+    age_order = [label for label in ["young", "middle", "old"] if label in set(frame["level"].astype(str))]
+    if not age_order:
+        age_order = sorted(frame["level"].astype(str).unique())
+    fig, axes = plt.subplots(1, len(models), figsize=(4.2 * len(models), 3.8), squeeze=False, constrained_layout=True)
+    width = 0.34
+    for ax, model in zip(axes.ravel(), models):
+        sub = frame[frame["model"].astype(str).eq(model)].set_index("level")
+        raw = [float(sub.loc[level, "mae"]) if level in sub.index else np.nan for level in age_order]
+        calibrated = [float(sub.loc[level, "calibrated_mae"]) if level in sub.index else np.nan for level in age_order]
+        x = np.arange(len(age_order), dtype=float)
+        ax.bar(x - width / 2, raw, width=width, color="#c2674f", label="Raw")
+        ax.bar(x + width / 2, calibrated, width=width, color="#287c8e", label="Calibrated")
+        ax.set_xticks(x, [label.title() for label in age_order])
+        ax.set_title(str(model).replace("_", " "))
+        ax.set_ylabel("MAE (years)")
+        ax.spines[["top", "right"]].set_visible(False)
+    axes.ravel()[0].legend(frameon=False, fontsize=8, loc="upper left")
+    fig.suptitle("ORA Error By Age Bin")
     fig.savefig(path, dpi=180)
     plt.close(fig)
 
@@ -1431,12 +2137,36 @@ def _display_models() -> list[str]:
         "random_forest",
         "extra_trees",
         "gradient_boosting",
+        "hist_gradient_boosting",
         "tree_ensemble",
         "xgboost",
         "lightgbm",
         "catboost",
         "boosted_ensemble",
     ]
+
+
+def _calibration_display_models(
+    calibration: pd.DataFrame | None,
+    fallback: pd.DataFrame,
+    *,
+    max_models: int = 4,
+) -> list[str]:
+    if calibration is not None and not calibration.empty and {"model", "calibrated_mae"}.issubset(calibration.columns):
+        frame = calibration[~calibration["model"].astype(str).eq("null_model")].copy()
+        frame["calibrated_mae"] = pd.to_numeric(frame["calibrated_mae"], errors="coerce")
+        frame = frame.dropna(subset=["calibrated_mae"]).sort_values(["calibrated_mae", "model"])
+        models = frame["model"].astype(str).head(max_models).tolist()
+        if models:
+            return models
+    if "model" not in fallback:
+        return []
+    models = [
+        model
+        for model in _display_models()
+        if model in set(fallback["model"].astype(str)) and model != "null_model"
+    ]
+    return models[:max_models]
 
 
 def _has_external_validation_tables(
@@ -1447,6 +2177,58 @@ def _has_external_validation_tables(
     return any(
         frame is not None and not frame.empty
         for frame in [external_validation_summary, external_gene_list_coverage, external_feature_contract]
+    )
+
+
+def _has_external_10x_tables(
+    external_sample_metadata: pd.DataFrame | None,
+    external_10x_sample_qc: pd.DataFrame | None,
+    external_10x_module_contrasts: pd.DataFrame | None,
+) -> bool:
+    return any(
+        frame is not None and not frame.empty
+        for frame in [external_sample_metadata, external_10x_sample_qc, external_10x_module_contrasts]
+    )
+
+
+def _has_external_marker_tables(
+    external_10x_marker_composition: pd.DataFrame | None,
+    external_10x_marker_contrasts: pd.DataFrame | None,
+) -> bool:
+    return any(
+        frame is not None and not frame.empty
+        for frame in [external_10x_marker_composition, external_10x_marker_contrasts]
+    )
+
+
+def _has_external_marker_age_concordance(external_marker_age_concordance: pd.DataFrame | None) -> bool:
+    return external_marker_age_concordance is not None and not external_marker_age_concordance.empty
+
+
+def _has_external_validation_evidence(external_validation_evidence: pd.DataFrame | None) -> bool:
+    return external_validation_evidence is not None and not external_validation_evidence.empty
+
+
+def _external_evidence_summary_sentence(external_validation_evidence: pd.DataFrame | None) -> str:
+    if external_validation_evidence is None or external_validation_evidence.empty:
+        return "_No external validation evidence ledger available._"
+    frame = external_validation_evidence
+    n_rows = frame.shape[0]
+    strengths = (
+        frame["validation_strength"].dropna().astype(str).value_counts().to_dict()
+        if "validation_strength" in frame
+        else {}
+    )
+    sanity_rows = int(
+        frame["supports_primary_claim"].astype(str).eq("sanity_only").sum()
+        if "supports_primary_claim" in frame
+        else 0
+    )
+    strength_text = ", ".join(f"{key}: {_format_int(value)}" for key, value in sorted(strengths.items()))
+    return (
+        f"The external evidence ledger has {_format_int(n_rows)} rows across configured sources and generated "
+        f"sanity checks. Validation-strength classes: {strength_text or 'none'}. "
+        f"{_format_int(sanity_rows)} {_plural(sanity_rows, 'row is', 'rows are')} explicitly gated as sanity-only."
     )
 
 
@@ -1468,6 +2250,13 @@ def _external_validation_summary_sentence(
         and "ready_for_feature_validation" in external_validation_summary
         else 0
     )
+    raw_ready = (
+        int(external_validation_summary["ready_for_raw_adapter"].astype(bool).sum())
+        if external_validation_summary is not None
+        and not external_validation_summary.empty
+        and "ready_for_raw_adapter" in external_validation_summary
+        else 0
+    )
     gene_lists = (
         _format_int(external_gene_list_coverage["gene_list"].nunique())
         if external_gene_list_coverage is not None
@@ -1477,9 +2266,189 @@ def _external_validation_summary_sentence(
     )
     return (
         f"External validation registry currently tracks {dataset_count} candidate datasets; "
-        f"{_format_int(feature_ready)} have all files needed for donor-level feature replication. "
+        f"{_format_int(feature_ready)} have all files needed for donor-level feature replication and "
+        f"{_format_int(raw_ready)} {_plural(raw_ready, 'is', 'are')} ready for raw-adapter work. "
         f"Published validation gene-list coverage is available for {gene_lists} lists and can now be scored "
         "through the module-scoring command by passing the external dataset config."
+    )
+
+
+def _external_10x_summary_sentence(
+    sample_metadata: pd.DataFrame | None,
+    sample_qc: pd.DataFrame | None,
+    module_contrasts: pd.DataFrame | None,
+) -> str:
+    usable = (
+        int(sample_metadata["usable_for_external_validation"].astype(bool).sum())
+        if sample_metadata is not None
+        and not sample_metadata.empty
+        and "usable_for_external_validation" in sample_metadata
+        else 0
+    )
+    samples = (
+        _format_int(sample_qc["sample_id"].nunique())
+        if sample_qc is not None and not sample_qc.empty and "sample_id" in sample_qc
+        else "0"
+    )
+    modules = (
+        _format_int(module_contrasts["module"].nunique())
+        if module_contrasts is not None and not module_contrasts.empty and "module" in module_contrasts
+        else "0"
+    )
+    return (
+        f"GSE184117 public metadata resolves {_format_int(usable)} usable biopsy samples with age and "
+        f"olfaction status. Raw 10x module scoring ran for {samples} samples and {modules} modules. "
+        "These sample-level contrasts are descriptive only because donor n is 3 versus 3 and cell labels "
+        "are still absent from the public archive."
+    )
+
+
+def _top_external_module_contrasts(module_contrasts: pd.DataFrame | None) -> pd.DataFrame:
+    columns = [
+        "module",
+        "n_healthy",
+        "n_presbyosmia",
+        "mean_healthy",
+        "mean_presbyosmia",
+        "presbyosmia_minus_healthy",
+        "p_value",
+        "direction",
+        "status",
+    ]
+    if module_contrasts is None or module_contrasts.empty:
+        return pd.DataFrame(columns=columns)
+    frame = module_contrasts.copy()
+    frame["abs_delta"] = pd.to_numeric(frame.get("presbyosmia_minus_healthy"), errors="coerce").abs()
+    frame["p_value"] = pd.to_numeric(frame.get("p_value"), errors="coerce")
+    return frame.sort_values(["p_value", "abs_delta", "module"], ascending=[True, False, True])[columns].reset_index(drop=True)
+
+
+def _external_marker_summary_sentence(
+    marker_composition: pd.DataFrame | None,
+    marker_contrasts: pd.DataFrame | None,
+) -> str:
+    samples = (
+        _format_int(marker_composition["sample_id"].nunique())
+        if marker_composition is not None
+        and not marker_composition.empty
+        and "sample_id" in marker_composition
+        else "0"
+    )
+    panels = (
+        _format_int(marker_contrasts["marker_panel"].nunique())
+        if marker_contrasts is not None
+        and not marker_contrasts.empty
+        and "marker_panel" in marker_contrasts
+        else "0"
+    )
+    return (
+        f"Marker-only composition scored {panels} coarse olfactory/epithelial/immune panels across {samples} "
+        "GSE184117 samples. These are conservative marker assignments for external sanity checking, not a replacement "
+        "for reference-mapped cell labels."
+    )
+
+
+def _top_external_marker_contrasts(marker_contrasts: pd.DataFrame | None) -> pd.DataFrame:
+    columns = [
+        "marker_panel",
+        "n_healthy",
+        "n_presbyosmia",
+        "mean_fraction_healthy",
+        "mean_fraction_presbyosmia",
+        "presbyosmia_minus_healthy",
+        "p_value",
+        "direction",
+        "status",
+    ]
+    if marker_contrasts is None or marker_contrasts.empty:
+        return pd.DataFrame(columns=columns)
+    frame = marker_contrasts.copy()
+    frame["abs_delta"] = pd.to_numeric(frame.get("presbyosmia_minus_healthy"), errors="coerce").abs()
+    frame["p_value"] = pd.to_numeric(frame.get("p_value"), errors="coerce")
+    return frame.sort_values(["p_value", "abs_delta", "marker_panel"], ascending=[True, False, True])[columns].reset_index(drop=True)
+
+
+def _external_marker_age_concordance_sentence(concordance: pd.DataFrame | None) -> str:
+    if concordance is None or concordance.empty:
+        return "_No marker-age concordance table available._"
+    rows = len(concordance)
+    concordant = int(concordance["concordance"].astype(str).eq("concordant").sum()) if "concordance" in concordance else 0
+    discordant = int(concordance["concordance"].astype(str).eq("discordant").sum()) if "concordance" in concordance else 0
+    panels = _format_int(concordance["marker_panel"].nunique()) if "marker_panel" in concordance else "0"
+    return (
+        f"Marker-only GSE184117 presbyosmia shifts were mapped to Gateway age-associated features for {panels} panels, "
+        f"yielding {_format_int(concordant)} concordant and {_format_int(discordant)} discordant marker-feature rows "
+        f"out of {_format_int(rows)}. This remains a sanity check because the external cohort is 3 versus 3 and lacks cell labels."
+    )
+
+
+def _top_external_marker_age_concordance(concordance: pd.DataFrame | None) -> pd.DataFrame:
+    columns = [
+        "marker_panel",
+        "gateway_feature",
+        "external_direction",
+        "gateway_age_direction",
+        "concordance",
+        "external_delta",
+        "gateway_beta_per_10_years",
+        "gateway_fdr",
+        "status",
+    ]
+    if concordance is None or concordance.empty:
+        return pd.DataFrame(columns=columns)
+    frame = concordance.copy()
+    frame["gateway_fdr"] = pd.to_numeric(frame.get("gateway_fdr"), errors="coerce")
+    frame["external_abs_delta"] = pd.to_numeric(frame.get("external_delta"), errors="coerce").abs()
+    order = {"concordant": 0, "discordant": 1, "not_evaluable": 2}
+    frame["_order"] = frame["concordance"].astype(str).map(order).fillna(3)
+    return (
+        frame.sort_values(["_order", "gateway_fdr", "external_abs_delta", "marker_panel"], ascending=[True, True, False, True])
+        .head(20)[columns]
+        .reset_index(drop=True)
+    )
+
+
+def _has_latent_space_audit(
+    latent_space_readiness: pd.DataFrame | None,
+    latent_space_local_audit: pd.DataFrame | None,
+    latent_space_portal_assets: pd.DataFrame | None,
+) -> bool:
+    return any(
+        frame is not None and not frame.empty
+        for frame in [latent_space_readiness, latent_space_local_audit, latent_space_portal_assets]
+    )
+
+
+def _latent_space_summary_sentence(latent_space_readiness: pd.DataFrame | None) -> str:
+    if latent_space_readiness is None or latent_space_readiness.empty:
+        return "_No latent-space readiness audit available._"
+    row = latent_space_readiness.iloc[0]
+    status = str(row.get("status", "unknown"))
+    local = str(row.get("local_embeddings", "")) or "none"
+    portal = str(row.get("portal_embeddings", "")) or "none"
+    recommendation = str(row.get("recommendation", "Review latent-space audit before trajectory work."))
+    return (
+        f"Latent-space audit status is `{status}`. Local embeddings: {local}; CELLxGENE portal embeddings: {portal}. "
+        f"{recommendation}"
+    )
+
+
+def _has_scvi_pilot_validation(scvi_pilot_validation: pd.DataFrame | None) -> bool:
+    return scvi_pilot_validation is not None and not scvi_pilot_validation.empty
+
+
+def _scvi_pilot_summary_sentence(scvi_pilot_validation: pd.DataFrame | None) -> str:
+    if scvi_pilot_validation is None or scvi_pilot_validation.empty:
+        return "_No scVI pilot validation table available._"
+    pilot = scvi_pilot_validation[scvi_pilot_validation["check"].eq("pilot_h5ad")]
+    embedding = scvi_pilot_validation[scvi_pilot_validation["check"].eq("embedding_dimensions")]
+    gate = scvi_pilot_validation[scvi_pilot_validation["check"].eq("claim_gate")]
+    pilot_detail = str(pilot["detail"].iloc[0]) if not pilot.empty else "pilot H5AD not summarized"
+    embedding_status = str(embedding["status"].iloc[0]) if not embedding.empty else "unknown"
+    gate_status = str(gate["status"].iloc[0]) if not gate.empty else "unknown"
+    return (
+        f"A recomputed scVI latent run is available ({pilot_detail}); embedding validation is `{embedding_status}`. "
+        f"Downstream latent claims remain `{gate_status}` until marker-continuity, mixing, and seed-stability diagnostics mature."
     )
 
 
@@ -1695,6 +2664,37 @@ def _pseudobulk_genomewide_de_sentence(summary: pd.DataFrame | None) -> str:
     )
 
 
+def _matched_genomewide_de_sentence(summary: pd.DataFrame | None) -> str:
+    if summary is None or summary.empty:
+        return "_No matched FLEX v2/device edgeR DE summary available._"
+    tested = int(pd.to_numeric(summary.get("tested_rows"), errors="coerce").fillna(0).sum())
+    significant = int(pd.to_numeric(summary.get("significant_rows"), errors="coerce").fillna(0).sum())
+    states = int(pd.to_numeric(summary.get("ok_cell_state_models"), errors="coerce").fillna(0).sum())
+    sex_linked = int(pd.to_numeric(summary.get("sex_linked_significant_rows"), errors="coerce").fillna(0).sum())
+    return (
+        f"The matched FLEX v2/device subset reran edgeR on {_format_int(tested)} tested rows across "
+        f"{_format_int(states)} successful cell-state contrast models. It found {_format_int(significant)} "
+        f"FDR-significant rows, including {_format_int(sex_linked)} sex-linked sentinel rows."
+    )
+
+
+def _genomewide_de_method_sentence(summary: pd.DataFrame | None, method_label: str) -> str:
+    if summary is None or summary.empty:
+        return f"_No {method_label} genome-wide DE summary available._"
+    tested = int(pd.to_numeric(summary.get("tested_rows"), errors="coerce").fillna(0).sum())
+    significant = int(pd.to_numeric(summary.get("significant_rows"), errors="coerce").fillna(0).sum())
+    states = int(pd.to_numeric(summary.get("ok_cell_state_models"), errors="coerce").fillna(0).sum())
+    sex_linked = int(pd.to_numeric(summary.get("sex_linked_significant_rows"), errors="coerce").fillna(0).sum())
+    threshold = pd.to_numeric(summary.get("fdr_threshold"), errors="coerce").dropna()
+    fdr_threshold = threshold.iloc[0] if not threshold.empty else 0.05
+    return (
+        f"{method_label} models tested {_format_int(tested)} gene/cell-state/contrast rows across "
+        f"{_format_int(states)} successful cell-state contrast models. At FDR < {_format_table_value(fdr_threshold)}, "
+        f"{_format_int(significant)} rows were significant, including {_format_int(sex_linked)} sex-linked sentinel "
+        f"{_plural(sex_linked, 'row', 'rows')}."
+    )
+
+
 def _non_sex_linked_genomewide_de_hits(de_hits: pd.DataFrame | None, top_n: int) -> pd.DataFrame:
     columns = ["contrast", "fine_cell_type", "gene_symbol", "log2fc", "p_value", "fdr", "is_sex_linked_initial"]
     if de_hits is None or de_hits.empty or not set(columns).issubset(de_hits.columns):
@@ -1705,6 +2705,38 @@ def _non_sex_linked_genomewide_de_hits(de_hits: pd.DataFrame | None, top_n: int)
     frame["fdr"] = pd.to_numeric(frame["fdr"], errors="coerce")
     frame["p_value"] = pd.to_numeric(frame["p_value"], errors="coerce")
     return frame.sort_values(["fdr", "p_value", "contrast", "fine_cell_type", "gene_symbol"]).head(top_n).reset_index(drop=True)
+
+
+def _top_donor_balance_issues(balance: pd.DataFrame | None, top_n: int) -> pd.DataFrame:
+    columns = ["contrast", "fine_cell_type", "n_case", "n_control", "status", "balance_status"]
+    if balance is None or balance.empty or not set(columns).issubset(balance.columns):
+        return pd.DataFrame(columns=columns)
+    frame = balance.copy()
+    frame["n_case"] = pd.to_numeric(frame["n_case"], errors="coerce")
+    frame["n_control"] = pd.to_numeric(frame["n_control"], errors="coerce")
+    issue_order = {
+        "low_case_and_control_donors": 0,
+        "low_case_donors": 1,
+        "low_control_donors": 2,
+        "ok": 3,
+    }
+    frame["_issue_order"] = frame["balance_status"].map(issue_order).fillna(4)
+    return frame.sort_values(["_issue_order", "contrast", "fine_cell_type"]).head(top_n)[columns].reset_index(drop=True)
+
+
+def _top_matched_de_feasibility(feasibility: pd.DataFrame | None, top_n: int) -> pd.DataFrame:
+    columns = ["contrast", "fine_cell_type", "n_case", "n_matched_healthy", "ready_for_matched_de"]
+    if feasibility is None or feasibility.empty or not set(columns).issubset(feasibility.columns):
+        return pd.DataFrame(columns=columns)
+    frame = feasibility.copy()
+    frame["ready_for_matched_de"] = frame["ready_for_matched_de"].astype(bool)
+    frame["n_case"] = pd.to_numeric(frame["n_case"], errors="coerce")
+    frame["n_matched_healthy"] = pd.to_numeric(frame["n_matched_healthy"], errors="coerce")
+    return (
+        frame.sort_values(["ready_for_matched_de", "contrast", "n_case", "n_matched_healthy"], ascending=[False, True, False, False])
+        .head(top_n)[columns]
+        .reset_index(drop=True)
+    )
 
 
 def _ora_sensitivity_summary_sentence(
@@ -1776,6 +2808,23 @@ def _top_feature_set_model_comparison(comparison: pd.DataFrame | None, top_n: in
     return frame.sort_values(["mae_mean", "rmse_mean", "model"]).head(top_n)[columns].reset_index(drop=True)
 
 
+def _top_candidate_repeated_cv(summary: pd.DataFrame | None, top_n: int) -> pd.DataFrame:
+    columns = [
+        "model",
+        "repeats",
+        "n",
+        "mae_mean",
+        "mae_ci_low",
+        "mae_ci_high",
+        "spearman_r_mean",
+        "spearman_r_ci_low",
+        "spearman_r_ci_high",
+    ]
+    if summary is None or summary.empty or not set(columns).issubset(summary.columns):
+        return pd.DataFrame(columns=columns)
+    return _sort_metric_table(summary, "mae_mean").head(top_n)[columns].reset_index(drop=True)
+
+
 def _top_permutation_empirical(permutation: pd.DataFrame | None, top_n: int) -> pd.DataFrame:
     columns = [
         "model",
@@ -1813,6 +2862,19 @@ def _top_nested_tuning_summary(summary: pd.DataFrame | None, top_n: int) -> pd.D
     return frame.sort_values(["mae_mean", "model"]).head(top_n)[columns].reset_index(drop=True)
 
 
+def _output_provenance_sentence(provenance: pd.DataFrame | None) -> str:
+    if provenance is None or provenance.empty:
+        return "_No output provenance table available._"
+    total = len(provenance)
+    exists = int(provenance["exists"].astype(bool).sum()) if "exists" in provenance else 0
+    missing = total - exists
+    hashed = int(provenance["checksum_status"].astype(str).eq("sha256").sum()) if "checksum_status" in provenance else 0
+    return (
+        f"Output provenance tracks {_format_int(total)} expected artifacts; {_format_int(exists)} are present, "
+        f"{_format_int(missing)} are missing, and {_format_int(hashed)} small artifacts have SHA-256 checksums."
+    )
+
+
 def _top_stacking_summary(summary: pd.DataFrame | None, top_n: int) -> pd.DataFrame:
     columns = [
         "model",
@@ -1844,6 +2906,30 @@ def _top_repeated_cv_features(feature_stability: pd.DataFrame | None, top_n: int
         frame.sort_values(["selection_fraction", "abs_mean_importance"], ascending=[False, False])
         .head(top_n)[columns]
         .reset_index(drop=True)
+    )
+
+
+def _has_feature_interpretation(feature_interpretation: pd.DataFrame | None) -> bool:
+    return feature_interpretation is not None and not feature_interpretation.empty
+
+
+def _feature_interpretation_summary_sentence(feature_interpretation: pd.DataFrame | None) -> str:
+    if feature_interpretation is None or feature_interpretation.empty:
+        return "_No feature interpretation table available._"
+    frame = feature_interpretation
+    themes = (
+        frame["biology_theme"].dropna().astype(str).value_counts().head(4).to_dict()
+        if "biology_theme" in frame
+        else {}
+    )
+    theme_text = ", ".join(f"{theme}: {_format_int(count)}" for theme, count in themes.items())
+    supported = 0
+    if "n_supporting_models" in frame:
+        supported = int(pd.to_numeric(frame["n_supporting_models"], errors="coerce").fillna(0).ge(2).sum())
+    return (
+        f"Top ORA features are mapped to broad biological themes for manuscript triage; "
+        f"{_format_int(supported)} appear among top features for at least two model families. "
+        f"Leading themes: {theme_text or 'not classified'}."
     )
 
 
@@ -1984,6 +3070,10 @@ def _format_int(value: object) -> str:
     if not np.isfinite(number):
         return "not recorded"
     return f"{int(number):,}"
+
+
+def _plural(count: int, singular: str, plural: str) -> str:
+    return singular if int(count) == 1 else plural
 
 
 def _format_list(values: object) -> str:

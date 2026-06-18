@@ -1,0 +1,185 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\graphicspath{{../results/figures/}}
+
+\title{An Interpretable Olfactory Regenerative Aging Axis from Human Single-Cell Epithelial Composition}
+\author{ORA contributors}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Human olfactory epithelium is a renewing neuroepithelium that supports sensory neuron replacement across adult life, yet donor-level cellular signatures of olfactory aging remain incompletely defined. We reanalyzed the Gateway 4M-cell human olfactory epithelial atlas \citep{gateway2026} to construct donor-level composition, centered-log-ratio, lineage-ratio, and curated module features, then trained olfactory regenerative age (ORA) models using healthy donors only. Among 202 total donors and 4,028,275 cells, 187 healthy donors with valid age were used for donor-level cross-validation. ORA models captured a modest but reproducible aging signal above shuffled-age null models, with best single-run performance of 13.73 years mean absolute error and Spearman $r=0.41$, and repeated augmented benchmarks near 14 years mean absolute error. Stable features mapped to supporting and secretory epithelium, immune and inflammatory state, stress and senescence, neuronal maturation, and basal/progenitor compartments. External GSE184117 presbyosmia data \citep{oliva2022} were converted into a 59,656-cell marker-reference mapped AnnData object and ORA-compatible donor-feature table; mapped-feature direction checks yielded 16 concordant and 16 discordant Gateway-feature rows, preserving a small-n validation interpretation. Frozen healthy-trained projections into Alzheimer disease and Parkinson disease donors were directionally negative across model families, but remain exploratory because each disease group contains five donors and shares FLEX v2/device context. Genome-wide pseudobulk disease analyses were audited with edgeR, limma-voom, matched-context, donor-balance, and sentinel-gene diagnostics \citep{edger2010,voom2014,limma2015}. Stratified 250,000-cell and lineage-focused 100,000-cell scVI runs generated finite 10-dimensional latent coordinates with favorable label-purity and technical-mixing diagnostics, but trajectory, Milo, and cNMF claims remain deferred until seed-stability and lineage-specific marker gates mature. Together, ORA provides a reproducible and interpretable framework for studying human olfactory epithelial regenerative aging while explicitly separating supported healthy-aging signal from exploratory disease, external-validation, differential-expression, and latent-space extensions.
+\end{abstract}
+
+\section{Introduction}
+
+Biological aging models have matured from molecular clocks trained on bulk tissues to increasingly cell-type-aware models that attempt to resolve tissue and cellular heterogeneity \citep{horvath2013,scageclock2026,immuneclock2026}. Most clocks are optimized primarily as predictors. That strategy is useful when the goal is chronological-age estimation or outcome prediction, but it can obscure the tissue biology that gives the prediction meaning. In renewing epithelial and neuroepithelial systems, a modest but interpretable donor-level signal may be more biologically useful than a highly optimized black-box age predictor.
+
+The human olfactory epithelium offers a strong setting for this kind of analysis. It is a sensory neuroepithelium exposed to environmental stress, contains basal stem and progenitor compartments, supports olfactory sensory neuron replacement, and shows clinically meaningful decline with aging and disease. Prior human olfactory studies have shown that olfactory loss can be associated with stem-cell transcriptional changes \citep{oliva2022}, and that olfactory and respiratory epithelial compartments have distinct molecular identities relevant to disease and exposure biology \citep{fodoulian2020}. The Gateway atlas extends this landscape to millions of cells and hundreds of donors \citep{gateway2026}, creating an opportunity to ask whether donor-level single-cell composition encodes a regenerative aging axis.
+
+We define olfactory regenerative age (ORA) as a donor-level, tissue-specific readout trained from healthy olfactory epithelial features. The goal is not to claim a universal biological-age clock. Instead, ORA asks whether interpretable cell-state composition, lineage ratios, and curated modules carry age-associated information in a renewing human neuroepithelium. We use centered-log-ratio composition features because cell-state proportions are compositional data \citep{aitchison1982}, and we evaluate models under donor-level cross-validation with repeated benchmarks, shuffled-age nulls, calibration diagnostics, nested tuning, and model-card summaries.
+
+The manuscript is intentionally claim-gated. Healthy aging is the primary claim. External validation, neurodegenerative disease (NDD) projection, genome-wide disease differential expression, and latent-space analyses are presented as guarded extensions. This structure is important because the strongest current evidence supports an interpretable healthy-aging axis, while independent donor-feature validation and disease cohort power remain limiting.
+
+\section{Results}
+
+\subsection{Gateway cohort and claim-gated analysis design}
+
+The analyzed Gateway export contained 4,028,275 cells and 18,127 genes from 202 donors. The donor groups included 192 healthy donors, 5 Alzheimer disease (AD) donors, and 5 Parkinson disease (PD) donors. Among healthy donors, 187 had usable age values for model training. AD and PD donors were excluded from all age-model training and reserved for frozen-model projection. This design prevents disease labels from leaking into the healthy aging model and preserves disease projection as an exploratory out-of-sample analysis.
+
+Figure~\ref{fig:design} summarizes the design. The primary analysis path builds donor-level features from healthy donors, trains ORA models with donor-level cross-validation, and interprets stable features as a relative regenerative-state axis. Four extensions are reported with explicit gates: external GSE184117 marker-reference and scANVI/scArches mapped-feature checks, AD/PD frozen projection, genome-wide pseudobulk DE audits, and scaled scVI latent validation.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{manuscript_figure1_design.pdf}
+  \caption{\textbf{Cohort and claim-gated study design.} The Gateway atlas was converted into donor-level features for healthy-only ORA training. AD/PD donors, external validation, genome-wide DE, and latent-space analyses were held behind separate interpretability gates.}
+  \label{fig:design}
+\end{figure}
+
+\subsection{Age-associated composition reveals interpretable tissue-state structure}
+
+Donor-level cell-state composition carried age-associated structure across centered-log-ratio and proportion features. The strongest interpretable signals included supporting/secretory epithelial states, immune and inflammatory compartments, neuronal-lineage maturation features, and regenerative/progenitor compartments. These signals should be interpreted as cross-sectional donor-level associations, not direct measures of lineage flux.
+
+Figure~\ref{fig:composition} shows the largest composition features and the biological themes assigned to stable ORA predictors. The feature interpretation table grouped 30 stable model features into recurring themes. Supporting/secretory epithelial and immune/inflammatory features dominated the stable feature set, followed by stress/senescence, neuronal-lineage maturation, and regenerative/progenitor categories.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{manuscript_figure2_age_composition.pdf}
+  \caption{\textbf{Age-associated donor-level composition.} Top composition features show both positive and negative age associations. Stable ORA features organize into interpretable epithelial, immune, stress, neuronal-lineage, and progenitor themes.}
+  \label{fig:composition}
+\end{figure}
+
+\subsection{ORA models learn a modest but reproducible aging axis}
+
+Single-run composition-only XGBoost achieved mean absolute error (MAE) of 13.73 years and Spearman $r=0.41$ in donor-level cross-validation \citep{xgboost2016}. Repeated CV benchmarks showed that tree and boosted models consistently outperformed the null model, but gains were modest. In 20-repeat composition-only CV, XGBoost had mean MAE 14.15 years and mean Spearman $r=0.35$. Module-augmented candidate benchmarks showed CatBoost and histogram gradient boosting near MAE 14.08 to 14.09 years, with overlapping intervals. Shuffled-age permutation tests supported that observed performance was above null expectations, with empirical $p=0.0196$ at 50 permutations for the top tested boosted models.
+
+Calibration diagnostics were central to interpretation. ORA predictions were under-dispersed: ORA-on-age calibration slopes for non-null models were far below 1. Thus ORA should be described as a relative regenerative aging axis, not as an absolute chronological-age estimator. Figure~\ref{fig:modeling} summarizes repeated CV, permutation null tests, candidate augmented models, and calibration slopes.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{manuscript_figure3_modeling.pdf}
+  \caption{\textbf{ORA model performance and calibration.} Repeated donor-level CV shows modest but reproducible signal. Shuffled-age null tests confirm that observed boosted models outperform label-shuffled expectations. Calibration slopes show under-dispersion, supporting interpretation as a relative tissue-state axis.}
+  \label{fig:modeling}
+\end{figure}
+
+\subsection{Stable ORA features provide biological interpretation}
+
+The most useful ORA output is not a single best model, but the stable feature set that explains what the models learned. Stable features were selected across linear, tree, and boosting families and mapped to biological themes. Some modules improved model performance slightly, but the magnitude of gain was small, and model intervals overlapped. This argues against framing the module layer as a major accuracy breakthrough. Instead, modules help annotate the axis and connect composition features to known biology.
+
+Figure~\ref{fig:features} shows the feature interpretation layer. Stable ORA features include epithelial and immune markers with coherent age directions, while module-augmented model deltas show small improvements for several model families. Curated module gene coverage was high for the displayed modules, supporting interpretability of module-level summaries.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{manuscript_figure4_feature_biology.pdf}
+  \caption{\textbf{Stable feature biology and module contribution.} Stable features map to interpretable tissue-state themes. Module features provide biological annotation and modest performance gains rather than a decisive accuracy shift.}
+  \label{fig:features}
+\end{figure}
+
+\subsection{External validation is supportive but not yet donor-feature-ready}
+
+External validation remains the main blocker for a stronger biological claim. GSE184117 is the first actionable human olfactory aging/presbyosmia dataset \citep{oliva2022}. We downloaded and inventoried the raw 10x archive, parsed series-matrix metadata, and generated sample-level module, marker-only composition, marker-reference mapped AnnData, Gateway scANVI/scArches query mapping, and ORA-compatible donor-feature summaries. The usable biopsy contrast is small (3 normosmic versus 3 presbyosmic/hyposmic/anosmic samples). scANVI/scArches mapped 59,656 query cells into the 250,000-cell Gateway reference over 3,003 intersected genes; all six samples were high-confidence by mean label confidence and entropy. However, same-named scANVI donor-feature concordance against Gateway age associations was mixed (27 concordant, 21 discordant, 10 not evaluable), so the dataset is treated as small-n support rather than independent replication.
+
+Marker-only GSE184117 composition shifts were mapped to Gateway age-associated features. Of 32 mapped marker-feature rows, 13 were directionally concordant and 19 discordant. Marker-reference mapped donor features produced another 32 feature-direction rows, split evenly between 16 concordant and 16 discordant. scANVI/scArches donor features added a higher-resolution but still mixed signal (27 concordant, 21 discordant, 10 not evaluable rows). This result is useful because it is honest: the external dataset contains partial support and proves reference-transfer feasibility, but it does not justify an independent replication claim. GSE151973 is retained as olfactory/respiratory bulk marker context rather than donor-level ORA validation \citep{fodoulian2020}.
+
+\subsection{NDD projection is directionally stable but exploratory}
+
+Frozen healthy-trained ORA models projected AD and PD donors toward negative ORA acceleration across model families and feature sets. This pattern was directionally stable under composition-only and module-augmented features. However, the AD and PD groups each contain only five donors, and all disease donors are tied to FLEX v2/device context. Label-permutation tests within available strata provide a useful diagnostic frame, but they do not turn the disease projection into a biomarker claim.
+
+Figure~\ref{fig:external_ndd} shows the external validation and NDD guardrail panels. These panels are intended to anchor hypotheses while preventing overinterpretation.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{manuscript_figure5_external_ndd.pdf}
+  \caption{\textbf{External validation and disease projection guardrails.} GSE184117 marker-age and scANVI-mapped feature concordance are mixed and small-n. AD/PD ORA projection is directionally negative across models but remains exploratory because disease cohorts are small and technically confounded.}
+  \label{fig:external_ndd}
+\end{figure}
+
+\subsection{Genome-wide DE and latent-space analyses remain audited extensions}
+
+Genome-wide pseudobulk disease DE was run with edgeR quasi-likelihood models and limma-voom parity analyses \citep{edger2010,voom2014,limma2015}. The all-donor edgeR run tested 862,707 rows and found 1,658 FDR-significant rows. PD top hits were visibly influenced by sex-linked sentinel genes. Matched FLEX v2/device edgeR reduced significant rows to 641, while limma-voom was more conservative overall and in matched analyses. These results are best framed as audited hypothesis generation.
+
+Latent-space analysis was also gated. The CELLxGENE export exposes only \texttt{X\_umap}, not author scVI/scANVI coordinates. We therefore installed scanpy, scvi-tools, and torch, then ran stratified 250,000-cell and lineage-focused 100,000-cell scVI models with preserved marker genes, \texttt{sample\_id} as the batch key, and \texttt{flex\_version}, \texttt{device\_guided}, and \texttt{sex} as categorical covariates \citep{scanpy2018,scvi2018,scvitools2022}. Both runs produced finite 10-dimensional \texttt{X\_scvi} coordinates and passed first-pass label-purity and technical-mixing checks, but trajectory, Milo, and cNMF claims remain deferred until seed-stability and lineage-specific marker gates mature.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{manuscript_figure6_de_latent.pdf}
+  \caption{\textbf{Genome-wide DE and latent-space audits.} Disease DE is sensitive to method and matched-context choices, with sentinel categories explicitly audited. Scaled scVI recomputation demonstrates technical feasibility but remains claim-gated for biological trajectory or neighborhood inference.}
+  \label{fig:de_latent}
+\end{figure}
+
+\section{Discussion}
+
+This analysis supports a conservative but meaningful conclusion: healthy human olfactory epithelial composition encodes a modest, reproducible, and interpretable regenerative aging axis. ORA should not be oversold as an exact biological-age clock. Its value is that it translates a large single-cell atlas into donor-level tissue-state features that are legible across epithelial support, immune, stress, neuronal-lineage, and progenitor compartments.
+
+The novelty is threefold. First, ORA is tissue-specific. Rather than training a generic predictor across many tissues, it asks what aging looks like in a renewing human olfactory neuroepithelium. Second, ORA is intentionally interpretable. Features are built from cell-state composition, compositional transforms, lineage ratios, and curated modules, so the model can be inspected biologically. Third, the analysis is claim-gated. External validation, disease projection, DE, and latent-space analyses are reported, but their limitations are built into the manuscript structure.
+
+The disease projection is intriguing but not definitive. Negative ORA acceleration in AD and PD donors could reflect altered regenerative state, survivor or sampling structure, disease-specific technical context, or cohort composition. With five donors per disease group and shared FLEX v2/device context, the correct interpretation is hypothesis generation. Similarly, genome-wide DE should be read through its audits: edgeR and limma-voom do not return identical significance landscapes, matched analyses reduce artifacts, and sentinel categories matter.
+
+The most important next step is independent validation beyond the current six-sample GSE184117 mapped-feature pass. A strong follow-up would reference-map a larger external olfactory aging dataset into Gateway-compatible cell states, construct donor-level composition and module features, and test whether the ORA-associated feature directions replicate. A second priority is seed-stable lineage-specific latent validation before any trajectory, Milo, or cNMF claims are made.
+
+\section{Methods}
+
+\subsection{Dataset and cohort construction}
+
+The primary dataset was the Gateway human olfactory epithelium atlas, accessed through the configured CELLxGENE collection and local H5AD file \citep{gateway2026}. Metadata were inspected in backed mode. Donor, sample, age, sex, disease, chemistry, collection method, and cell-state columns were resolved through \texttt{configs/gateway.yaml}. Disease labels were normalized into healthy, AD, PD, and other/unknown groups. Healthy donors with valid age were used for ORA model training. AD and PD donors were excluded from training and reserved for frozen-model projection.
+
+\subsection{Donor-level feature construction}
+
+Fine-cell-state counts were aggregated by donor. Composition features included raw proportions, centered-log-ratio transformed composition features, and curated lineage ratios. Centered-log-ratio features were used because cell-state fractions are compositional and sum-constrained \citep{aitchison1982}. Technical variables such as chemistry, collection method, site, sex, and yield were retained for diagnostics and sensitivity analyses, not as primary biological ORA features.
+
+\subsection{Module scoring}
+
+Curated gene modules were scored by chunked average log1p expression over available genes. Module coverage was reported before interpretation. Module scores were summarized at donor and cell-state levels and optionally appended to composition features for module-augmented ORA modeling.
+
+\subsection{ORA modeling and validation}
+
+ORA models predicted chronological age from donor-level healthy features only. Model families included regularized linear models, random forests, extra trees, gradient boosting, histogram gradient boosting, XGBoost, LightGBM, CatBoost, and conservative ensembles. Cross-validation was donor-level. Repeated CV summarized performance variability across repeat splits. Shuffled-age permutation tests estimated empirical null performance. Nested tuning used inner donor-level CV within outer folds for selected boosted models. Calibration diagnostics regressed predicted ORA on chronological age and compared raw and recalibrated MAE.
+
+\subsection{External validation checks}
+
+GSE184117 raw 10x files and GEO metadata were used for sample-level module scoring, marker-only composition scoring, marker-reference mapped AnnData generation, and ORA-compatible mapped donor-feature construction \citep{oliva2022}. Presbyosmia contrasts were computed descriptively for 3 normosmic and 3 presbyosmic/hyposmic/anosmic biopsy samples. Marker panels and mapped donor features were compared with Gateway age-associated features to compute directional concordance. GSE151973 was treated as bulk marker context only \citep{fodoulian2020}.
+
+\subsection{NDD projection}
+
+Healthy-trained ORA models were frozen and projected onto AD and PD donors. ORA acceleration was computed relative to chronological age. Feature-set sensitivity compared composition-only and module-augmented models. Diagnostics summarized disease projection by sex, age bin, chemistry, collection method, site, and yield. Label-permutation tests were run only within defensible strata and interpreted as diagnostic rather than confirmatory.
+
+\subsection{Pseudobulk differential expression}
+
+Pseudobulk counts were aggregated by donor, sample, and fine cell state. Genome-wide disease DE used edgeR quasi-likelihood models where covariates were estimable \citep{edger2010}. limma-voom was run as a cross-method parity analysis \citep{voom2014,limma2015}. Matched FLEX v2/device analyses were run where powered. Audits summarized donor balance and sentinel categories including sex-linked, mitochondrial, ribosomal, hemoglobin, and immunoglobulin hits.
+
+\subsection{Latent-space audit and scVI validation}
+
+The public H5AD was audited for \texttt{.obsm} embeddings before trajectory work. Only \texttt{X\_umap} was present in the export. A stratified scVI run sampled 250,000 cells from the backed H5AD, selected 3,000 highly variable genes plus preserved markers, trained for 50 epochs, and wrote \texttt{X\_scvi}. A lineage-focused scVI run sampled 100,000 basal/progenitor/neural/supporting-lineage cells and used the same marker-preserving strategy. Validation covered dimensions, finite values, metadata coverage, nearest-neighbor label purity, technical mixing, and marker continuity. These embeddings were not used for trajectory, Milo, or cNMF claims.
+
+\subsection{Software and provenance}
+
+Python analysis used the project virtual environment, scanpy \citep{scanpy2018}, scvi-tools \citep{scvitools2022}, and model-specific Python packages. Differential expression used a local R/Bioconductor environment with edgeR and limma. The repository records command provenance in \texttt{configs/command\_manifest.yaml} and writes \texttt{results/reports/command\_manifest.tsv} and \texttt{results/reports/output\_provenance.tsv}. Large raw, processed, and result artifacts are intentionally ignored by Git.
+
+\section{Limitations}
+
+The analysis is cross-sectional and cannot measure lineage flux directly. ORA predictions are under-dispersed, so ORA is best interpreted as a relative tissue-state axis rather than an absolute age clock. External validation now includes scANVI/scArches query transfer, but remains small-n with mixed feature concordance. AD and PD projection cohorts each contain five donors and are technically confounded by FLEX v2/device context. Genome-wide DE is method-sensitive and should not be promoted without matched-context, donor-balance, sentinel-gene, and cross-method support. The scaled scVI runs demonstrate feasibility and first-pass latent QC, not validated trajectory structure.
+
+\section{Data and code availability}
+
+The Gateway source DOI is \href{https://doi.org/10.64898/2026.06.10.731272}{10.64898/2026.06.10.731272}. The configured CELLxGENE collection ID is \texttt{8b35aa1f-6bcf-4a51-abc3-a3f336a44ae6}. External GEO sources include GSE184117 and GSE151973. Code and documentation are maintained in the ORA repository; large data, result tables, and figures are regenerated locally and tracked through the output provenance manifest.
+
+\section{Acknowledgements}
+
+This draft was generated from the current ORA analysis repository state. Author list, affiliations, funding, and formal acknowledgements should be completed before submission.
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}
+
+\end{document}

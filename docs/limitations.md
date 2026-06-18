@@ -1,0 +1,12 @@
+# ORA Limitations Draft
+
+Updated: 2026-06-16
+
+- The analysis is cross-sectional and cannot measure lineage flux directly.
+- ORA predictions are under-dispersed, so ORA should be interpreted as a relative regenerative-state axis rather than an absolute age estimator.
+- AD and PD projection cohorts have 5 donors each and are fully tied to FLEX v2/device collection context.
+- Genome-wide DE is sensitive to sex, chemistry, collection method, donor-balance differences, and statistical engine; top hits require audit, matched/sensitivity checks, and edgeR/limma agreement before biological emphasis.
+- DESeq2 is installed but deferred for the full fine-cell-state disease-DE grid; use it only for larger validation cohorts or targeted shortlisted hits with manually reviewed diagnostics.
+- External validation is small-n; `GSE184117` now supports raw sample-level module scoring, marker-only composition, marker-reference mapped donor features, Gateway scANVI/scArches donor features, and mapped-feature concordance, but the cohort is still only 3 versus 3 and scANVI feature concordance is mixed.
+- The CELLxGENE export currently exposes UMAP but not author scVI/scANVI latent coordinates. A chunked reduced all-cell scVI run now provides local `X_scvi` coordinates for all Gateway cells, but trajectory and neighborhood claims are still deferred until full-model, seed-stability, lineage-specific, and marker-continuity diagnostics are reconciled.
+- Module scores use average log1p expression over curated genes, not exact rank-based UCell scores.

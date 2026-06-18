@@ -9,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from ora.ndd import (
     compare_ndd_feature_sets,
     donor_projection_appendix,
+    ndd_label_permutation,
     ndd_projection_diagnostics,
     summarize_ndd_projection_uncertainty,
 )
@@ -112,6 +113,27 @@ class NDDUncertaintyTests(unittest.TestCase):
         ].iloc[0]
         self.assertEqual(ad_chem["n_donors"], 2)
         self.assertEqual(ad_chem["status"], "ok")
+
+    def test_ndd_label_permutation_uses_matched_reference(self):
+        projection = pd.DataFrame(
+            {
+                "donor_id": ["h1", "h2", "h3", "a1", "a2"],
+                "model": ["random_forest"] * 5,
+                "disease_group": ["healthy", "healthy", "healthy", "ad", "ad"],
+                "chemistry": ["v2"] * 5,
+                "collection_method": ["device"] * 5,
+                "oraa": [1.0, 0.5, -0.5, -8.0, -7.0],
+            }
+        )
+
+        result = ndd_label_permutation(projection, n_permutations=100, random_seed=1)
+
+        row = result.iloc[0]
+        self.assertEqual(row["disease_group"], "ad")
+        self.assertEqual(int(row["n_disease"]), 2)
+        self.assertEqual(int(row["n_reference"]), 3)
+        self.assertLess(row["observed_difference_vs_reference"], 0)
+        self.assertEqual(row["status"], "ok")
 
 
 if __name__ == "__main__":

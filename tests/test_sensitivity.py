@@ -18,6 +18,35 @@ class SensitivityTests(unittest.TestCase):
         )
         self.assertEqual(filtered["donor_id"].tolist(), ["d2"])
 
+    def test_filter_manifest_handles_compound_and_yield_extremes(self):
+        manifest = pd.DataFrame(
+            {
+                "donor_id": ["d1", "d2", "d3", "d4", "d5"],
+                "chemistry": ["flex_v2", "flex_v2", "flex_v1", "flex_v2", "flex_v2"],
+                "collection_method": ["device", "brush", "device", "device", "device"],
+                "total_cells": [10, 100, 200, 300, 1000],
+            }
+        )
+        compound = filter_manifest_for_scenario(
+            manifest,
+            {
+                "scenario": "matched_flex_v2_device",
+                "filter_type": "compound",
+                "filter_value": "chemistry=flex_v2;collection_method=device",
+            },
+        )
+        yield_filtered = filter_manifest_for_scenario(
+            manifest,
+            {
+                "scenario": "exclude_yield_extremes__20pct",
+                "filter_type": "exclude_yield_extremes",
+                "filter_value": 0.20,
+            },
+        )
+
+        self.assertEqual(compound["donor_id"].tolist(), ["d1", "d4", "d5"])
+        self.assertEqual(yield_filtered["donor_id"].tolist(), ["d2", "d3", "d4"])
+
     def test_run_ora_sensitivity_records_runnable_and_skipped_scenarios(self):
         donors = [f"d{i}" for i in range(8)]
         manifest = pd.DataFrame(

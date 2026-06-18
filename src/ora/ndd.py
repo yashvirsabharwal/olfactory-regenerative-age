@@ -276,6 +276,67 @@ def ndd_projection_diagnostics(
     return pd.DataFrame(rows).sort_values(["disease_group", "diagnostic", "level", "model"]).reset_index(drop=True)
 
 
+def ndd_label_permutation(
+    projection: pd.DataFrame,
+    *,
+    models: Iterable[str] | None = None,
+    diseases: Iterable[str] = ("ad", "pd"),
+    strata: Iterable[str] = ("chemistry", "collection_method"),
+    n_permutations: int = 5000,
+    random_seed: int = 42,
+) -> pd.DataFrame:
+    """Permutation test on frozen ORAA scores within compatible disease/reference strata."""
+
+    if projection is None or projection.empty:
+        return pd.DataFrame()
+    frame = projection.copy()
+    frame["model"] = frame["model"].astype(str)
+    frame["disease_group"] = frame["disease_group"].astype(str)
+    frame["oraa"] = pd.to_numeric(frame["oraa"], errors="coerce")
+    disease_set = {str(disease) for disease in diseases}
+    if models is not None:
+        model_set = {str(model) for model in models}
+        frame = frame[frame["model"].isin(model_set)].copy()
+    rows = []
+    rng = np.random.default_rng(int(random_seed))
+    strata_cols = [col for col in strata if col in frame]
+    for model, model_frame in frame.groupby("model", observed=True):
+        healthy = model_frame[model_frame["disease_group"].eq("healthy") & model_frame["oraa"].notna()].copy()
+        for disease in sorted(disease_set):
+            disease_frame = model_frame[model_frame["disease_group"].eq(disease) & model_frame["oraa"].notna()].copy()
+            if disease_frame.empty or healthy.empty:
+                continue
+            reference = _matched_healthy_reference(healthy, disease_frame)
+            eligible = pd.concat([disease_frame, reference], ignore_index=True)
+            eligible = eligible.dropna(subset=["oraa"])
+            n_disease = int(disease_frame["donor_id"].nunique())
+            n_reference = int(reference["donor_id"].nunique())
+            if eligible["donor_id"].nunique() < n_disease + 1 or n_reference == 0:
+                rows.append(_empty_permutation_row(model, disease, n_disease, n_reference, "too_few_matched_donors"))
+                continue
+            observed = _disease_reference_difference(disease_frame["oraa"], reference["oraa"])
+            null = _permuted_differences(eligible, n_disease, n_permutations, rng)
+            rows.append(
+                {
+                    "model": model,
+                    "disease_group": disease,
+                    "strata": ",".join(strata_cols) if strata_cols else "none",
+                    "n_disease": n_disease,
+                    "n_reference": n_reference,
+                    "observed_difference_vs_reference": observed,
+                    "null_mean": float(np.mean(null)) if null.size else np.nan,
+                    "null_ci_low": _quantile(null, 0.025),
+                    "null_ci_high": _quantile(null, 0.975),
+                    "empirical_p_negative": float((np.sum(null <= observed) + 1) / (null.size + 1)) if null.size else np.nan,
+                    "n_permutations": int(null.size),
+                    "status": "ok" if null.size else "no_null",
+                }
+            )
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(rows).sort_values(["disease_group", "model"]).reset_index(drop=True)
+
+
 def _matched_healthy_reference(healthy: pd.DataFrame, disease: pd.DataFrame) -> pd.DataFrame:
     reference = healthy.copy()
     for col in ["chemistry", "collection_method"]:
@@ -284,6 +345,51 @@ def _matched_healthy_reference(healthy: pd.DataFrame, disease: pd.DataFrame) -> 
             if values:
                 reference = reference[reference[col].astype(str).isin(values)]
     return reference
+
+
+def _disease_reference_difference(disease_values: pd.Series, reference_values: pd.Series) -> float:
+    disease_arr = pd.to_numeric(disease_values, errors="coerce").dropna().to_numpy(dtype=float)
+    reference_arr = pd.to_numeric(reference_values, errors="coerce").dropna().to_numpy(dtype=float)
+    if disease_arr.size == 0 or reference_arr.size == 0:
+        return float("nan")
+    return float(disease_arr.mean() - reference_arr.mean())
+
+
+def _permuted_differences(
+    eligible: pd.DataFrame,
+    n_disease: int,
+    n_permutations: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    donor_frame = eligible.sort_values("donor_id").drop_duplicates("donor_id").copy()
+    values = pd.to_numeric(donor_frame["oraa"], errors="coerce").to_numpy(dtype=float)
+    values = values[np.isfinite(values)]
+    if values.size <= n_disease or n_disease <= 0:
+        return np.array([], dtype=float)
+    out = np.empty(int(n_permutations), dtype=float)
+    for i in range(int(n_permutations)):
+        disease_idx = rng.choice(values.size, size=n_disease, replace=False)
+        mask = np.zeros(values.size, dtype=bool)
+        mask[disease_idx] = True
+        out[i] = values[mask].mean() - values[~mask].mean()
+    return out
+
+
+def _empty_permutation_row(model: str, disease: str, n_disease: int, n_reference: int, status: str) -> dict[str, object]:
+    return {
+        "model": model,
+        "disease_group": disease,
+        "strata": "chemistry,collection_method",
+        "n_disease": n_disease,
+        "n_reference": n_reference,
+        "observed_difference_vs_reference": np.nan,
+        "null_mean": np.nan,
+        "null_ci_low": np.nan,
+        "null_ci_high": np.nan,
+        "empirical_p_negative": np.nan,
+        "n_permutations": 0,
+        "status": status,
+    }
 
 
 def _row_value(row: object | None, field: str) -> float:

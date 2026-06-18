@@ -12,6 +12,8 @@ option_list <- list(
   make_option("--out", default = "results/tables/pseudobulk_genomewide_edger.tsv.gz"),
   make_option("--summary-out", dest = "summary_out", default = "results/tables/pseudobulk_genomewide_edger_summary.tsv"),
   make_option("--contrasts", default = "ad:healthy,pd:healthy"),
+  make_option("--chemistry", default = ""),
+  make_option("--collection-method", dest = "collection_method", default = ""),
   make_option("--min-donors", dest = "min_donors", type = "integer", default = 3),
   make_option("--min-cells", dest = "min_cells", type = "integer", default = 10)
 )
@@ -181,6 +183,16 @@ rm(counts_dt)
 
 metadata <- fread(opt$metadata)
 manifest <- fread(opt$manifest)
+if (nzchar(opt$chemistry)) {
+  manifest <- manifest[as.character(chemistry) %in% strsplit(opt$chemistry, ",", fixed = TRUE)[[1]]]
+}
+if (nzchar(opt$collection_method)) {
+  manifest <- manifest[as.character(collection_method) %in% strsplit(opt$collection_method, ",", fixed = TRUE)[[1]]]
+}
+if (nzchar(opt$chemistry) || nzchar(opt$collection_method)) {
+  metadata <- metadata[donor_id %in% manifest$donor_id]
+  message("Filtered donors: ", uniqueN(manifest$donor_id), "; pseudobulk groups: ", nrow(metadata))
+}
 metadata <- metadata[pseudobulk_id %in% sample_cols]
 setkey(metadata, pseudobulk_id)
 metadata <- metadata[sample_cols]

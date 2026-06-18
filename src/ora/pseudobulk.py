@@ -92,7 +92,6 @@ def aggregate_targeted_pseudobulk_h5ad(
         gene_set = GeneSet(name="targeted_pseudobulk", genes=tuple(genes))
         resolved, coverage = resolve_gene_sets(adata.var, adata.var_names, [gene_set], symbol_columns)
         selected_indices = resolved["targeted_pseudobulk"]
-        present_genes = [gene for gene in genes if normalize_token(gene) in _present_gene_tokens(coverage)]
         if not selected_indices:
             empty_counts = pd.DataFrame(columns=[*groupby, "gene", "count"])
             empty_meta = pd.DataFrame(columns=[*groupby, "n_cells", "sum_n_counts"])
@@ -348,8 +347,6 @@ def run_covariate_pseudobulk_de(
             state = state.loc[contrast_mask].reset_index(drop=True)
             y_state = logcpm[idx[contrast_mask], :]
             disease = disease[contrast_mask].reset_index(drop=True)
-            case_mask_all = disease.eq(case).to_numpy()
-            control_mask_all = disease.eq(control).to_numpy()
             for gene_idx, gene in enumerate(genes):
                 y = y_state[:, gene_idx]
                 valid_y = np.isfinite(y)
