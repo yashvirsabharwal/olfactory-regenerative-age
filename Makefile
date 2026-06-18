@@ -244,7 +244,7 @@ output-provenance:
 all-summary: external-validation external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-marker-age-concordance external-mapped-feature-concordance external-evidence model-ora-diagnostics feature-interpretation pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-limma-de-audit-matched project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation model-card latent-space-audit latent-space-recompute-plan output-provenance report
 
 milo:
-	Rscript scripts/run_milo.R configs/gateway.yaml
+	$(PYTHON) scripts/run_milo_pilot.py --h5ad data/processed/gateway_scvi_stratified_250k.h5ad --manifest data/processed/cohort_manifest.tsv --out results/tables/milo_pilot_neighborhood_da.tsv --summary-out results/tables/milo_pilot_summary.tsv
 
 cnmf:
 	$(PYTHON) scripts/run_cnmf.py --config configs/gateway.yaml

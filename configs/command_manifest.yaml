@@ -275,8 +275,17 @@ commands:
     description: "Validate the full Gateway scVI atlas with sampled label-purity, marker-continuity, and metadata-mixing diagnostics."
     command: "make scvi-full-validation"
     deferred: true
-    inputs: ["data/processed/gateway_scvi_full_4m.h5ad", "configs/gateway.yaml"]
-    outputs: ["results/tables/scvi_full_4m_validation.tsv"]
+    inputs: ["data/processed/gateway_scvi_full_4m_reduced.h5ad", "configs/gateway.yaml"]
+    outputs: ["results/tables/scvi_full_4m_reduced_validation.tsv"]
+  scvi_scaled_comparison:
+    description: "Summarize all available scVI validation tables across all-cell, stratified-seed, and lineage-focused models."
+    command: "make scvi-scaled-comparison"
+    inputs:
+      - "results/tables/scvi_full_4m_reduced_validation.tsv"
+      - "results/tables/scvi_scaled_250k_validation.tsv"
+      - "results/tables/scvi_scaled_250k_seed23_validation.tsv"
+      - "results/tables/scvi_lineage_basal_neural_validation.tsv"
+    outputs: ["results/tables/scvi_latent_validation_comparison.tsv"]
   scvi_lineage_basal_neural:
     description: "Train a lineage-focused scVI model for basal, progenitor, neural, secretory, and sustentacular compartments."
     command: "make scvi-lineage-basal-neural"
@@ -292,6 +301,11 @@ commands:
     command: "make model-card"
     inputs: ["results/tables/ora_feature_set_model_comparison.tsv", "results/tables/ora_calibration.tsv", "results/tables/ora_permutation_empirical.tsv"]
     outputs: ["results/tables/ora_model_card.tsv"]
+  milo:
+    description: "Run a first-pass Milo-style donor-level latent-neighborhood differential abundance pilot on the 250k scVI atlas."
+    command: "make milo"
+    inputs: ["data/processed/gateway_scvi_stratified_250k.h5ad", "data/processed/cohort_manifest.tsv"]
+    outputs: ["results/tables/milo_pilot_neighborhood_da.tsv", "results/tables/milo_pilot_summary.tsv"]
   report:
     description: "Regenerate Markdown report and summary figures from existing outputs."
     command: "make report"

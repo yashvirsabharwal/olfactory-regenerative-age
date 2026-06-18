@@ -40,8 +40,9 @@ This is the live tracker for the post-preprint upgrade path. Mark tasks here as 
 
 ## 3. Milo Differential Abundance
 
-- [ ] Add R/Python workflow that consumes validated latent coordinates and donor metadata.
-- [ ] Define age bins and continuous-age neighborhood tests.
+- [x] Add R/Python workflow that consumes validated latent coordinates and donor metadata.
+- [x] Define age bins and continuous-age neighborhood tests.
+- [x] Run first-pass Milo-style DA on healthy-donor latent neighborhoods.
 - [ ] Run Milo-style DA on basal-to-neuronal and supporting/secretory neighborhoods.
 - [ ] Add matched technical sensitivity and donor-yield sensitivity.
 - [ ] Summarize neighborhoods by marker enrichment and ORA feature themes.
@@ -106,3 +107,4 @@ This is the live tracker for the post-preprint upgrade path. Mark tasks here as 
 - 2026-06-17: The 500k-cell stratified run also reached 106 GB RSS during materialization before training and was stopped. Added `scvi-scaled-250k-seed23` to prioritize seed stability at the known-safe 250k scale while a chunked/Zarr-backed or higher-memory all-cell strategy is designed. The seed-stability target intentionally avoids fixed backed-column slicing because that HDF5 CSR path caused high transient memory even at 250k cells.
 - 2026-06-17: Added `scripts/build_reduced_h5ad.py` and Make targets `scvi-reduced-4m`/`scvi-full-4m-reduced`. The new path writes 3,003-gene chunks from all Gateway rows and concatenates them on disk before all-cell scVI training, preserving all cells while avoiding the failed raw-H5AD backed fancy-index materialization route.
 - 2026-06-18: Completed the all-cell reduced Gateway scVI run on `mia`. The chunked reducer wrote `data/processed/gateway_hvg3003_4m.h5ad` with 4,028,275 cells x 3,003 genes, and scVI trained on all cells for 100 epochs, writing `data/processed/gateway_scvi_full_4m_reduced.h5ad` with finite 10-dimensional `X_scvi` for all 4,028,275 cells. Validation on a 100k-cell sample passed embedding, fine/coarse label-purity, FLEX/device/condition/sex mixing, and basal/immature OSN/mature OSN/sustentacular marker-continuity checks. Progenitor and immune marker-continuity were limited in the full model, while the second 250k seed model passed immune continuity; keep mechanism claims gated until targeted lineage/program checks compare these models.
+- 2026-06-18: Added and ran a Python Milo-style latent-neighborhood DA pilot on the local 250k scVI atlas. The workflow tested 1,000 healthy-donor neighborhoods with donor-level logit-fraction regressions adjusted for sex, chemistry, and collection method. All 1,000 neighborhoods were testable, but 0 passed BH FDR < 0.10 for age. The strongest nominal neighborhood was mostly quiescent HBC (`p=0.00568`, `FDR=0.885`), so this supports keeping neighborhood biology exploratory until sensitivity runs, full-model transfer, or stronger neighborhood definitions improve signal.
