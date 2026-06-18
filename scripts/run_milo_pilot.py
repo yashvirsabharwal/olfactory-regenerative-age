@@ -33,6 +33,7 @@ def main() -> None:
     parser.add_argument("--covariates", default="sex,chemistry,collection_method")
     parser.add_argument("--numeric-covariates", default="total_cells")
     parser.add_argument("--seed-stratify-columns", default="", help="Comma-separated cell metadata columns for balanced seed-neighborhood selection.")
+    parser.add_argument("--donor-query", default=None, help="Optional pandas query applied to donor metadata after healthy/age filtering.")
     parser.add_argument("--include-disease", action="store_true", help="Do not restrict donor metadata to healthy donors.")
     args = parser.parse_args()
 
@@ -51,6 +52,13 @@ def main() -> None:
     if not args.include_disease and "is_healthy" in donor_metadata:
         donor_metadata = donor_metadata[donor_metadata["is_healthy"].astype(str).str.lower().eq("true")].copy()
     donor_metadata = donor_metadata[donor_metadata["age"].notna()].copy()
+    if args.donor_query:
+        try:
+            donor_metadata = donor_metadata.query(args.donor_query).copy()
+        except Exception as exc:
+            raise SystemExit(f"Invalid --donor-query `{args.donor_query}`: {exc}") from exc
+    if donor_metadata.empty:
+        raise SystemExit("No donors remain after metadata filters.")
     keep_cells = _cell_filter(cell_metadata, fine_regex=args.include_fine_regex, coarse_regex=args.include_coarse_regex)
     if keep_cells is not None:
         embedding = embedding[keep_cells, :]

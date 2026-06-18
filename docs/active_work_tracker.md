@@ -45,7 +45,8 @@ This is the live tracker for the post-preprint upgrade path. Mark tasks here as 
 - [x] Run first-pass Milo-style DA on healthy-donor latent neighborhoods.
 - [x] Run Milo-style DA on basal-to-neuronal and supporting/secretory neighborhoods.
 - [x] Run publication-scale Milo-style DA on the full 4M reduced scVI atlas.
-- [ ] Add matched technical sensitivity and donor-yield sensitivity.
+- [ ] Run matched FLEX v2/device technical sensitivity for full 4M Milo-style results.
+- [x] Add donor-yield adjustment to full 4M Milo-style models.
 - [ ] Summarize neighborhoods by marker enrichment and ORA feature themes.
 
 ## 4. Pseudotime / Palantir / CellRank

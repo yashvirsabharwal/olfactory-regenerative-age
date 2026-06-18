@@ -334,6 +334,24 @@ commands:
     deferred: true
     inputs: ["data/processed/gateway_scvi_full_4m_reduced.h5ad", "data/processed/cohort_manifest.tsv"]
     outputs: ["results/tables/milo_full_4m_secretory_neighborhood_da.tsv", "results/tables/milo_full_4m_secretory_summary.tsv"]
+  milo_full_4m_matched:
+    description: "Run full 4M Milo-style neighborhood testing restricted to healthy FLEX v2/device donors."
+    command: "make milo-full-4m-matched"
+    deferred: true
+    inputs: ["data/processed/gateway_scvi_full_4m_reduced.h5ad", "data/processed/cohort_manifest.tsv"]
+    outputs: ["results/tables/milo_full_4m_matched_neighborhood_da.tsv", "results/tables/milo_full_4m_matched_summary.tsv"]
+  milo_full_4m_lineage_matched:
+    description: "Run full 4M lineage Milo-style neighborhood testing restricted to healthy FLEX v2/device donors."
+    command: "make milo-full-4m-lineage-matched"
+    deferred: true
+    inputs: ["data/processed/gateway_scvi_full_4m_reduced.h5ad", "data/processed/cohort_manifest.tsv"]
+    outputs: ["results/tables/milo_full_4m_lineage_matched_neighborhood_da.tsv", "results/tables/milo_full_4m_lineage_matched_summary.tsv"]
+  milo_full_4m_secretory_matched:
+    description: "Run full 4M secretory Milo-style neighborhood testing restricted to healthy FLEX v2/device donors."
+    command: "make milo-full-4m-secretory-matched"
+    deferred: true
+    inputs: ["data/processed/gateway_scvi_full_4m_reduced.h5ad", "data/processed/cohort_manifest.tsv"]
+    outputs: ["results/tables/milo_full_4m_secretory_matched_neighborhood_da.tsv", "results/tables/milo_full_4m_secretory_matched_summary.tsv"]
   report:
     description: "Regenerate Markdown report and summary figures from existing outputs."
     command: "make report"

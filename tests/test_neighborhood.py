@@ -51,6 +51,35 @@ class NeighborhoodTests(unittest.TestCase):
         self.assertEqual(summary.loc[0, "metric"], "neighborhoods")
         self.assertEqual(summary.loc[0, "value"], 0)
 
+    def test_run_neighborhood_da_respects_matched_donor_subset(self):
+        rng = np.random.default_rng(2)
+        donors = [f"d{idx:02d}" for idx in range(18)]
+        donor_metadata = pd.DataFrame(
+            {
+                "donor_id": donors[:9],
+                "age": np.linspace(30, 70, 9),
+                "sex": ["female", "male", "female"] * 3,
+                "chemistry": ["flex_v2"] * 9,
+                "collection_method": ["device"] * 9,
+                "total_cells": [1000] * 9,
+            }
+        )
+        cell_rows = []
+        embedding_rows = []
+        for donor in donors:
+            for _ in range(8):
+                cell_rows.append({"donor_id": donor, "fine_celltype": "state", "coarse_celltype": "coarse"})
+                embedding_rows.append(rng.normal(size=2))
+        neighborhoods, _ = run_neighborhood_da(
+            np.vstack(embedding_rows),
+            pd.DataFrame(cell_rows),
+            donor_metadata,
+            config=NeighborhoodConfig(n_neighborhoods=6, n_neighbors=18, min_donors=4, seed=3),
+        )
+
+        self.assertTrue(neighborhoods["n_donors"].le(9).all())
+        self.assertTrue(neighborhoods["status"].isin(["tested", "too_few_donors"]).all())
+
 
 if __name__ == "__main__":
     unittest.main()

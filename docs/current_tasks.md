@@ -221,7 +221,7 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [ ] Add pseudotime or lineage-density workflow only after latent space is validated.
 - [x] Add first-pass Milo-style neighborhood workflow after latent space validation.
 - [x] Run publication-scale Milo-style workflow on the full 4M reduced scVI atlas.
-- [ ] Add matched/sensitivity Milo-style neighborhood workflow before biological claims.
+- [ ] Run matched/sensitivity Milo-style neighborhood workflow before biological claims.
 - [ ] Add cNMF program workflow only after latent space is validated.
 - [ ] Add negative-control check showing conclusions are not UMAP-only artifacts.
 
