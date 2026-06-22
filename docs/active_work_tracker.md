@@ -63,10 +63,10 @@ These are the tasks that most directly determine whether the current story is re
   - Outputs: `results/tables/scvi_embedding_claim_gates.tsv`, `results/tables/scvi_embedding_marker_concordance.tsv`, and `docs/scvi_embedding_comparison.md`.
   - Result: full 4M reduced scVI remains manuscript-primary (`4,028,275` cells, 10 dimensions, fine-label purity `0.877`, coarse-label purity `0.975`). The 250k seeds and 100k lineage model are sensitivity anchors. Basal and mature-OSN marker continuity are supported across embeddings; immature OSN, progenitor, immune, and sustentacular latent-mechanism wording stays guarded.
 
-- [ ] Refresh claim ledger after the embedding comparison gate.
+- [x] Refresh claim ledger after the embedding comparison gate.
   - Goal: convert current exploratory/mechanistic language into final preprint language.
-  - Required outputs: updated `docs/claim_ledger.md`, `docs/methodology_standards.md`, and manuscript result text.
-  - Acceptance: every promoted claim has a matching audit/sensitivity table.
+  - Outputs: updated `docs/claim_ledger.md`, `manuscript/main.tex`, and `manuscript/references.bib`.
+  - Result: manuscript text now uses the standardized run hierarchy, cites official MiloR, promotes only broad lineage-neighborhood remodeling as a conservative secondary claim, and keeps Early iOSN as a guarded exact-neighborhood subclaim.
 
 ## Priority 2: Manuscript And Figure Package
 
@@ -182,8 +182,7 @@ These are valuable only after Priority 1 gates are done.
 
 ## Near-Term Execution Order
 
-1. Update claim ledger and LaTeX draft with the standardized run hierarchy.
-2. Refresh figures, especially the new full 4M scVI/Milo/program figure.
-3. External validation search refresh and final validation-strength table.
-4. Final reproducibility appendix and output provenance.
-5. PDF build and preprint package review.
+1. Refresh figures, especially the new full 4M scVI/Milo/program figure.
+2. External validation search refresh and final validation-strength table.
+3. Final reproducibility appendix and output provenance.
+4. PDF build and preprint package review.
