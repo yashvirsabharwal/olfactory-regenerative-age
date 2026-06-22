@@ -111,6 +111,9 @@ This remains the largest scientific weakness.
 - [ ] Add GSE151973 bulk/deconvolution context only if it clarifies olfactory vs respiratory marker specificity.
   - Acceptance: no claim that it validates donor-level ORA aging unless donor-level age design supports it.
 
+- [x] Inspect `GSE151346` metadata before treating it as a human context candidate.
+  - Result: GEO reports `Mus musculus`, and the downloaded `GSE151346_MOE_metadata.tsv.gz` contains mouse main olfactory epithelium cell metadata. It is cross-species context only, not human donor-level ORA validation.
+
 - [ ] Consider author-label recovery for GSE184117.
   - Action: draft a concise data-request note for original cell labels or annotation files.
   - Acceptance: either labels obtained and integrated, or request documented as an unresolved limitation.
@@ -183,6 +186,6 @@ These are valuable only after Priority 1 gates are done.
 ## Near-Term Execution Order
 
 1. Refresh figures, especially the new full 4M scVI/Milo/program figure.
-2. Final validation-strength table and any `GSE151346` metadata inspection worth doing.
+2. Final validation-strength table.
 3. Final reproducibility appendix and output provenance.
 4. PDF build and preprint package review.

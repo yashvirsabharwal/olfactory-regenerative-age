@@ -10,7 +10,7 @@ No newly identified dataset is currently stronger than `GSE184117` for donor-lev
 
 - `GSE184117`: direct but small-n presbyosmia/aging-adjacent validation target.
 - `GSE151973`: bulk olfactory-versus-respiratory marker context only.
-- `GSE151346`: newly registered single-cell olfactory mucosa/COVID-anosmia context candidate, useful for cell-state and regeneration-module sanity checks after metadata inspection.
+- `GSE151346`: inspected and downgraded to mouse cross-species context only; useful for olfactory epithelium cell-state/viral-entry context, not human ORA validation.
 - Spatial transcriptomics resources such as HEST-style atlases are worth monitoring, but current search did not identify a clear human olfactory spatial dataset suitable for ORA feature validation.
 
 ## Dataset Status
@@ -19,13 +19,13 @@ No newly identified dataset is currently stronger than `GSE184117` for donor-lev
 | --- | --- | --- | --- | --- | --- |
 | `GSE184117` / Oliva et al. | single-cell 3' RNA-seq | olfactory epithelium | Presbyosmia and aging-adjacent validation | small-n direct/context | Keep as primary external analysis; request original cell labels if possible |
 | `GSE151973` / Fodoulian et al. | bulk RNA-seq | olfactory and respiratory epithelium | OE/RE marker sanity | marker/context only | Use for olfactory-vs-respiratory marker specificity, not donor-level ORA |
-| `GSE151346` / Brann et al. | single-cell RNA-seq | olfactory mucosa | COVID/anosmia mechanism context | candidate marker/context | Inspect GEO supplementary files, donor/sample metadata, and annotations |
+| `GSE151346` / Brann et al. | mouse single-cell RNA-seq | main olfactory epithelium | COVID/anosmia mechanism context | cross-species context only | Keep out of human ORA validation claims |
 | HEST-1k-like spatial resources | spatial transcriptomics/meta-atlas | many tissues | possible future spatial search space | not currently ORA-ready | Search metadata for olfactory/nasal tissue before investing analysis time |
 
 ## Claim Rules
 
 - Do not call any external dataset an independent ORA replication unless it has donor/sample IDs, age or aging-relevant phenotype, expression, and Gateway-compatible cell labels or defensible reference mapping.
-- COVID/anosmia and OE/RE datasets can support regeneration, sustentacular, HBC, respiratory-metaplasia, immune, and marker-specific context, but they do not validate the healthy-aging ORA axis without age design.
+- COVID/anosmia and OE/RE datasets can support regeneration, sustentacular, HBC, respiratory-metaplasia, immune, and marker-specific context, but they do not validate the healthy-aging ORA axis without age design. Mouse datasets are cross-species context only.
 - Spatial/histology validation remains a future opportunity. A useful public spatial dataset would need olfactory neuroepithelium or nasal olfactory-region tissue plus enough marker resolution to localize HBC, immature/mature OSN, sustentacular, secretory/glandular, and immune features.
 
 ## Sources Checked
@@ -34,3 +34,7 @@ No newly identified dataset is currently stronger than `GSE184117` for donor-lev
 - GSE151973 GEO record: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE151973
 - GSE151346 GEO record: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE151346
 - HEST-1k preprint/resource context: https://arxiv.org/abs/2406.16192
+
+## GSE151346 Inspection
+
+The GEO page reports organism `Mus musculus`, and the supplementary metadata file is `GSE151346_MOE_metadata.tsv.gz`. A local inspection of that metadata found 29,585 cells plus a header row with columns including `orig_ident`, `leiden`, `leiden_name`, `UMAP_1`, and `UMAP_2`. This makes it potentially useful for cross-species olfactory epithelium cell-state context, but it is not a human validation dataset and should not be presented as evidence that ORA features replicate in human donors.

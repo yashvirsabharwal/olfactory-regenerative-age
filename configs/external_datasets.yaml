@@ -78,26 +78,27 @@ datasets:
     title: "Non-neuronal expression of SARS-CoV-2 entry genes in the olfactory system suggests mechanisms underlying COVID-19-associated anosmia"
     accession: "GSE151346"
     source_url: "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE151346"
-    status: "candidate_context_single_cell"
-    validation_use: "olfactory mucosa cell-state and regeneration-module context; not donor-level aging validation"
-    species: "human"
-    tissue: "olfactory mucosa"
+    supplementary_url: "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE151nnn/GSE151346/suppl/GSE151346_MOE_metadata.tsv.gz"
+    status: "cross_species_context_only"
+    validation_use: "mouse olfactory epithelium cell-state and regeneration-module context; not human donor-level ORA validation"
+    species: "mouse"
+    tissue: "main olfactory epithelium"
     disease_context: ["covid_anosmia_context", "healthy_or_surgical_reference"]
     expected_level: "single_cell"
-    cohort_notes: "NCBI GEO search identifies this as olfactory mucosa scRNA-seq associated with COVID-19 anosmia mechanism work. Age/donor metadata and public cell-label suitability require inspection before use."
-    data_notes: "Potentially useful for sustentacular, HBC, respiratory, immune, and viral-entry context; not expected to validate ORA age direction without donor-level age design."
-    path: null
+    cohort_notes: "GEO reports organism Mus musculus. Supplementary metadata contains 29,585 mouse MOE cells plus header with cell-state labels such as Bowman's gland."
+    data_notes: "Useful only for cross-species cell-state/viral-entry context. It cannot validate human ORA age directions."
+    path: "data/external/GSE151346_MOE_metadata.tsv.gz"
     required_files:
-      expression: null
-      metadata: null
+      expression: "data/external/GSE151346_MOE_all_counts.csv.gz"
+      metadata: "data/external/GSE151346_MOE_metadata.tsv.gz"
       feature_matrix: null
-    download_command: null
+    download_command: "curl -L -o data/external/GSE151346_MOE_metadata.tsv.gz https://ftp.ncbi.nlm.nih.gov/geo/series/GSE151nnn/GSE151346/suppl/GSE151346_MOE_metadata.tsv.gz"
     required_columns:
-      donor_id: ["donor_id", "individual", "subject_id", "sample"]
+      donor_id: ["orig_ident", "sample"]
       age: ["age", "age_years"]
-      disease_group: ["disease_group", "condition", "diagnosis", "tissue"]
-      cell_type: ["cell_type", "fine_cell_type", "annotation", "cluster"]
-    notes: "Add as marker/context candidate. Use only if raw or processed matrices expose sample IDs and cell annotations; otherwise leave as context literature support."
+      disease_group: ["condition", "tissue"]
+      cell_type: ["leiden_name", "cell_type", "annotation", "cluster"]
+    notes: "Do not use as human validation. Keep as optional cross-species marker/context support for OE support cells, stem cells, and viral-entry biology."
 
   danniballe_2026:
     title: "Alzheimer's olfactory biopsy validation"
