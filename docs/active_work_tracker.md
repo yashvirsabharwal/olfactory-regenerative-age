@@ -72,26 +72,32 @@ These are the tasks that most directly determine whether the current story is re
 
 These tasks turn the science into a coherent paper.
 
-- [ ] Update manuscript framework for the new full 4M neighborhood and program-enrichment results.
+- [x] Update manuscript framework for the new full 4M neighborhood and program-enrichment results.
   - Add matched Early iOSN program enrichment to the Results structure.
   - Reframe full 4M neighborhood analysis as a mechanistic support layer, not a central standalone paper.
+  - Result: manuscript framing now treats full 4M latent neighborhoods as a guarded secondary mechanism layer with exact-neighborhood, edgeR, and official-MiloR sensitivity gates.
 
-- [ ] Update the LaTeX manuscript draft.
+- [x] Update the LaTeX manuscript draft.
   - Add current methods for full 4M scVI, Milo-style DA, matched sensitivity, membership export, and program scoring.
   - Update Results, Discussion, Limitations, and figure callouts.
   - Keep citations verified and DOI-backed.
+  - Result: `manuscript/main.tex` and `manuscript/references.bib` include the standardized latent-analysis language and official MiloR citation; PDF compilation remains blocked locally by missing TeX tooling.
 
-- [ ] Redesign main and extended figures.
+- [x] Redesign main figures.
   - Figure 1: cohort and claim-gated workflow.
   - Figure 2: ORA composition/module aging axis.
   - Figure 3: model performance, null, calibration.
   - Figure 4: stable ORA feature biology.
   - Figure 5: external validation and NDD guardrails.
   - Figure 6: full 4M scVI/Milo/program enrichment.
-  - Extended Data: audits, model card, external evidence, DE parity, scVI validation, full neighborhood tables.
+  - Result: `make manuscript-figures` now emits refreshed main-text figure PNG/PDF files, including a claim-gated full 4M scVI/Milo/program Figure 6.
 
-- [ ] Generate publication tables.
+- [ ] Design extended-data figures.
+  - Required: audits, model card, external evidence, DE parity, scVI validation, full neighborhood tables.
+
+- [x] Generate publication tables.
   - Required: cohort summary, model card, top stable features, external evidence ledger, NDD appendix, DE audit summary, full 4M Milo summary, matched program enrichment summary.
+  - Outputs: `docs/publication_tables.md` and `results/tables/manuscript_table_*.tsv`.
 
 - [ ] Compile manuscript PDF once TeX tooling is available.
   - Acceptance: PDF builds from clean repo state and all figure/table paths resolve.

@@ -67,6 +67,8 @@ make scvi-full-4m-reduced
 make scvi-lineage-basal-neural
 make scvi-lineage-validation
 make model-card
+make manuscript-figures
+make publication-tables
 make output-provenance
 make report
 ```
@@ -183,6 +185,8 @@ Generated data and analysis outputs are intentionally ignored by Git:
 - `results/figures/mvp_*.png`
 - `results/figures/manuscript_figure*.png`
 - `results/figures/manuscript_figure*.pdf`
+- `results/tables/manuscript_table_*.tsv`
+- `docs/publication_tables.md`
 - `docs/manuscript_framework.md`
 - `manuscript/main.tex`
 - `manuscript/references.bib`
