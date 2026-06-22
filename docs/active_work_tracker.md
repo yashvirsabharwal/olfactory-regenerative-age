@@ -37,6 +37,8 @@ Do not claim:
 - Matched FLEX v2/device lineage result: 1 / 20,000 neighborhood at age FDR < 0.10, Early iOSN, `age_coef=-1.014`, `FDR=0.0427`.
 - Matched Early iOSN neighborhood program scores: immature neuron `z=2.91`, senescence/SASP `z=1.63`, HBC activation/injury `z=-0.84`, HBC identity `z=-0.88`.
 - Full 4M lineage age-bin robustness is complete: 4,705 / 5,613 negative age-associated lineage neighborhoods are lower in the oldest observed donor bin than the youngest observed donor bin. The strict matched Early iOSN hit also agrees directionally across observed bins (`lt45` to `60_74`; old-minus-young median logit fraction `-0.944`).
+- edgeR count-model parity supports the Python Milo-style direction: signed-effect Spearman is `0.916` for all-donor lineage and `0.924` for matched lineage; the single matched Python-significant Early iOSN neighborhood overlaps the matched edgeR-significant set.
+- Official MiloR subset sensitivity is complete and narrows the interpretation: it confirms strong age-associated latent-neighborhood structure, but dominant official MiloR signals are HBC/suprabasal/sustentacular rather than a direct matched Early iOSN replication.
 - GSE184117 has scANVI/scArches mapping and donor-feature concordance, but remains small-n and mixed.
 - NDD projection remains exploratory: 5 AD and 5 PD donors, all FLEX v2/device.
 - Genome-wide DE has edgeR/limma parity and audits, but disease biology remains hypothesis-generating.
@@ -50,10 +52,10 @@ These are the tasks that most directly determine whether the current story is re
   - Outputs: `results/tables/milo_full_4m_lineage_age_bin_neighborhoods.tsv`, `results/tables/milo_full_4m_lineage_age_bin_summary.tsv`, `results/tables/milo_full_4m_lineage_matched_age_bin_neighborhoods.tsv`, and `results/tables/milo_full_4m_lineage_matched_age_bin_summary.tsv`.
   - Result: broad all-donor negative lineage neighborhoods largely agree with age-bin direction; the single matched Early iOSN hit remains directionally negative from the youngest to oldest observed bins, though per-neighborhood bin donor counts are sparse.
 
-- [ ] Add Milo implementation-parity decision.
+- [x] Add Milo implementation-parity decision.
   - Goal: either run a focused official MiloR parity subset or write a transparent rationale for the Python donor-level neighborhood model.
-  - Required outputs: `docs/milo_implementation_parity.md` plus, if run, parity table.
-  - Acceptance: manuscript methods can defend Python Milo-style terminology and limitations.
+  - Outputs: `docs/milo_implementation_parity.md`, exact-neighborhood edgeR parity tables, official MiloR full-lineage subset tables, and official MiloR matched-lineage subset tables.
+  - Result: edgeR supports the exact Python-neighborhood age-effect directions, including the matched Early iOSN hit. Official MiloR confirms broad age-associated latent-neighborhood structure but does not make the matched Early iOSN result its dominant independent finding, so manuscript language should remain conservative.
 
 - [ ] Compare full 4M scVI embedding with 250k seed and lineage-focused embeddings.
   - Goal: verify that the key lineage/matched signals are not an artifact of the full reduced model only.

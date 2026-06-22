@@ -71,6 +71,27 @@ This strengthens the narrow mechanistic claim: under strict technical matching, 
 
 The matched FLEX v2/device age-bin run uses the same 27 healthy donors as the matched DA model (`lt45`: 4, `45_59`: 7, `60_74`: 12, `75_plus`: 4). The single matched significant Early iOSN neighborhood remains directionally negative across observed bins: `lt45:-8.354:n=4;45_59:-9.495:n=6;60_74:-9.298:n=5`, with old-minus-young median logit membership fraction `-0.944` and Spearman trend `-0.5`. No `75_plus` donor contributed membership to that specific neighborhood, so the robust claim is directional agreement across observed bins, not a fully monotonic four-bin trajectory.
 
+## edgeR Count-Model Parity
+
+`make milo-full-4m-lineage-edger-parity` and `make milo-full-4m-lineage-matched-edger-parity` export the same Python neighborhoods as neighborhood-by-donor count matrices and fit edgeR quasi-likelihood age models. This tests whether the signed age direction depends on the Python donor-level logit-fraction OLS model.
+
+The all-donor lineage comparison has strong signed-effect concordance with the Python DA table (`Spearman=0.916`). edgeR calls 4,758 neighborhoods significant at FDR < 0.10 versus 5,613 in Python, with 1,375 overlapping significant neighborhoods. Among Python-significant neighborhoods, 97.3% have the same signed direction in edgeR.
+
+The matched FLEX v2/device lineage comparison is even cleaner for the narrow claim. The single Python-significant Early iOSN neighborhood is also edgeR-significant. Across all 20,000 matched neighborhoods, signed-effect Spearman is `0.924`; among edgeR-significant neighborhoods, 99.1% agree in direction with the Python model. edgeR calls more matched neighborhoods significant (468), so edgeR should be treated as a directionality/statistical-core sensitivity rather than a stricter discovery filter.
+
+## Official MiloR Subset Sensitivity
+
+Official MiloR was run as an independent subset sensitivity using stratified exports from the same full 4M reduced scVI latent space. This changes both the statistical implementation and the neighborhood construction, so MiloR neighborhoods are not one-to-one comparable with Python seed neighborhoods.
+
+| Run | Cells | Donors | MiloR neighborhoods | Spatial FDR < 0.10 | Dominant significant labels |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Full 4M lineage subset | 100,000 | 187 | 4,579 | 3,447 | Quiescent HBC, suprabasal, sustentacular |
+| Matched 4M lineage subset | 75,000 | 27 | 3,419 | 627 | Quiescent HBC, sustentacular, suprabasal |
+
+The official MiloR subsets confirm that age-associated differential abundance is present in the validated full 4M lineage latent space. They do not, however, independently reproduce the matched Early iOSN neighborhood as the dominant official-MiloR finding. In the matched official MiloR run, significant neighborhoods are mostly positive age-associated quiescent HBC/sustentacular/suprabasal neighborhoods. Negative significant neighborhoods are fewer and mostly quiescent HBC or sustentacular; one negative neighborhood is labeled Early mature mOSN, while Early iOSN is not a dominant matched MiloR signal.
+
+Interpretation: official MiloR supports the broader claim that aging acts on latent lineage-neighborhood structure, but it narrows the Early iOSN claim to the exact Python-neighborhood analysis supported by edgeR count-model parity, age-bin directionality, and program enrichment.
+
 ## Biological Reading
 
 The all-cell and lineage-focused full-scale runs now support a real neighborhood-level aging signal that was not visible in the 250k/100k pilots. The strongest recurring all-donor signal is reduced age-associated representation of regenerative neuronal-lineage neighborhoods, especially early iOSN, late iOSN, INP, and related HBC/suprabasal neighborhoods. The broad all-cell run also shows age-associated shifts in mucous gland/secretory, multiciliated, dendritic/T-cell, Bowman gland, sustentacular, and mature neuronal neighborhoods.
@@ -88,7 +109,6 @@ Supported as an exploratory mechanistic layer:
 
 Still gated before main-text promotion:
 
-- comparison with official MiloR or a clearly documented reason to keep the Python implementation;
 - replication against the 250k seed and lineage-focused sensitivity runs.
 
 Use the matched secretory result as a guardrail: do not promote a secretory-specific differential-abundance claim from Milo-style neighborhoods unless follow-up marker/program or pseudotime analyses independently support it.

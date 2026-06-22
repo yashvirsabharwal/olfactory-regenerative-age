@@ -413,6 +413,56 @@ commands:
     outputs:
       - "results/tables/milo_full_4m_lineage_matched_age_bin_neighborhoods.tsv"
       - "results/tables/milo_full_4m_lineage_matched_age_bin_summary.tsv"
+  milo_full_4m_lineage_edger_parity:
+    description: "Run edgeR quasi-likelihood count-model parity for full 4M lineage Milo-style neighborhoods."
+    command: "make milo-full-4m-lineage-edger-parity"
+    deferred: true
+    inputs:
+      - "results/tables/milo_full_4m_lineage_memberships.tsv"
+      - "results/tables/milo_full_4m_lineage_neighborhood_da.tsv"
+      - "data/processed/cohort_manifest.tsv"
+    outputs:
+      - "results/tables/milo_full_4m_lineage_count_export_summary.tsv"
+      - "results/tables/milo_full_4m_lineage_edger_parity.tsv"
+      - "results/tables/milo_full_4m_lineage_edger_parity_run_summary.tsv"
+      - "results/tables/milo_full_4m_lineage_edger_parity_comparison.tsv"
+      - "results/tables/milo_full_4m_lineage_edger_parity_summary.tsv"
+  milo_full_4m_lineage_matched_edger_parity:
+    description: "Run edgeR quasi-likelihood count-model parity for matched FLEX v2/device full 4M lineage Milo-style neighborhoods."
+    command: "make milo-full-4m-lineage-matched-edger-parity"
+    deferred: true
+    inputs:
+      - "results/tables/milo_full_4m_lineage_matched_memberships.tsv"
+      - "results/tables/milo_full_4m_lineage_matched_neighborhood_da.tsv"
+      - "data/processed/cohort_manifest.tsv"
+    outputs:
+      - "results/tables/milo_full_4m_lineage_matched_count_export_summary.tsv"
+      - "results/tables/milo_full_4m_lineage_matched_edger_parity.tsv"
+      - "results/tables/milo_full_4m_lineage_matched_edger_parity_run_summary.tsv"
+      - "results/tables/milo_full_4m_lineage_matched_edger_parity_comparison.tsv"
+      - "results/tables/milo_full_4m_lineage_matched_edger_parity_summary.tsv"
+  milor_lineage_subset_parity:
+    description: "Run official MiloR DA on a stratified full 4M lineage scVI subset as implementation-parity sensitivity."
+    command: "make milor-lineage-subset-parity"
+    deferred: true
+    inputs:
+      - "data/processed/gateway_scvi_full_4m_reduced.h5ad"
+      - "data/processed/cohort_manifest.tsv"
+    outputs:
+      - "results/tables/milor_lineage_subset_export_summary.tsv"
+      - "results/tables/milor_lineage_subset_da.tsv"
+      - "results/tables/milor_lineage_subset_summary.tsv"
+  milor_lineage_matched_subset_parity:
+    description: "Run official MiloR DA on a matched FLEX v2/device full 4M lineage scVI subset as implementation-parity sensitivity."
+    command: "make milor-lineage-matched-subset-parity"
+    deferred: true
+    inputs:
+      - "data/processed/gateway_scvi_full_4m_reduced.h5ad"
+      - "data/processed/cohort_manifest.tsv"
+    outputs:
+      - "results/tables/milor_lineage_matched_subset_export_summary.tsv"
+      - "results/tables/milor_lineage_matched_subset_da.tsv"
+      - "results/tables/milor_lineage_matched_subset_summary.tsv"
   report:
     description: "Regenerate Markdown report and summary figures from existing outputs."
     command: "make report"

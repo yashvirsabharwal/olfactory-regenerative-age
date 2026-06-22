@@ -1,6 +1,6 @@
 # ORA Reproducibility Appendix
 
-Updated: 2026-06-16
+Updated: 2026-06-22
 
 ## Environment
 
@@ -13,6 +13,17 @@ PYTHON=.venv/bin/python make test
 ```
 
 The local R/Bioconductor environment for genome-wide edgeR, limma-voom, and optional DESeq2 work is configured through `R_ENV=.mamba/ora-r` and `RSCRIPT=$(HOME)/.local/bin/micromamba run -p .mamba/ora-r Rscript`.
+
+The official MiloR subset sensitivity was run on `mia` with a user-level micromamba environment because source installation under system R 4.6 lacked `fontconfig`/`freetype` development headers:
+
+```bash
+mkdir -p ~/bin ~/tmp/micromamba
+cd ~/tmp/micromamba
+curl -L https://micro.mamba.pm/api/micromamba/linux-64/latest -o micromamba.tar.bz2
+tar -xjf micromamba.tar.bz2 bin/micromamba
+cp bin/micromamba ~/bin/micromamba
+~/bin/micromamba create -y -p ~/micromamba-envs/ora-milor -c conda-forge -c bioconda bioconductor-milor r-data.table r-optparse
+```
 
 ## Core Real-Data Command Order
 
@@ -66,6 +77,17 @@ PYTHON=.venv/bin/python make scvi-pilot-validation
 ```
 
 The pilot output H5AD is local/ignored. Its validation table is tracked through the provenance manifest as `results/tables/scvi_pilot_validation.tsv`.
+
+The completed full 4M neighborhood parity checks used the remote full reduced scVI H5AD and membership tables:
+
+```bash
+PYTHON=.venv/bin/python make milo-full-4m-lineage-age-bins
+PYTHON=.venv/bin/python make milo-full-4m-lineage-matched-age-bins
+PYTHON=.venv/bin/python make milo-full-4m-lineage-edger-parity
+PYTHON=.venv/bin/python make milo-full-4m-lineage-matched-edger-parity
+PYTHON=.venv/bin/python make milor-lineage-subset-parity
+PYTHON=.venv/bin/python make milor-lineage-matched-subset-parity
+```
 
 ## Generated Artifact Policy
 
