@@ -6,7 +6,7 @@ Primary source: **Gateway: patient olfactory neurons for large-scale discovery i
 
 ## Current Scope
 
-The implementation focuses on memory-safe metadata inspection, healthy-donor cohort definition, cell-state composition features, age associations, composition-only and module-augmented ORA modeling, frozen healthy-trained AD/PD projection, reporting, chunked average-expression module scoring, targeted curated-gene pseudobulk DE, donor-level covariate-adjusted pseudobulk DE, genome-wide edgeR and limma-voom DE summaries, GSE184117 raw 10x mapping, Gateway scANVI/scArches reference mapping, scaled and all-cell reduced scVI latent validation, provenance, and manuscript-readiness tables. Mechanistic extensions such as Milo, pseudotime, CellRank, and cNMF are tracked in `docs/active_work_tracker.md`.
+The implementation focuses on memory-safe metadata inspection, healthy-donor cohort definition, cell-state composition features, age associations, composition-only and module-augmented ORA modeling, frozen healthy-trained AD/PD projection, reporting, chunked average-expression module scoring, targeted curated-gene pseudobulk DE, donor-level covariate-adjusted pseudobulk DE, genome-wide edgeR and limma-voom DE summaries, GSE184117 raw 10x mapping, Gateway scANVI/scArches reference mapping, scaled and all-cell reduced scVI latent validation, full-scale Milo-style neighborhood analyses with edgeR and official-MiloR subset sensitivity, provenance, and manuscript-readiness tables. Deferred mechanistic extensions such as pseudotime, CellRank, and cNMF are tracked in `docs/active_work_tracker.md`.
 
 Manuscript framing, novelty, and draft title/abstract language are tracked in `docs/manuscript_story.md`.
 

@@ -4,6 +4,8 @@ Updated: 2026-06-22
 
 This document defines the analysis standard for manuscript-facing results. Smaller runs can be used for engineering checks, but manuscript claims should use the strongest available real-data run and the claim gates below.
 
+See `docs/run_hierarchy.md` for the canonical run-role table. In brief: full 4M reduced scVI is the primary latent substrate, full 4M Python Milo-style neighborhoods are the primary neighborhood map, exact-neighborhood edgeR and official MiloR subsets are sensitivity layers, and 25k/100k/250k/500k/1M runs are pilot, reference, lineage-sensitivity, or optional stress-test runs.
+
 ## Cohort And Splits
 
 - Train ORA age models only on healthy donors with valid age.
@@ -32,6 +34,7 @@ This document defines the analysis standard for manuscript-facing results. Small
 - Because neighborhoods overlap, significant-neighborhood counts are maps of recurring local signal, not independent discovery counts.
 - Full 4M Milo-style results can support a conservative secondary mechanistic layer. Matched FLEX v2/device sensitivity, ORA-theme annotation, curated lineage-neighborhood program scoring, age-bin robustness, exact-neighborhood edgeR parity, and official MiloR subset sensitivity are now complete and should govern claim language.
 - Use "Milo-style" for the Python full-scale workflow. Official MiloR was run as a subset sensitivity with independently constructed neighborhoods; it confirms broad age-associated lineage-neighborhood structure but does not independently reproduce matched Early iOSN as the dominant signal.
+- Official MiloR on all 4M cells is not required for the current manuscript because the all-cell latent substrate and full-scale Python neighborhood map already carry the publication-scale evidence. The official MiloR subset is retained as a transparent implementation sensitivity.
 
 ## External Validation Standards
 

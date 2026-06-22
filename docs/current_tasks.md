@@ -2,6 +2,8 @@
 
 Updated: 2026-06-22
 
+Note: `docs/active_work_tracker.md` is the authoritative publication-readiness tracker. This older milestone tracker is retained for historical completeness; new manuscript-facing prioritization should follow `docs/active_work_tracker.md` and the standardized run hierarchy in `docs/run_hierarchy.md`.
+
 This is the working task board for the olfactory-regenerative-age project. Checkboxes should be updated as implementation lands, tests pass, and real Gateway outputs are regenerated.
 
 ## Foundation Completed
@@ -224,7 +226,7 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [x] Annotate significant neighborhoods by ORA feature themes and claim gates.
 - [x] Add curated gene-program enrichment for full 4M lineage and matched-lineage neighborhoods.
 - [ ] Add broader all-cell/secretory marker enrichment only if those neighborhood claims are promoted.
-- [ ] Add official MiloR parity or a documented implementation-parity rationale.
+- [x] Add official MiloR parity or a documented implementation-parity rationale.
 - [ ] Add pseudotime or lineage-density workflow only after latent space is validated.
 - [x] Add first-pass Milo-style neighborhood workflow after latent space validation.
 - [x] Run publication-scale Milo-style workflow on the full 4M reduced scVI atlas.

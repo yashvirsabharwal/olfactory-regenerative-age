@@ -43,9 +43,7 @@ The matched all-cell significant neighborhoods were mostly Naive CD8/T-cell neig
 
 The matched theme summary is much narrower. Matched all-cell significant neighborhoods are mostly negative immune/T-cell neighborhoods, with one negative late iOSN neighborhood. The matched lineage-focused run contributes one negative Early iOSN neighborhood. These rows carry the strongest current mechanistic claim gate: `matched_regenerative_neuronal_support`.
 
-Gene-level marker/program enrichment is not yet complete. The current DA tables store top cell-state labels and model statistics, but not per-neighborhood cell memberships or expression summaries, so marker/program enrichment requires a follow-up membership-emitting or pseudobulk/program-scoring pass.
-
-The DA runner now supports that follow-up through `scripts/run_milo_pilot.py --membership-out`, which writes per-neighborhood cell indices, obs names, donors, and cell-state labels. The next enrichment pass should use this option on the full 4M lineage and matched-lineage runs before promoting marker-level mechanism language.
+Membership export and curated program enrichment are complete for the full 4M lineage and matched-lineage runs. The DA runner supports this through `scripts/run_milo_pilot.py --membership-out`, which writes per-neighborhood cell indices, obs names, donors, and cell-state labels. Current program-level interpretation should be limited to the lineage and matched-lineage runs; broader all-cell and secretory marker enrichment remains optional unless those compartment-specific claims are promoted.
 
 ## Curated Program Enrichment
 
@@ -63,7 +61,7 @@ In the strict matched FLEX v2/device lineage analysis, the single significant ne
 | HBC activation/injury | -0.84 |
 | HBC identity | -0.88 |
 
-This strengthens the narrow mechanistic claim: under strict technical matching, the surviving age-negative lineage neighborhood is an immature neuronal neighborhood rather than a basal-cell or secretory artifact. In the all-donor lineage run, negative significant neighborhoods show modest immature-neuron enrichment overall (`median z=0.118`) and depletion of HBC identity/activation programs (`median z=-0.818` and `-0.698`), consistent with the same direction but with broader all-donor heterogeneity.
+This strengthens the narrow exact-neighborhood claim: under strict technical matching, the surviving Python age-negative lineage neighborhood is an immature neuronal neighborhood rather than a basal-cell or secretory artifact. In the all-donor lineage run, negative significant neighborhoods show modest immature-neuron enrichment overall (`median z=0.118`) and depletion of HBC identity/activation programs (`median z=-0.818` and `-0.698`), consistent with the same direction but with broader all-donor heterogeneity. Official MiloR subset sensitivity below keeps this as a guarded subclaim rather than a standalone dominant discovery.
 
 ## Age-Bin Robustness
 
@@ -94,9 +92,9 @@ Interpretation: official MiloR supports the broader claim that aging acts on lat
 
 ## Biological Reading
 
-The all-cell and lineage-focused full-scale runs now support a real neighborhood-level aging signal that was not visible in the 250k/100k pilots. The strongest recurring all-donor signal is reduced age-associated representation of regenerative neuronal-lineage neighborhoods, especially early iOSN, late iOSN, INP, and related HBC/suprabasal neighborhoods. The broad all-cell run also shows age-associated shifts in mucous gland/secretory, multiciliated, dendritic/T-cell, Bowman gland, sustentacular, and mature neuronal neighborhoods.
+The all-cell and lineage-focused full-scale runs now support a real neighborhood-level aging signal that was not visible in the 250k/100k pilots. In the Python Milo-style all-donor lineage run, the strongest recurring negative signal is reduced age-associated representation of regenerative neuronal-lineage neighborhoods, especially early iOSN, late iOSN, INP, and related HBC/suprabasal neighborhoods. The broad all-cell run also shows age-associated shifts in mucous gland/secretory, multiciliated, dendritic/T-cell, Bowman gland, sustentacular, and mature neuronal neighborhoods.
 
-The matched FLEX v2/device sensitivity makes the interpretation more conservative. Under strict technical matching, the broad number of significant neighborhoods shrinks sharply, but a negative Early iOSN/iOSN signal remains detectable. This is the most manuscript-ready mechanistic result from the Milo-style analyses. The broad all-donor neighborhood map should be used to generate biological hypotheses and guide annotation, while strict matched results should govern the claim language.
+The matched FLEX v2/device sensitivity makes the interpretation more conservative. Under strict technical matching, the broad number of significant Python neighborhoods shrinks sharply, but a negative Early iOSN/iOSN signal remains detectable and is supported by exact-neighborhood edgeR parity, age-bin directionality, and curated program enrichment. Official MiloR subset sensitivity confirms age-associated lineage-neighborhood structure but shifts the dominant matched signal toward HBC/sustentacular/suprabasal neighborhoods. The manuscript should therefore promote a broad secondary claim about lineage-neighborhood remodeling and describe Early iOSN as a narrow, exact-neighborhood result rather than as a universal MiloR finding.
 
 The secretory-only run is weaker and directionally mixed because the denominator is restricted to secretory/sustentacular/glandular cells rather than all cells. It should be used as a compartment-specific sensitivity view, not as the primary secretory claim.
 
@@ -105,10 +103,11 @@ The secretory-only run is weaker and directionally mixed because the denominator
 Supported as an exploratory mechanistic layer:
 
 - Full-scale scVI neighborhoods show age-associated abundance shifts after donor-level adjustment.
-- The most coherent and technically matched lineage signal points toward reduced immature olfactory neuronal/regenerative neighborhoods with age.
+- The most coherent exact-neighborhood matched lineage signal points toward reduced immature olfactory neuronal/regenerative neighborhoods with age, while official MiloR subset sensitivity supports broader lineage-neighborhood remodeling.
 
-Still gated before main-text promotion:
+Still gated before stronger main-text promotion:
 
 - replication against the 250k seed and lineage-focused sensitivity runs.
+- final claim-ledger refresh after the embedding comparison.
 
 Use the matched secretory result as a guardrail: do not promote a secretory-specific differential-abundance claim from Milo-style neighborhoods unless follow-up marker/program or pseudotime analyses independently support it.

@@ -1,6 +1,6 @@
 # ORA Manuscript Framework
 
-Updated: 2026-06-18
+Updated: 2026-06-22
 
 ## Working Title
 
@@ -52,8 +52,9 @@ The paper should be framed as a reproducible and interpretable donor-level analy
    - Result 8: Full-scale latent neighborhoods reveal an exploratory regenerative aging layer.
      - CELLxGENE export has only `X_umap`.
      - A chunked reduced all-cell scVI run produced finite 10-dimensional `X_scvi` for all 4,028,275 Gateway cells, with 250k seed and lineage-focused models as sensitivity anchors.
-     - Full 4M Milo-style neighborhood analyses identify age-associated neighborhoods, especially negative age associations in immature OSN/INP/regenerative neighborhoods.
-     - Matched technical sensitivity, marker/program annotation, and implementation parity remain required before promoting the neighborhood result as a primary claim.
+     - Full 4M Python Milo-style neighborhood analyses identify age-associated neighborhoods, especially negative age associations in immature OSN/INP/regenerative neighborhoods in the exact-neighborhood workflow.
+     - Matched technical sensitivity, curated program annotation, age-bin robustness, exact-neighborhood edgeR parity, and official MiloR subset sensitivity are complete.
+     - The publication-safe claim is broad lineage-neighborhood remodeling; the matched Early iOSN result is a guarded exact-neighborhood subclaim because official MiloR subset sensitivity emphasizes HBC/suprabasal/sustentacular structure.
 
 4. Discussion
    - Interpretation: ORA detects a tissue-specific regenerative aging axis in a renewing human neuroepithelium.
@@ -71,6 +72,7 @@ The paper should be framed as a reproducible and interpretable donor-level analy
    - NDD frozen projection and label-permutation diagnostics.
    - Pseudobulk construction, edgeR QL, limma-voom parity, matched sensitivity, and audit tables.
    - Latent-space audit, scaled scVI validation, lineage scVI validation, and deferred trajectory gates.
+   - Full 4M reduced scVI, Python Milo-style neighborhood DA, exact-neighborhood edgeR parity, and official MiloR subset sensitivity.
    - Software, command provenance, and artifact policy.
 
 6. Limitations
@@ -79,7 +81,7 @@ The paper should be framed as a reproducible and interpretable donor-level analy
    - External validation is currently small-n; scANVI/scArches transfer is available, but feature-direction concordance is mixed.
    - AD/PD cohorts are very small and technically confounded.
    - Genome-wide DE is hypothesis-generating until replicated and audited.
-   - Latent-space analyses are scaled-QC stage but not yet seed-stable mechanism claims.
+   - Latent-space neighborhood analyses are useful as a secondary mechanistic layer, but official MiloR subset results narrow the Early iOSN language.
 
 7. Data And Code Availability
    - Gateway source and CELLxGENE identifiers.

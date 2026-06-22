@@ -14,7 +14,7 @@ Primary claim:
 
 Secondary mechanistic claim:
 
-- Full 4M scVI neighborhoods suggest age-associated loss of regenerative neuronal neighborhoods. The strict matched FLEX v2/device result supports a negative Early iOSN/immature-neuron neighborhood, enriched for immature-neuron genes and depleted for HBC programs.
+- Full 4M scVI neighborhoods support a secondary layer of age-associated lineage-neighborhood remodeling. Exact Python-neighborhood analyses support a narrow matched Early iOSN/immature-neuron depletion result, enriched for immature-neuron genes and depleted for HBC programs; official MiloR subset sensitivity instead emphasizes broader HBC/suprabasal/sustentacular structure, so Early iOSN wording should remain guarded.
 
 Exploratory only:
 
@@ -39,6 +39,7 @@ Do not claim:
 - Full 4M lineage age-bin robustness is complete: 4,705 / 5,613 negative age-associated lineage neighborhoods are lower in the oldest observed donor bin than the youngest observed donor bin. The strict matched Early iOSN hit also agrees directionally across observed bins (`lt45` to `60_74`; old-minus-young median logit fraction `-0.944`).
 - edgeR count-model parity supports the Python Milo-style direction: signed-effect Spearman is `0.916` for all-donor lineage and `0.924` for matched lineage; the single matched Python-significant Early iOSN neighborhood overlaps the matched edgeR-significant set.
 - Official MiloR subset sensitivity is complete and narrows the interpretation: it confirms strong age-associated latent-neighborhood structure, but dominant official MiloR signals are HBC/suprabasal/sustentacular rather than a direct matched Early iOSN replication.
+- Run hierarchy is standardized in `docs/run_hierarchy.md`: full 4M reduced scVI is the primary latent substrate; full 4M Python Milo-style neighborhoods are the primary neighborhood map; edgeR parity and official MiloR subsets are sensitivity layers; 25k/100k/250k/500k/1M runs are pilot, reference, or optional stress-test runs.
 - GSE184117 has scANVI/scArches mapping and donor-feature concordance, but remains small-n and mixed.
 - NDD projection remains exploratory: 5 AD and 5 PD donors, all FLEX v2/device.
 - Genome-wide DE has edgeR/limma parity and audits, but disease biology remains hypothesis-generating.
@@ -62,7 +63,7 @@ These are the tasks that most directly determine whether the current story is re
   - Required outputs: embedding comparison summary, overlapping marker-continuity and theme-level concordance.
   - Acceptance: full 4M model is manuscript-primary; smaller models are clearly sensitivity anchors.
 
-- [ ] Refresh claim ledger after the above gates.
+- [ ] Refresh claim ledger after the embedding comparison gate.
   - Goal: convert current exploratory/mechanistic language into final preprint language.
   - Required outputs: updated `docs/claim_ledger.md`, `docs/methodology_standards.md`, and manuscript result text.
   - Acceptance: every promoted claim has a matching audit/sensitivity table.
@@ -181,11 +182,9 @@ These are valuable only after Priority 1 gates are done.
 
 ## Near-Term Execution Order
 
-1. Age-bin robustness for full 4M lineage neighborhoods.
-2. MiloR parity subset or Python implementation rationale.
-3. Full 4M vs 250k/lineage embedding comparison.
-4. Update manuscript framework, claim ledger, and LaTeX draft.
-5. Refresh figures, especially the new full 4M scVI/Milo/program figure.
-6. External validation search refresh and final validation-strength table.
-7. Final reproducibility appendix and output provenance.
-8. PDF build and preprint package review.
+1. Full 4M vs 250k/lineage embedding comparison.
+2. Update claim ledger and LaTeX draft with the standardized run hierarchy.
+3. Refresh figures, especially the new full 4M scVI/Milo/program figure.
+4. External validation search refresh and final validation-strength table.
+5. Final reproducibility appendix and output provenance.
+6. PDF build and preprint package review.

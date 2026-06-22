@@ -1,6 +1,6 @@
 # ORA Methods Draft
 
-Updated: 2026-06-18
+Updated: 2026-06-22
 
 ## Cohort Construction
 
@@ -32,4 +32,6 @@ Targeted and genome-wide pseudobulk analyses aggregate counts by donor/sample/ce
 
 ## Latent-Space Validation
 
-The Gateway CELLxGENE export is audited for `.obsm` embeddings before trajectory or neighborhood analysis. The public H5AD currently exposes `X_umap` but not a non-UMAP latent representation. To recover a latent atlas, the full Gateway H5AD is reduced in contiguous row chunks to a 3,003-gene HVG/marker feature set, concatenated on disk, and used to train scVI across all 4,028,275 cells with `sample_id` as the batch key and `flex_version`, `device_guided`, and `sex` as categorical covariates. Stratified 250,000-cell seed runs and a lineage-focused 100,000-cell run provide sensitivity anchors. Validation checks embedding dimensions, finite values, metadata coverage, nearest-neighbor label purity, technical mixing, and marker continuity. Full-scale Milo-style neighborhood analyses use the all-cell reduced scVI latent atlas with 20,000 stratified seed neighborhoods, 100 nearest cells per neighborhood, donor-level logit-fraction models, and adjustment for age, sex, chemistry, collection method, and donor yield. These neighborhood results remain mechanistic and claim-gated until matched technical sensitivity, marker/program annotation, and implementation-parity checks mature; pseudotime and cNMF remain deferred.
+The Gateway CELLxGENE export is audited for `.obsm` embeddings before trajectory or neighborhood analysis. The public H5AD currently exposes `X_umap` but not a non-UMAP latent representation. To recover a latent atlas, the full Gateway H5AD is reduced in contiguous row chunks to a 3,003-gene HVG/marker feature set, concatenated on disk, and used to train scVI across all 4,028,275 cells with `sample_id` as the batch key and `flex_version`, `device_guided`, and `sex` as categorical covariates. Stratified 250,000-cell seed runs and a lineage-focused 100,000-cell run provide sensitivity anchors; 25,000-cell pilot runs are engineering checks only. Validation checks embedding dimensions, finite values, metadata coverage, nearest-neighbor label purity, technical mixing, and marker continuity.
+
+Full-scale Python Milo-style neighborhood analyses use the all-cell reduced scVI latent atlas with 20,000 stratified seed neighborhoods, 100 nearest cells per neighborhood, donor-level logit-fraction models, and adjustment for age, sex, chemistry, collection method, and donor yield. Neighborhood memberships are exported for curated gene-program scoring and age-bin robustness. Exact-neighborhood edgeR parity tests the same full-scale Python neighborhoods as neighborhood-by-donor counts with a negative-binomial quasi-likelihood model. Official MiloR is run as an independent subset sensitivity on stratified 100,000-cell and matched 75,000-cell lineage exports from the same full 4M latent space; because MiloR constructs independent neighborhoods, these runs are used to assess implementation robustness rather than to replace the full-scale Python map. Pseudotime and cNMF remain deferred.
