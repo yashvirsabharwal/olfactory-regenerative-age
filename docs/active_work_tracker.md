@@ -100,13 +100,13 @@ These tasks turn the science into a coherent paper.
 
 This remains the largest scientific weakness.
 
-- [ ] Run a fresh external dataset search for human olfactory/nasal single-cell, bulk, spatial, COVID/anosmia, presbyosmia, and aging datasets.
-  - Required outputs: candidate registry with accession, tissue, assay, donors, age/disease metadata, raw availability, and validation role.
-  - Acceptance: each dataset is labeled as direct validation, marker/context only, blocked, or not useful.
+- [x] Run a fresh external dataset search for human olfactory/nasal single-cell, bulk, spatial, COVID/anosmia, presbyosmia, and aging datasets.
+  - Outputs: `docs/external_validation_refresh.md` and updated `configs/external_datasets.yaml`.
+  - Result: no newly identified dataset is stronger than `GSE184117` for donor-level olfactory aging validation. `GSE151346` was added as a single-cell olfactory mucosa/COVID-anosmia marker-context candidate; `GSE151973` remains bulk marker context.
 
-- [ ] Decide whether any dataset can provide donor-level ORA validation beyond GSE184117.
+- [x] Decide whether any dataset can provide donor-level ORA validation beyond GSE184117.
   - Direct validation requires age/status metadata, expression, and cell/sample labels or usable reference mapping.
-  - If none exist, document this as a limitation rather than continuing open-ended searches.
+  - Result: no additional public feature-ready donor-level ORA validation dataset was found in this refresh. Treat this as a limitation and continue with `GSE184117` plus context-only datasets.
 
 - [ ] Add GSE151973 bulk/deconvolution context only if it clarifies olfactory vs respiratory marker specificity.
   - Acceptance: no claim that it validates donor-level ORA aging unless donor-level age design supports it.
@@ -183,6 +183,6 @@ These are valuable only after Priority 1 gates are done.
 ## Near-Term Execution Order
 
 1. Refresh figures, especially the new full 4M scVI/Milo/program figure.
-2. External validation search refresh and final validation-strength table.
+2. Final validation-strength table and any `GSE151346` metadata inspection worth doing.
 3. Final reproducibility appendix and output provenance.
 4. PDF build and preprint package review.

@@ -74,6 +74,31 @@ datasets:
       cell_type: ["cell_type", "fine_cell_type", "annotation"]
     notes: "Not a primary ORA validation dataset because it is bulk tissue RNA-seq, but useful for olfactory epithelial marker and OE/RE contrast checks."
 
+  brann_2020:
+    title: "Non-neuronal expression of SARS-CoV-2 entry genes in the olfactory system suggests mechanisms underlying COVID-19-associated anosmia"
+    accession: "GSE151346"
+    source_url: "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE151346"
+    status: "candidate_context_single_cell"
+    validation_use: "olfactory mucosa cell-state and regeneration-module context; not donor-level aging validation"
+    species: "human"
+    tissue: "olfactory mucosa"
+    disease_context: ["covid_anosmia_context", "healthy_or_surgical_reference"]
+    expected_level: "single_cell"
+    cohort_notes: "NCBI GEO search identifies this as olfactory mucosa scRNA-seq associated with COVID-19 anosmia mechanism work. Age/donor metadata and public cell-label suitability require inspection before use."
+    data_notes: "Potentially useful for sustentacular, HBC, respiratory, immune, and viral-entry context; not expected to validate ORA age direction without donor-level age design."
+    path: null
+    required_files:
+      expression: null
+      metadata: null
+      feature_matrix: null
+    download_command: null
+    required_columns:
+      donor_id: ["donor_id", "individual", "subject_id", "sample"]
+      age: ["age", "age_years"]
+      disease_group: ["disease_group", "condition", "diagnosis", "tissue"]
+      cell_type: ["cell_type", "fine_cell_type", "annotation", "cluster"]
+    notes: "Add as marker/context candidate. Use only if raw or processed matrices expose sample IDs and cell annotations; otherwise leave as context literature support."
+
   danniballe_2026:
     title: "Alzheimer's olfactory biopsy validation"
     status: "metadata_pending"
