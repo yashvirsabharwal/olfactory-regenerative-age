@@ -365,6 +365,32 @@ commands:
     outputs:
       - "results/tables/milo_full_4m_top_neighborhood_themes.tsv"
       - "results/tables/milo_full_4m_theme_summary.tsv"
+  milo_full_4m_lineage_programs:
+    description: "Score curated gene programs in full 4M lineage Milo-style neighborhoods using exported memberships."
+    command: "make milo-full-4m-lineage-programs"
+    deferred: true
+    inputs:
+      - "data/processed/gateway_scvi_full_4m_reduced.h5ad"
+      - "results/tables/milo_full_4m_lineage_memberships.tsv"
+      - "results/tables/milo_full_4m_lineage_neighborhood_da.tsv"
+      - "configs/gene_sets.yaml"
+    outputs:
+      - "results/tables/milo_full_4m_lineage_program_scores.tsv"
+      - "results/tables/milo_full_4m_lineage_program_summary.tsv"
+      - "results/tables/milo_full_4m_lineage_program_coverage.tsv"
+  milo_full_4m_lineage_matched_programs:
+    description: "Score curated gene programs in matched FLEX v2/device full 4M lineage Milo-style neighborhoods using exported memberships."
+    command: "make milo-full-4m-lineage-matched-programs"
+    deferred: true
+    inputs:
+      - "data/processed/gateway_scvi_full_4m_reduced.h5ad"
+      - "results/tables/milo_full_4m_lineage_matched_memberships.tsv"
+      - "results/tables/milo_full_4m_lineage_matched_neighborhood_da.tsv"
+      - "configs/gene_sets.yaml"
+    outputs:
+      - "results/tables/milo_full_4m_lineage_matched_program_scores.tsv"
+      - "results/tables/milo_full_4m_lineage_matched_program_summary.tsv"
+      - "results/tables/milo_full_4m_lineage_matched_program_coverage.tsv"
   report:
     description: "Regenerate Markdown report and summary figures from existing outputs."
     command: "make report"
