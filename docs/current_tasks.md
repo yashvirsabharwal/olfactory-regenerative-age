@@ -1,6 +1,6 @@
 # ORA Current Tasks and Milestone Tracker
 
-Updated: 2026-06-18
+Updated: 2026-06-22
 
 This is the working task board for the olfactory-regenerative-age project. Checkboxes should be updated as implementation lands, tests pass, and real Gateway outputs are regenerated.
 
@@ -222,7 +222,8 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - [x] Run full 4M Milo-style neighborhood DA for broad all-cell, lineage-focused, and secretory-focused neighborhoods.
 - [x] Run matched FLEX v2/device full 4M Milo-style sensitivity.
 - [x] Annotate significant neighborhoods by ORA feature themes and claim gates.
-- [ ] Add gene-level marker/program enrichment for significant neighborhoods.
+- [x] Add curated gene-program enrichment for full 4M lineage and matched-lineage neighborhoods.
+- [ ] Add broader all-cell/secretory marker enrichment only if those neighborhood claims are promoted.
 - [ ] Add official MiloR parity or a documented implementation-parity rationale.
 - [ ] Add pseudotime or lineage-density workflow only after latent space is validated.
 - [x] Add first-pass Milo-style neighborhood workflow after latent space validation.
@@ -297,4 +298,5 @@ This is the working task board for the olfactory-regenerative-age project. Check
 - 2026-06-18: Completed matched FLEX v2/device full 4M Milo-style sensitivity. With 27 healthy matched donors, the all-cell run retained 10 FDR < 0.10 neighborhoods, mostly negative Naive CD8/T-cell neighborhoods plus one late iOSN neighborhood; the lineage-focused run retained one negative Early iOSN neighborhood; and the secretory-focused run retained 0 significant neighborhoods. This narrows the manuscript-ready mechanistic language to technically matched regenerative neuronal-lineage depletion and keeps secretory-only neighborhood DA exploratory.
 - 2026-06-18: Added full 4M Milo-style theme annotation. `make milo-full-4m-annotation` writes `milo_full_4m_top_neighborhood_themes.tsv` and `milo_full_4m_theme_summary.tsv`, mapping significant neighborhoods to ORA biology themes and claim gates. The matched regenerative-neuronal theme is now explicitly separated from all-donor hypothesis-map themes and matched immune-support themes. Gene-level marker/program enrichment remains a separate open task because neighborhood membership was not emitted by the DA runner.
 - 2026-06-18: Added optional neighborhood membership export to the Milo-style runner. Passing `--membership-out` now writes exact neighborhood-to-cell membership rows with original cell indices and obs names, making the next marker/program enrichment pass feasible on `mia` without redesigning the DA workflow.
+- 2026-06-22: Completed full 4M lineage neighborhood membership export and curated program enrichment on `mia`. Both all-donor lineage and matched-lineage runs wrote 2,000,000 membership rows. `make milo-full-4m-lineage-programs` and `make milo-full-4m-lineage-matched-programs` produced neighborhood program score, summary, and coverage tables. The matched Early iOSN neighborhood that survives strict FLEX v2/device sensitivity is enriched for immature-neuron genes and depleted for HBC programs, supporting the regenerative neuronal interpretation.
 - 2026-06-16: Added and ran the GSE184117 raw external AnnData adapter. `make external-gse184117-mapped` wrote `data/processed/gse184117_marker_mapped.h5ad` with 59,656 biopsy cells x 36,601 genes, `results/tables/external_10x_mapping_qc.tsv` for 6 usable samples, and `data/processed/gse184117_mapped_donor_features.tsv` with 25 ORA-compatible `prop__`, `clr__`, and `ratio__` features. Mapping QC reports 95.6-99.9% mapped cells and 43 marker genes present per sample. `make external-mapped-feature-concordance` generated 32 Gateway-mapped feature-direction rows: 16 concordant and 16 discordant, all explicitly `small_n_mapped`. The external evidence ledger now includes the mapped-feature candidate row, and output provenance reports 129 outputs with 0 missing.

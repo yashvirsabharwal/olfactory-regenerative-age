@@ -1,6 +1,6 @@
 # Full 4M Milo-Style Neighborhood Results
 
-Updated: 2026-06-18
+Updated: 2026-06-22
 
 ## Scope
 
@@ -47,6 +47,24 @@ Gene-level marker/program enrichment is not yet complete. The current DA tables 
 
 The DA runner now supports that follow-up through `scripts/run_milo_pilot.py --membership-out`, which writes per-neighborhood cell indices, obs names, donors, and cell-state labels. The next enrichment pass should use this option on the full 4M lineage and matched-lineage runs before promoting marker-level mechanism language.
 
+## Curated Program Enrichment
+
+The full 4M lineage and matched-lineage Milo-style runs were rerun with membership export on `mia`, producing 2,000,000 cell-neighborhood membership rows per run. `make milo-full-4m-lineage-programs` and `make milo-full-4m-lineage-matched-programs` then scored curated programs from `configs/gene_sets.yaml` in each neighborhood.
+
+In the strict matched FLEX v2/device lineage analysis, the single significant neighborhood is Early iOSN-enriched (`age_coef=-1.014`, `FDR=0.0427`). Its program scores support the cell-state interpretation:
+
+| Program | Matched significant-neighborhood z-score |
+| --- | ---: |
+| Immature neuron | 2.91 |
+| Senescence/SASP | 1.63 |
+| Mature olfactory neuron | 0.25 |
+| Cilia/olfactory transduction | 0.13 |
+| Progenitor/neuroblast | -0.11 |
+| HBC activation/injury | -0.84 |
+| HBC identity | -0.88 |
+
+This strengthens the narrow mechanistic claim: under strict technical matching, the surviving age-negative lineage neighborhood is an immature neuronal neighborhood rather than a basal-cell or secretory artifact. In the all-donor lineage run, negative significant neighborhoods show modest immature-neuron enrichment overall (`median z=0.118`) and depletion of HBC identity/activation programs (`median z=-0.818` and `-0.698`), consistent with the same direction but with broader all-donor heterogeneity.
+
 ## Biological Reading
 
 The all-cell and lineage-focused full-scale runs now support a real neighborhood-level aging signal that was not visible in the 250k/100k pilots. The strongest recurring all-donor signal is reduced age-associated representation of regenerative neuronal-lineage neighborhoods, especially early iOSN, late iOSN, INP, and related HBC/suprabasal neighborhoods. The broad all-cell run also shows age-associated shifts in mucous gland/secretory, multiciliated, dendritic/T-cell, Bowman gland, sustentacular, and mature neuronal neighborhoods.
@@ -64,7 +82,6 @@ Supported as an exploratory mechanistic layer:
 
 Still gated before main-text promotion:
 
-- gene-level marker/program enrichment;
 - age-bin robustness;
 - comparison with official MiloR or a clearly documented reason to keep the Python implementation;
 - replication against the 250k seed and lineage-focused sensitivity runs.

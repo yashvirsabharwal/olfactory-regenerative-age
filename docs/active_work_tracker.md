@@ -1,6 +1,6 @@
 # ORA Active Work Tracker
 
-Updated: 2026-06-18
+Updated: 2026-06-22
 
 This is the live tracker for the post-preprint upgrade path. Mark tasks here as they move from planned to implemented, validated, and manuscript-ready.
 
@@ -48,7 +48,8 @@ This is the live tracker for the post-preprint upgrade path. Mark tasks here as 
 - [x] Run matched FLEX v2/device technical sensitivity for full 4M Milo-style results.
 - [x] Add donor-yield adjustment to full 4M Milo-style models.
 - [x] Summarize neighborhoods by ORA feature themes and claim gates.
-- [ ] Add gene-level marker/program enrichment for significant neighborhoods.
+- [x] Add curated gene-program enrichment for full 4M lineage and matched-lineage neighborhoods.
+- [ ] Add broader all-cell/secretory marker enrichment only if those neighborhood claims are promoted.
 
 ## 4. Pseudotime / Palantir / CellRank
 
@@ -117,3 +118,4 @@ This is the live tracker for the post-preprint upgrade path. Mark tasks here as 
 - 2026-06-18: Completed the matched FLEX v2/device full 4M Milo-style sensitivity runs on `mia` using 27 healthy donors. The all-cell matched run found 10 neighborhoods at age FDR < 0.10, mostly negative Naive CD8/T-cell neighborhoods plus one negative late iOSN neighborhood and one positive Bowman gland neighborhood. The lineage-focused matched run retained one negative Early iOSN neighborhood at FDR 0.0427. The secretory-focused matched run found 0 significant neighborhoods. This supports a conservative mechanistic claim: regenerative neuronal-lineage signal persists under strict technical matching, broad all-donor neighborhood maps are real but technically sensitive, and secretory-only DA should remain exploratory.
 - 2026-06-18: Added `make milo-full-4m-annotation`, which converts the six full/matched Milo-style DA tables into top-neighborhood and theme-summary tables with ORA biology themes and claim gates. The all-donor theme map is dominated by negative supporting/secretory, immune/inflammatory, neuronal-lineage, and progenitor neighborhoods; the matched support narrows to negative Naive CD8/T-cell and Early/Late iOSN neighborhoods. Gene-level marker/program enrichment remains open because the current DA tables do not retain per-neighborhood cell memberships.
 - 2026-06-18: Added optional Milo-style neighborhood membership export via `scripts/run_milo_pilot.py --membership-out`. Future full-4M reruns can now retain exact per-neighborhood cell indices, obs names, donors, and cell-state labels for marker/program enrichment without changing the DA model contract.
+- 2026-06-22: Reran the full 4M lineage and matched-lineage Milo-style workflows on `mia` with membership export, producing 2,000,000 cell-neighborhood membership rows for each run. Added and ran curated neighborhood program scoring for both lineage runs. The single matched significant Early iOSN neighborhood is strongly enriched for the immature-neuron program (`z=2.91`) and moderately enriched for senescence/SASP (`z=1.63`), while HBC identity and activation/injury programs are depleted. This materially strengthens the matched regenerative-neuronal interpretation.
