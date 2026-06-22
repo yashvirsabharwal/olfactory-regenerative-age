@@ -65,6 +65,12 @@ In the strict matched FLEX v2/device lineage analysis, the single significant ne
 
 This strengthens the narrow mechanistic claim: under strict technical matching, the surviving age-negative lineage neighborhood is an immature neuronal neighborhood rather than a basal-cell or secretory artifact. In the all-donor lineage run, negative significant neighborhoods show modest immature-neuron enrichment overall (`median z=0.118`) and depletion of HBC identity/activation programs (`median z=-0.818` and `-0.698`), consistent with the same direction but with broader all-donor heterogeneity.
 
+## Age-Bin Robustness
+
+`make milo-full-4m-lineage-age-bins` and `make milo-full-4m-lineage-matched-age-bins` summarize donor-normalized neighborhood membership intensity across age bins. This is a descriptive robustness check, not a replacement for the donor-level regression model, because neighborhood memberships overlap. The all-donor lineage run includes 198 healthy donors across bins (`lt45`: 46, `45_59`: 32, `60_74`: 80, `75_plus`: 40). Among the 5,613 age-associated lineage neighborhoods, 4,705 negative neighborhoods are also lower in the oldest observed donor bin than the youngest observed donor bin.
+
+The matched FLEX v2/device age-bin run uses the same 27 healthy donors as the matched DA model (`lt45`: 4, `45_59`: 7, `60_74`: 12, `75_plus`: 4). The single matched significant Early iOSN neighborhood remains directionally negative across observed bins: `lt45:-8.354:n=4;45_59:-9.495:n=6;60_74:-9.298:n=5`, with old-minus-young median logit membership fraction `-0.944` and Spearman trend `-0.5`. No `75_plus` donor contributed membership to that specific neighborhood, so the robust claim is directional agreement across observed bins, not a fully monotonic four-bin trajectory.
+
 ## Biological Reading
 
 The all-cell and lineage-focused full-scale runs now support a real neighborhood-level aging signal that was not visible in the 250k/100k pilots. The strongest recurring all-donor signal is reduced age-associated representation of regenerative neuronal-lineage neighborhoods, especially early iOSN, late iOSN, INP, and related HBC/suprabasal neighborhoods. The broad all-cell run also shows age-associated shifts in mucous gland/secretory, multiciliated, dendritic/T-cell, Bowman gland, sustentacular, and mature neuronal neighborhoods.
@@ -82,7 +88,6 @@ Supported as an exploratory mechanistic layer:
 
 Still gated before main-text promotion:
 
-- age-bin robustness;
 - comparison with official MiloR or a clearly documented reason to keep the Python implementation;
 - replication against the 250k seed and lineage-focused sensitivity runs.
 

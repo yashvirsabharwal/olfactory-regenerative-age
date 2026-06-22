@@ -36,6 +36,7 @@ Do not claim:
 - Full 4M Milo-style lineage result: 5,613 / 20,000 neighborhoods at age FDR < 0.10, dominated by negative neuronal/regenerative neighborhoods.
 - Matched FLEX v2/device lineage result: 1 / 20,000 neighborhood at age FDR < 0.10, Early iOSN, `age_coef=-1.014`, `FDR=0.0427`.
 - Matched Early iOSN neighborhood program scores: immature neuron `z=2.91`, senescence/SASP `z=1.63`, HBC activation/injury `z=-0.84`, HBC identity `z=-0.88`.
+- Full 4M lineage age-bin robustness is complete: 4,705 / 5,613 negative age-associated lineage neighborhoods are lower in the oldest observed donor bin than the youngest observed donor bin. The strict matched Early iOSN hit also agrees directionally across observed bins (`lt45` to `60_74`; old-minus-young median logit fraction `-0.944`).
 - GSE184117 has scANVI/scArches mapping and donor-feature concordance, but remains small-n and mixed.
 - NDD projection remains exploratory: 5 AD and 5 PD donors, all FLEX v2/device.
 - Genome-wide DE has edgeR/limma parity and audits, but disease biology remains hypothesis-generating.
@@ -44,10 +45,10 @@ Do not claim:
 
 These are the tasks that most directly determine whether the current story is ready to preprint.
 
-- [ ] Add age-bin robustness for full 4M lineage Milo-style neighborhoods.
+- [x] Add age-bin robustness for full 4M lineage Milo-style neighborhoods.
   - Goal: show whether Early iOSN/immature-neuron depletion is monotonic or restricted to a specific age range.
-  - Required outputs: age-bin neighborhood summary, matched age-bin sensitivity, figure-ready table.
-  - Acceptance: result supports or narrows claim language without contradicting matched lineage finding.
+  - Outputs: `results/tables/milo_full_4m_lineage_age_bin_neighborhoods.tsv`, `results/tables/milo_full_4m_lineage_age_bin_summary.tsv`, `results/tables/milo_full_4m_lineage_matched_age_bin_neighborhoods.tsv`, and `results/tables/milo_full_4m_lineage_matched_age_bin_summary.tsv`.
+  - Result: broad all-donor negative lineage neighborhoods largely agree with age-bin direction; the single matched Early iOSN hit remains directionally negative from the youngest to oldest observed bins, though per-neighborhood bin donor counts are sparse.
 
 - [ ] Add Milo implementation-parity decision.
   - Goal: either run a focused official MiloR parity subset or write a transparent rationale for the Python donor-level neighborhood model.

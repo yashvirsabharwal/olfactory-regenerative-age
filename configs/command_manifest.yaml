@@ -391,6 +391,28 @@ commands:
       - "results/tables/milo_full_4m_lineage_matched_program_scores.tsv"
       - "results/tables/milo_full_4m_lineage_matched_program_summary.tsv"
       - "results/tables/milo_full_4m_lineage_matched_program_coverage.tsv"
+  milo_full_4m_lineage_age_bins:
+    description: "Summarize full 4M lineage Milo-style neighborhood membership intensity across donor age bins."
+    command: "make milo-full-4m-lineage-age-bins"
+    deferred: true
+    inputs:
+      - "results/tables/milo_full_4m_lineage_memberships.tsv"
+      - "results/tables/milo_full_4m_lineage_neighborhood_da.tsv"
+      - "data/processed/cohort_manifest.tsv"
+    outputs:
+      - "results/tables/milo_full_4m_lineage_age_bin_neighborhoods.tsv"
+      - "results/tables/milo_full_4m_lineage_age_bin_summary.tsv"
+  milo_full_4m_lineage_matched_age_bins:
+    description: "Summarize matched FLEX v2/device full 4M lineage Milo-style neighborhood membership intensity across donor age bins."
+    command: "make milo-full-4m-lineage-matched-age-bins"
+    deferred: true
+    inputs:
+      - "results/tables/milo_full_4m_lineage_matched_memberships.tsv"
+      - "results/tables/milo_full_4m_lineage_matched_neighborhood_da.tsv"
+      - "data/processed/cohort_manifest.tsv"
+    outputs:
+      - "results/tables/milo_full_4m_lineage_matched_age_bin_neighborhoods.tsv"
+      - "results/tables/milo_full_4m_lineage_matched_age_bin_summary.tsv"
   report:
     description: "Regenerate Markdown report and summary figures from existing outputs."
     command: "make report"
