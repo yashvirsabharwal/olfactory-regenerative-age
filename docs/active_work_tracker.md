@@ -1,121 +1,188 @@
-# ORA Active Work Tracker
+# ORA Publication Readiness Tracker
 
 Updated: 2026-06-22
 
-This is the live tracker for the post-preprint upgrade path. Mark tasks here as they move from planned to implemented, validated, and manuscript-ready.
+This is the active task board for moving ORA from a strong internal analysis to a defensible preprint/manuscript. It intentionally prioritizes claim gates, figure/manuscript readiness, and reproducibility over open-ended benchmarking.
 
-## 0. Repository Hygiene
+## Publication Frame
 
-- [x] Scan tracked and ignored repository structure.
-- [x] Remove generated Python/ruff cache directories.
-- [x] Update stale manuscript/docs language from 25k pilot framing to scaled latent and mapped-external framing.
-- [ ] Decide whether to retire or refresh the legacy `workflows/Snakefile` surface.
-- [ ] Group future large-run outputs under explicit `data/processed/latent/`, `data/processed/external/`, and `results/tables/latent/` namespaces if/when a larger breaking path cleanup is acceptable.
+Current target: a computational single-cell atlas reanalysis/resource paper centered on a healthy human olfactory regenerative aging axis.
 
-## 1. Gateway scANVI/scArches Reference Mapping
+Primary claim:
 
-- [x] Build a Gateway reference training script using existing scaled/lineage scVI inputs where possible.
-- [x] Train scANVI labels from Gateway fine/coarse cell states.
-- [x] Save reference model artifacts, label vocabulary, gene set, and registry metadata.
-- [x] Implement GSE184117 query preparation with exact gene intersection and metadata harmonization.
-- [x] Project GSE184117 into Gateway latent/reference space using scArches-style query mapping.
-- [x] Emit external query latent coordinates, predicted labels, label confidence/entropy, donor features, and mapping QC.
-- [x] Compare scANVI/scArches features with current marker-reference features.
-- [x] Update report/manuscript only if mapping confidence and concordance improve or clarify limitations.
+- Healthy donor olfactory epithelial composition and curated module features encode a modest, reproducible regenerative aging axis.
 
-## 2. Full 4M-Cell Latent Model
+Secondary mechanistic claim:
 
-- [x] Estimate local memory/runtime from the 250k run and decide local M5 versus remote server execution.
-- [x] Add remote-run notes for the T1000/enterprise server path, including environment, data transfer, resumability, and output sync.
-- [x] Add reproducible full-4M scVI Make targets and provenance entries.
-- [x] Add SSH/rsync/tmux remote runner for `sabharwaly2@mia.ninds.nih.gov`.
-- [x] Launch first all-cell 3,003-gene attempt on `mia` and diagnose silent preprocessing stop before GPU training.
-- [x] Add a 1M-cell stratified fallback target after all-cell materialization proved memory-limited on `mia`.
-- [x] Add a 500k-cell stratified target after the 1M sampled materialization also approached the server memory ceiling.
-- [x] Add a second 250k-cell seed-stability target as the known-safe scale for the current H5AD/scVI materialization route.
-- [x] Add a chunked all-cell reduced-H5AD builder so 4M-cell training can be attempted without the memory-hostile raw backed row/column slice.
-- [x] Train full Gateway scVI/scANVI model or a defensible sketch/online alternative.
-- [x] Validate full-model label purity, technical mixing, donor mixing, marker continuity, and seed stability.
-- [ ] Compare full-model embeddings with 250k and lineage-focused embeddings.
+- Full 4M scVI neighborhoods suggest age-associated loss of regenerative neuronal neighborhoods. The strict matched FLEX v2/device result supports a negative Early iOSN/immature-neuron neighborhood, enriched for immature-neuron genes and depleted for HBC programs.
 
-## 3. Milo Differential Abundance
+Exploratory only:
 
-- [x] Add R/Python workflow that consumes validated latent coordinates and donor metadata.
-- [x] Define age bins and continuous-age neighborhood tests.
-- [x] Run first-pass Milo-style DA on healthy-donor latent neighborhoods.
-- [x] Run Milo-style DA on basal-to-neuronal and supporting/secretory neighborhoods.
-- [x] Run publication-scale Milo-style DA on the full 4M reduced scVI atlas.
-- [x] Run matched FLEX v2/device technical sensitivity for full 4M Milo-style results.
-- [x] Add donor-yield adjustment to full 4M Milo-style models.
-- [x] Summarize neighborhoods by ORA feature themes and claim gates.
-- [x] Add curated gene-program enrichment for full 4M lineage and matched-lineage neighborhoods.
-- [ ] Add broader all-cell/secretory marker enrichment only if those neighborhood claims are promoted.
+- GSE184117 concordance, AD/PD projection, genome-wide disease DE, secretory-only neighborhood DA, broad all-donor neighborhood maps, and any future pseudotime/cNMF/ligand-receptor analyses.
 
-## 4. Pseudotime / Palantir / CellRank
+Do not claim:
 
-- [ ] Use lineage-focused scVI/scANVI embeddings as the substrate.
-- [ ] Run diffusion pseudotime or Palantir-style fate probabilities for basal-to-OSN and basal-to-secretory paths.
-- [ ] Evaluate whether RNA velocity or transition kernels are defensible before using CellRank.
-- [ ] Test age/ORA shifts along pseudotime and fate probabilities.
-- [ ] Require seed stability before manuscript claims.
+- Absolute biological-age clock accuracy.
+- AD/PD diagnostic utility.
+- Measured lineage flux from cross-sectional data.
+- UMAP-derived trajectory or neighborhood biology.
 
-## 5. cNMF / Program Discovery
+## Current Status Snapshot
 
-- [ ] Run cNMF within HBC/GBC/progenitor cells.
-- [ ] Run cNMF within immature/mature OSN cells.
-- [ ] Run cNMF within sustentacular/secretory cells.
-- [ ] Run cNMF within immune/stromal compartments.
-- [ ] Test program scores against age, ORA residuals, chemistry/device, donor yield, and GSE184117 mapped states.
-- [ ] Promote only seed-stable and technically robust programs.
+- Repository is maintained on `main`; generated data/results remain intentionally ignored.
+- Full Gateway analysis covers 202 donors and 4,028,275 cells.
+- ORA modeling uses 187 healthy age-usable donors with donor-level CV and shuffled-age null testing.
+- Full all-cell reduced scVI was trained on all 4,028,275 cells with 3,003 HVG/marker genes and finite 10-dimensional `X_scvi`.
+- Full 4M Milo-style lineage result: 5,613 / 20,000 neighborhoods at age FDR < 0.10, dominated by negative neuronal/regenerative neighborhoods.
+- Matched FLEX v2/device lineage result: 1 / 20,000 neighborhood at age FDR < 0.10, Early iOSN, `age_coef=-1.014`, `FDR=0.0427`.
+- Matched Early iOSN neighborhood program scores: immature neuron `z=2.91`, senescence/SASP `z=1.63`, HBC activation/injury `z=-0.84`, HBC identity `z=-0.88`.
+- GSE184117 has scANVI/scArches mapping and donor-feature concordance, but remains small-n and mixed.
+- NDD projection remains exploratory: 5 AD and 5 PD donors, all FLEX v2/device.
+- Genome-wide DE has edgeR/limma parity and audits, but disease biology remains hypothesis-generating.
 
-## 6. Expanded External Validation Stack
+## Priority 1: Manuscript Claim Gates
 
-- [ ] Query GEO/SRA/CELLxGENE for human olfactory/nasal single-cell and spatial datasets.
-- [ ] Add a candidate registry table with accession, tissue, disease/age context, assay, raw availability, labels, donors, and validation role.
-- [ ] Add GSE151973 bulk deconvolution using Gateway-derived signatures.
-- [ ] Search COVID/anosmia/nasal biopsy datasets for regeneration-module validation.
-- [ ] Contact/resolve original labels for GSE184117 if public annotations remain insufficient.
+These are the tasks that most directly determine whether the current story is ready to preprint.
 
-## 7. Accuracy / Model Improvement
+- [ ] Add age-bin robustness for full 4M lineage Milo-style neighborhoods.
+  - Goal: show whether Early iOSN/immature-neuron depletion is monotonic or restricted to a specific age range.
+  - Required outputs: age-bin neighborhood summary, matched age-bin sensitivity, figure-ready table.
+  - Acceptance: result supports or narrows claim language without contradicting matched lineage finding.
 
-- [ ] Add elastic-net stability paths.
-- [ ] Add Bayesian additive regression tree exploration or document blocker.
-- [ ] Add TabPFN/AutoGluon exploratory benchmarks with nested donor-level CV only.
-- [ ] Add stacked ensembles only under nested CV.
-- [ ] Prototype multitask/adversarial age prediction with chemistry/device removal, labeled as exploratory.
-- [ ] Compare accuracy gains against interpretability and external concordance.
+- [ ] Add Milo implementation-parity decision.
+  - Goal: either run a focused official MiloR parity subset or write a transparent rationale for the Python donor-level neighborhood model.
+  - Required outputs: `docs/milo_implementation_parity.md` plus, if run, parity table.
+  - Acceptance: manuscript methods can defend Python Milo-style terminology and limitations.
 
-## 8. Biological Mechanism Analyses
+- [ ] Compare full 4M scVI embedding with 250k seed and lineage-focused embeddings.
+  - Goal: verify that the key lineage/matched signals are not an artifact of the full reduced model only.
+  - Required outputs: embedding comparison summary, overlapping marker-continuity and theme-level concordance.
+  - Acceptance: full 4M model is manuscript-primary; smaller models are clearly sensitivity anchors.
 
-- [ ] Add ligand-receptor or NicheNet-ready exports for immune/stromal/sustentacular-to-basal signaling.
-- [ ] Test whether inflammatory/supporting signals plausibly regulate basal-cell stress or blocked neurogenesis.
-- [ ] Cross-check mechanism candidates against GSE184117 stem-cell inflammation findings.
-- [ ] Promote mechanism claims only if robust to cell-state, donor, and technical sensitivity.
+- [ ] Refresh claim ledger after the above gates.
+  - Goal: convert current exploratory/mechanistic language into final preprint language.
+  - Required outputs: updated `docs/claim_ledger.md`, `docs/methodology_standards.md`, and manuscript result text.
+  - Acceptance: every promoted claim has a matching audit/sensitivity table.
 
-## 9. Spatial / Histology Validation
+## Priority 2: Manuscript And Figure Package
 
-- [ ] Search for human olfactory spatial transcriptomics or histology validation datasets.
-- [ ] If spatial data exist, test cell2location-like mapping of Gateway states into neuroepithelium versus respiratory metaplasia.
-- [ ] Draft wet-lab validation panel: TP63/KRT5, OMP, GAP43/DCX, CYP2A13, MUC5B, PTPRC/LST1.
-- [ ] Define expected direction for each marker from ORA and external validation.
+These tasks turn the science into a coherent paper.
 
-## Running Notes
+- [ ] Update manuscript framework for the new full 4M neighborhood and program-enrichment results.
+  - Add matched Early iOSN program enrichment to the Results structure.
+  - Reframe full 4M neighborhood analysis as a mechanistic support layer, not a central standalone paper.
 
-- 2026-06-16: Created active tracker after repository scan. Generated cache directories were removed. Stale docs/manuscript text was updated to reflect scaled 250k/100k scVI and GSE184117 mapped-feature validation. Task 1 is now the active implementation focus.
-- 2026-06-16: Added the first scANVI/scArches mapping workflow, including reference training/query projection CLI, Make target, command-manifest entry, QC/donor-feature helper functions, and unit tests. Focused tests, full tests, and ruff are clean before launching the heavier reference-mapping run.
-- 2026-06-16: Completed Task 1 first pass. Trained a Gateway scANVI reference from `gateway_scvi_stratified_250k.h5ad`, reused the saved model for GSE184117 query transfer, and wrote `gse184117_scanvi_mapped.h5ad` with 59,656 query cells x 3,003 genes. All six external samples were high-confidence by label confidence/entropy. Same-named scANVI donor-feature concordance against Gateway age associations produced 58 rows: 27 concordant, 21 discordant, and 10 not evaluable, so the external claim remains small-n and mixed rather than independently validated.
-- 2026-06-16: Started Task 2 compute setup. Non-interactive SSH to `sabharwaly2@mia.ninds.nih.gov` reaches the NIH host but currently fails authentication, so remote execution is prepared but not launched. Added full-4M Make/provenance targets, model saving in the scVI runner, a remote SSH/rsync/tmux launcher, and `docs/full_4m_compute_plan.md`. Recommendation is remote-first once SSH auth is available; local M5 remains a fallback only for smaller sketch runs.
-- 2026-06-17: Launched the first all-cell 3,003-gene scVI attempt manually on `mia` through tmux after password-based SSH setup. The process reached 76 GB RSS during backed H5AD materialization, exited before GPU training, and left only the seed line in the log. Added unbuffered progress logging, skipped redundant HVG recomputation for fixed gene-list runs, and registered a marker-preserving 1,500-gene all-cell fallback target for memory-constrained full-cell training.
-- 2026-06-17: The marker-preserving 1,500-gene all-cell fallback reached 103 GB RSS while still materializing the backed H5AD slice, so it was stopped before exhausting the 125 GB no-swap server. Added `scvi-scaled-1m`, a stratified 1M-cell run with the full 3,003-gene feature set, as the next defensible large-scale latent atlas step.
-- 2026-06-17: The 1M-cell stratified run reached 106 GB RSS during sampled backed-slice materialization before training, so it was also stopped to protect the no-swap server. Added `scvi-scaled-500k` as the next memory-safe scale step with the full 3,003-gene feature set. True all-cell training now requires a chunked/Zarr-backed path or a higher-memory host rather than the current in-memory AnnData materialization route.
-- 2026-06-17: The 500k-cell stratified run also reached 106 GB RSS during materialization before training and was stopped. Added `scvi-scaled-250k-seed23` to prioritize seed stability at the known-safe 250k scale while a chunked/Zarr-backed or higher-memory all-cell strategy is designed. The seed-stability target intentionally avoids fixed backed-column slicing because that HDF5 CSR path caused high transient memory even at 250k cells.
-- 2026-06-17: Added `scripts/build_reduced_h5ad.py` and Make targets `scvi-reduced-4m`/`scvi-full-4m-reduced`. The new path writes 3,003-gene chunks from all Gateway rows and concatenates them on disk before all-cell scVI training, preserving all cells while avoiding the failed raw-H5AD backed fancy-index materialization route.
-- 2026-06-18: Completed the all-cell reduced Gateway scVI run on `mia`. The chunked reducer wrote `data/processed/gateway_hvg3003_4m.h5ad` with 4,028,275 cells x 3,003 genes, and scVI trained on all cells for 100 epochs, writing `data/processed/gateway_scvi_full_4m_reduced.h5ad` with finite 10-dimensional `X_scvi` for all 4,028,275 cells. Validation on a 100k-cell sample passed embedding, fine/coarse label-purity, FLEX/device/condition/sex mixing, and basal/immature OSN/mature OSN/sustentacular marker-continuity checks. Progenitor and immune marker-continuity were limited in the full model, while the second 250k seed model passed immune continuity; keep mechanism claims gated until targeted lineage/program checks compare these models.
-- 2026-06-18: Added and ran a Python Milo-style latent-neighborhood DA pilot on the local 250k scVI atlas. The workflow tested 1,000 healthy-donor neighborhoods with donor-level logit-fraction regressions adjusted for sex, chemistry, and collection method. All 1,000 neighborhoods were testable, but 0 passed BH FDR < 0.10 for age. The strongest nominal neighborhood was mostly quiescent HBC (`p=0.00568`, `FDR=0.885`), so this supports keeping neighborhood biology exploratory until sensitivity runs, full-model transfer, or stronger neighborhood definitions improve signal.
-- 2026-06-18: Added targeted Milo-style lineage and secretory neighborhood runs. The lineage-focused 100k scVI pass tested 1,000 basal/INP/iOSN/mOSN/sustentacular neighborhoods and found 0 age neighborhoods at BH FDR < 0.10; the strongest nominal neighborhoods were early mature mOSN, late iOSN, and cycling HBC with negative age coefficients. The secretory/sustentacular/glandular pass also found 0 FDR-significant neighborhoods; nominal top neighborhoods were serous, club, mucous gland, and proliferating secretory with negative age coefficients. Treat this as hypothesis-generating support for regenerative/secretory depletion, not a promoted Milo claim.
-- 2026-06-18: Upgraded the Milo-style workflow for publication-scale 4M runs. New `milo-full-4m`, `milo-full-4m-lineage`, and `milo-full-4m-secretory` targets use the all-cell reduced scVI atlas, 20,000 stratified seed neighborhoods, 100 nearest cells per neighborhood, minimum 30 donors, categorical technical covariates, and numeric donor-yield adjustment. The 250k/100k targets are now explicitly engineering/sensitivity runs, not final scientific endpoints.
-- 2026-06-18: Completed the publication-scale full 4M Milo-style runs on `mia` in roughly 17 minutes. The broad all-cell run tested 20,000 neighborhoods and found 3,673 with age FDR < 0.10, mostly negative age coefficients; the top neighborhood was mucous gland/respiratory secretory (`FDR=1.62e-05`). The lineage-focused full 4M run found 5,613 age neighborhoods at FDR < 0.10, dominated by negative early iOSN, late iOSN, INP, HBC/suprabasal, and mature OSN neighborhoods. The secretory-focused full 4M run found 285 neighborhoods at FDR < 0.10 but with mixed direction inside the restricted secretory denominator. Keep matched sensitivity and marker/program annotation as the next claim gate.
-- 2026-06-18: Completed the matched FLEX v2/device full 4M Milo-style sensitivity runs on `mia` using 27 healthy donors. The all-cell matched run found 10 neighborhoods at age FDR < 0.10, mostly negative Naive CD8/T-cell neighborhoods plus one negative late iOSN neighborhood and one positive Bowman gland neighborhood. The lineage-focused matched run retained one negative Early iOSN neighborhood at FDR 0.0427. The secretory-focused matched run found 0 significant neighborhoods. This supports a conservative mechanistic claim: regenerative neuronal-lineage signal persists under strict technical matching, broad all-donor neighborhood maps are real but technically sensitive, and secretory-only DA should remain exploratory.
-- 2026-06-18: Added `make milo-full-4m-annotation`, which converts the six full/matched Milo-style DA tables into top-neighborhood and theme-summary tables with ORA biology themes and claim gates. The all-donor theme map is dominated by negative supporting/secretory, immune/inflammatory, neuronal-lineage, and progenitor neighborhoods; the matched support narrows to negative Naive CD8/T-cell and Early/Late iOSN neighborhoods. Gene-level marker/program enrichment remains open because the current DA tables do not retain per-neighborhood cell memberships.
-- 2026-06-18: Added optional Milo-style neighborhood membership export via `scripts/run_milo_pilot.py --membership-out`. Future full-4M reruns can now retain exact per-neighborhood cell indices, obs names, donors, and cell-state labels for marker/program enrichment without changing the DA model contract.
-- 2026-06-22: Reran the full 4M lineage and matched-lineage Milo-style workflows on `mia` with membership export, producing 2,000,000 cell-neighborhood membership rows for each run. Added and ran curated neighborhood program scoring for both lineage runs. The single matched significant Early iOSN neighborhood is strongly enriched for the immature-neuron program (`z=2.91`) and moderately enriched for senescence/SASP (`z=1.63`), while HBC identity and activation/injury programs are depleted. This materially strengthens the matched regenerative-neuronal interpretation.
+- [ ] Update the LaTeX manuscript draft.
+  - Add current methods for full 4M scVI, Milo-style DA, matched sensitivity, membership export, and program scoring.
+  - Update Results, Discussion, Limitations, and figure callouts.
+  - Keep citations verified and DOI-backed.
+
+- [ ] Redesign main and extended figures.
+  - Figure 1: cohort and claim-gated workflow.
+  - Figure 2: ORA composition/module aging axis.
+  - Figure 3: model performance, null, calibration.
+  - Figure 4: stable ORA feature biology.
+  - Figure 5: external validation and NDD guardrails.
+  - Figure 6: full 4M scVI/Milo/program enrichment.
+  - Extended Data: audits, model card, external evidence, DE parity, scVI validation, full neighborhood tables.
+
+- [ ] Generate publication tables.
+  - Required: cohort summary, model card, top stable features, external evidence ledger, NDD appendix, DE audit summary, full 4M Milo summary, matched program enrichment summary.
+
+- [ ] Compile manuscript PDF once TeX tooling is available.
+  - Acceptance: PDF builds from clean repo state and all figure/table paths resolve.
+
+## Priority 3: External Validation Upgrade
+
+This remains the largest scientific weakness.
+
+- [ ] Run a fresh external dataset search for human olfactory/nasal single-cell, bulk, spatial, COVID/anosmia, presbyosmia, and aging datasets.
+  - Required outputs: candidate registry with accession, tissue, assay, donors, age/disease metadata, raw availability, and validation role.
+  - Acceptance: each dataset is labeled as direct validation, marker/context only, blocked, or not useful.
+
+- [ ] Decide whether any dataset can provide donor-level ORA validation beyond GSE184117.
+  - Direct validation requires age/status metadata, expression, and cell/sample labels or usable reference mapping.
+  - If none exist, document this as a limitation rather than continuing open-ended searches.
+
+- [ ] Add GSE151973 bulk/deconvolution context only if it clarifies olfactory vs respiratory marker specificity.
+  - Acceptance: no claim that it validates donor-level ORA aging unless donor-level age design supports it.
+
+- [ ] Consider author-label recovery for GSE184117.
+  - Action: draft a concise data-request note for original cell labels or annotation files.
+  - Acceptance: either labels obtained and integrated, or request documented as an unresolved limitation.
+
+## Priority 4: Optional Mechanistic Extensions
+
+These are valuable only after Priority 1 gates are done.
+
+- [ ] Pseudotime or diffusion/Palantir-style lineage analysis.
+  - Use only validated non-UMAP latent space.
+  - Promote only if age/ORA shifts are stable and not chemistry/device driven.
+
+- [ ] cNMF/program discovery in focused compartments.
+  - Candidate compartments: HBC/GBC/progenitor, iOSN/mOSN, sustentacular/secretory, immune/stromal.
+  - Promote only if programs are stable across seeds and interpretable beyond curated gene-set scoring.
+
+- [ ] Ligand-receptor or NicheNet-ready export.
+  - Focus on immune/stromal/sustentacular signals to basal or immature neuronal states.
+  - Treat as hypothesis-generation unless externally supported.
+
+- [ ] Spatial/histology validation search.
+  - Search for human olfactory spatial transcriptomics or histology datasets.
+  - If no public data exist, keep wet-lab validation panel as a proposed follow-up.
+
+## Priority 5: Reproducibility And Repository Hardening
+
+- [ ] Decide whether to retire or refresh `workflows/Snakefile`.
+  - Acceptance: no stale workflow suggests an outdated MVP-only path.
+
+- [ ] Add a manuscript rerun profile.
+  - Could be a Make aggregate target, Snakemake profile, or documented staged rerun instructions.
+  - Acceptance: user can regenerate manuscript-facing outputs without guessing command order.
+
+- [ ] Preserve remote-compute notes.
+  - Include `mia` tmux/rsync workflow, memory notes, runtime notes, and which large artifacts stay remote.
+
+- [ ] Update output provenance after final figure/table generation.
+  - Acceptance: 0 missing outputs for manuscript-facing artifacts.
+
+- [ ] Run final checks before preprint.
+  - `.venv/bin/python -m ruff check .`
+  - `PYTHON=.venv/bin/python make test`
+  - `PYTHON=.venv/bin/python make output-provenance`
+  - citation-key check
+  - figure existence check
+  - PDF build check
+
+## Completed Major Milestones
+
+- [x] Gateway H5AD inspection and cohort manifest.
+- [x] Donor-level composition, CLR, lineage-ratio, and module feature matrices.
+- [x] Healthy-only ORA models with repeated donor-level CV.
+- [x] Shuffled-age permutation/null testing.
+- [x] Nested tuning and stacking benchmarks.
+- [x] ORA calibration, residual diagnostics, sensitivity tables, and model card.
+- [x] GSE184117 raw 10x module scoring, marker panels, mapped donor features, and scANVI/scArches query mapping.
+- [x] AD/PD frozen ORA projection with uncertainty, matched context, and label permutation.
+- [x] Targeted and genome-wide pseudobulk export.
+- [x] Genome-wide edgeR and limma-voom summaries with matched and sentinel-gene audits.
+- [x] Latent-space audit showing CELLxGENE exposes only UMAP.
+- [x] Stratified 250k scVI, second seed target, lineage-focused scVI, and full 4M reduced scVI.
+- [x] Full 4M scVI validation.
+- [x] Full 4M Milo-style all-cell, lineage, secretory, matched, and donor-yield-adjusted analyses.
+- [x] Milo-style theme annotation and claim gates.
+- [x] Neighborhood membership export.
+- [x] Full 4M lineage and matched-lineage curated program enrichment.
+- [x] Methodology standards and claim ledger.
+- [x] Initial manuscript framework and LaTeX draft.
+
+## Near-Term Execution Order
+
+1. Age-bin robustness for full 4M lineage neighborhoods.
+2. MiloR parity subset or Python implementation rationale.
+3. Full 4M vs 250k/lineage embedding comparison.
+4. Update manuscript framework, claim ledger, and LaTeX draft.
+5. Refresh figures, especially the new full 4M scVI/Milo/program figure.
+6. External validation search refresh and final validation-strength table.
+7. Final reproducibility appendix and output provenance.
+8. PDF build and preprint package review.
