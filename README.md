@@ -171,6 +171,8 @@ Generated data and analysis outputs are intentionally ignored by Git:
 - `data/processed/gateway_scvi_full_4m_reduced.h5ad`
 - `results/tables/scvi_full_4m_reduced_validation.tsv`
 - `results/tables/scvi_scaled_250k_seed23_validation.tsv`
+- `results/tables/scvi_embedding_claim_gates.tsv`
+- `results/tables/scvi_embedding_marker_concordance.tsv`
 - `data/processed/gateway_scvi_lineage_basal_neural_100k.h5ad`
 - `results/tables/scvi_lineage_basal_neural_validation.tsv`
 - `docs/latent_space_recovery_plan.md`

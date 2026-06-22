@@ -58,10 +58,10 @@ These are the tasks that most directly determine whether the current story is re
   - Outputs: `docs/milo_implementation_parity.md`, exact-neighborhood edgeR parity tables, official MiloR full-lineage subset tables, and official MiloR matched-lineage subset tables.
   - Result: edgeR supports the exact Python-neighborhood age-effect directions, including the matched Early iOSN hit. Official MiloR confirms broad age-associated latent-neighborhood structure but does not make the matched Early iOSN result its dominant independent finding, so manuscript language should remain conservative.
 
-- [ ] Compare full 4M scVI embedding with 250k seed and lineage-focused embeddings.
+- [x] Compare full 4M scVI embedding with 250k seed and lineage-focused embeddings.
   - Goal: verify that the key lineage/matched signals are not an artifact of the full reduced model only.
-  - Required outputs: embedding comparison summary, overlapping marker-continuity and theme-level concordance.
-  - Acceptance: full 4M model is manuscript-primary; smaller models are clearly sensitivity anchors.
+  - Outputs: `results/tables/scvi_embedding_claim_gates.tsv`, `results/tables/scvi_embedding_marker_concordance.tsv`, and `docs/scvi_embedding_comparison.md`.
+  - Result: full 4M reduced scVI remains manuscript-primary (`4,028,275` cells, 10 dimensions, fine-label purity `0.877`, coarse-label purity `0.975`). The 250k seeds and 100k lineage model are sensitivity anchors. Basal and mature-OSN marker continuity are supported across embeddings; immature OSN, progenitor, immune, and sustentacular latent-mechanism wording stays guarded.
 
 - [ ] Refresh claim ledger after the embedding comparison gate.
   - Goal: convert current exploratory/mechanistic language into final preprint language.
@@ -182,9 +182,8 @@ These are valuable only after Priority 1 gates are done.
 
 ## Near-Term Execution Order
 
-1. Full 4M vs 250k/lineage embedding comparison.
-2. Update claim ledger and LaTeX draft with the standardized run hierarchy.
-3. Refresh figures, especially the new full 4M scVI/Milo/program figure.
-4. External validation search refresh and final validation-strength table.
-5. Final reproducibility appendix and output provenance.
-6. PDF build and preprint package review.
+1. Update claim ledger and LaTeX draft with the standardized run hierarchy.
+2. Refresh figures, especially the new full 4M scVI/Milo/program figure.
+3. External validation search refresh and final validation-strength table.
+4. Final reproducibility appendix and output provenance.
+5. PDF build and preprint package review.

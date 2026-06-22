@@ -64,6 +64,7 @@ make latent-space-audit
 make latent-space-recompute-plan
 make scvi-pilot
 make scvi-pilot-validation
+make scvi-embedding-claim-gates
 make model-card
 make output-provenance
 make report
@@ -77,6 +78,14 @@ PYTHON=.venv/bin/python make scvi-pilot-validation
 ```
 
 The pilot output H5AD is local/ignored. Its validation table is tracked through the provenance manifest as `results/tables/scvi_pilot_validation.tsv`.
+
+The completed scVI embedding comparison used:
+
+```bash
+PYTHON=.venv/bin/python make scvi-embedding-claim-gates
+```
+
+This writes the publication-facing latent claim gates to `results/tables/scvi_embedding_claim_gates.tsv`, marker-concordance gates to `results/tables/scvi_embedding_marker_concordance.tsv`, and the summary note `docs/scvi_embedding_comparison.md`.
 
 The completed full 4M neighborhood parity checks used the remote full reduced scVI H5AD and membership tables:
 

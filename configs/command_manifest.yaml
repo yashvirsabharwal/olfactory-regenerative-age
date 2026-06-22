@@ -286,6 +286,18 @@ commands:
       - "results/tables/scvi_scaled_250k_seed23_validation.tsv"
       - "results/tables/scvi_lineage_basal_neural_validation.tsv"
     outputs: ["results/tables/scvi_latent_validation_comparison.tsv"]
+  scvi_embedding_claim_gates:
+    description: "Convert scVI validation tables into publication-facing run-role and marker-concordance claim gates."
+    command: "make scvi-embedding-claim-gates"
+    inputs:
+      - "results/tables/scvi_full_4m_reduced_validation.tsv"
+      - "results/tables/scvi_scaled_250k_validation.tsv"
+      - "results/tables/scvi_scaled_250k_seed23_validation.tsv"
+      - "results/tables/scvi_lineage_basal_neural_validation.tsv"
+    outputs:
+      - "results/tables/scvi_embedding_claim_gates.tsv"
+      - "results/tables/scvi_embedding_marker_concordance.tsv"
+      - "docs/scvi_embedding_comparison.md"
   scvi_lineage_basal_neural:
     description: "Train a lineage-focused scVI model for basal, progenitor, neural, secretory, and sustentacular compartments."
     command: "make scvi-lineage-basal-neural"

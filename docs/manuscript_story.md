@@ -42,7 +42,7 @@ Main blockers:
 - No large independent donor-feature-ready validation dataset yet.
 - GSE184117 is useful and now scANVI/scArches mapped, but only n=3 versus n=3 with mixed feature-direction concordance.
 - AD/PD projection has only 5 donors per disease group and is fully FLEX v2/device.
-- A chunked reduced all-cell scVI atlas now trains on all 4,028,275 Gateway cells using a 3,000-gene HVG/marker feature set and validates finite 10-dimensional `X_scvi`, strong label purity, and acceptable technical mixing. Full 4M Milo-style neighborhood analyses now identify age-associated latent neighborhoods, especially negative age associations in immature OSN/INP/regenerative neighborhoods, but matched sensitivity and marker/program annotation remain required before this becomes a primary claim.
+- A chunked reduced all-cell scVI atlas now trains on all 4,028,275 Gateway cells using a 3,000-gene HVG/marker feature set and validates finite 10-dimensional `X_scvi`, strong label purity, and acceptable technical mixing. Full 4M Milo-style neighborhood analyses identify age-associated latent neighborhoods, and matched sensitivity, marker/program annotation, age-bin robustness, edgeR parity, official MiloR subset sensitivity, and embedding comparison now support a conservative secondary lineage-neighborhood remodeling claim. The exact Early iOSN result remains a guarded exact-neighborhood subclaim rather than a primary discovery.
 
 ## Draft Title
 
