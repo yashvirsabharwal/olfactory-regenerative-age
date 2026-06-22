@@ -185,6 +185,8 @@ Generated data and analysis outputs are intentionally ignored by Git:
 - `results/figures/mvp_*.png`
 - `results/figures/manuscript_figure*.png`
 - `results/figures/manuscript_figure*.pdf`
+- `results/figures/extended_data_figure*.png`
+- `results/figures/extended_data_figure*.pdf`
 - `results/tables/manuscript_table_*.tsv`
 - `docs/publication_tables.md`
 - `docs/manuscript_framework.md`

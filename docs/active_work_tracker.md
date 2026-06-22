@@ -92,8 +92,9 @@ These tasks turn the science into a coherent paper.
   - Figure 6: full 4M scVI/Milo/program enrichment.
   - Result: `make manuscript-figures` now emits refreshed main-text figure PNG/PDF files, including a claim-gated full 4M scVI/Milo/program Figure 6.
 
-- [ ] Design extended-data figures.
+- [x] Design extended-data figures.
   - Required: audits, model card, external evidence, DE parity, scVI validation, full neighborhood tables.
+  - Result: `make manuscript-figures` now emits six extended-data figures covering model card, external evidence, scVI validation, DE audit, latent-neighborhood robustness, and NDD guardrails.
 
 - [x] Generate publication tables.
   - Required: cohort summary, model card, top stable features, external evidence ledger, NDD appendix, DE audit summary, full 4M Milo summary, matched program enrichment summary.

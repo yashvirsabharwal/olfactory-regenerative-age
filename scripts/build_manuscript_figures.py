@@ -54,6 +54,12 @@ def main() -> None:
         _figure4_feature_biology(tables, figures, plt),
         _figure5_external_ndd(tables, figures, plt),
         _figure6_de_latent(tables, figures, plt),
+        _extended_figure1_model_card(tables, figures, plt),
+        _extended_figure2_external_evidence(tables, figures, plt),
+        _extended_figure3_scvi_validation(tables, figures, plt),
+        _extended_figure4_de_audit(tables, figures, plt),
+        _extended_figure5_latent_robustness(tables, figures, plt),
+        _extended_figure6_ndd_guardrails(tables, figures, plt),
     ]
     print("Wrote manuscript figures:")
     for path in written:
@@ -578,6 +584,313 @@ def _figure6_de_latent(tables: Path, figures: Path, plt) -> Path:
     return _save(fig, figures / "manuscript_figure6_de_latent")
 
 
+def _extended_figure1_model_card(tables: Path, figures: Path, plt) -> Path:
+    model = _read_table(tables / "manuscript_table_model_card.tsv")
+    if model.empty:
+        model = _read_table(tables / "ora_model_card.tsv")
+    model = model.copy()
+    model["mae_mean"] = pd.to_numeric(model.get("mae_mean"), errors="coerce")
+    model["mae_ci_low"] = pd.to_numeric(model.get("mae_ci_low"), errors="coerce")
+    model["mae_ci_high"] = pd.to_numeric(model.get("mae_ci_high"), errors="coerce")
+    model["spearman_r_mean"] = pd.to_numeric(model.get("spearman_r_mean"), errors="coerce")
+    model["calibration_slope"] = pd.to_numeric(model.get("calibration_slope"), errors="coerce")
+    model = model.dropna(subset=["mae_mean"]).head(10)
+
+    fig = plt.figure(figsize=(11.4, 6.4), constrained_layout=True)
+    grid = fig.add_gridspec(2, 2, width_ratios=[1.35, 1])
+    ax_mae = fig.add_subplot(grid[:, 0])
+    ax_spear = fig.add_subplot(grid[0, 1])
+    ax_cal = fig.add_subplot(grid[1, 1])
+
+    _panel_label(ax_mae, "A")
+    ordered = model.sort_values("mae_mean", ascending=False)
+    y = np.arange(ordered.shape[0])
+    err_low = ordered["mae_mean"] - ordered["mae_ci_low"]
+    err_high = ordered["mae_ci_high"] - ordered["mae_mean"]
+    ax_mae.errorbar(
+        ordered["mae_mean"],
+        y,
+        xerr=[err_low.fillna(0), err_high.fillna(0)],
+        fmt="o",
+        color=BLUE,
+        ecolor=BLUE,
+        capsize=3,
+        ms=6,
+    )
+    ax_mae.set_yticks(y, [_model_label(m) for m in ordered["model"]])
+    ax_mae.set_xlabel("Repeated-CV MAE (years)")
+    ax_mae.set_title("Model-card error intervals")
+    ax_mae.grid(axis="x", visible=True)
+    ax_mae.grid(axis="y", visible=False)
+
+    _panel_label(ax_spear, "B")
+    ranked = model.sort_values("spearman_r_mean")
+    ax_spear.barh([_model_label(m) for m in ranked["model"]], ranked["spearman_r_mean"], color=TEAL)
+    ax_spear.set_xlabel("Spearman r")
+    ax_spear.set_title("Rank correlation")
+
+    _panel_label(ax_cal, "C")
+    cal = model.sort_values("calibration_slope")
+    ax_cal.barh([_model_label(m) for m in cal["model"]], cal["calibration_slope"], color=GOLD)
+    ax_cal.axvline(1, color=INK, lw=0.9, ls="--")
+    ax_cal.set_xlabel("Calibration slope")
+    ax_cal.set_title("Under-dispersion audit")
+
+    fig.suptitle("Extended Data 1. ORA model-card metrics and calibration limits", fontsize=14, fontweight="bold")
+    return _save(fig, figures / "extended_data_figure1_model_card")
+
+
+def _extended_figure2_external_evidence(tables: Path, figures: Path, plt) -> Path:
+    evidence = _read_table(tables / "manuscript_table_external_validation_strength.tsv")
+    fig = plt.figure(figsize=(11.4, 6.4), constrained_layout=True)
+    grid = fig.add_gridspec(2, 2, width_ratios=[1, 1.35])
+    ax_strength = fig.add_subplot(grid[0, 0])
+    ax_feature = fig.add_subplot(grid[1, 0])
+    ax_matrix = fig.add_subplot(grid[:, 1])
+
+    _panel_label(ax_strength, "A")
+    strength = evidence["validation_strength"].fillna("missing").astype(str).value_counts()
+    strength = strength.reindex(strength.index.sort_values())
+    ax_strength.barh(np.arange(strength.shape[0]), strength.values, color=GOLD)
+    ax_strength.set_yticks(np.arange(strength.shape[0]), [_wrap_label(v.replace("_", " "), 25) for v in strength.index])
+    ax_strength.set_xlabel("Evidence rows")
+    ax_strength.set_title("Validation strength classes")
+    _annotate_hbars(ax_strength)
+
+    _panel_label(ax_feature, "B")
+    feature = evidence["feature_level"].fillna("missing").astype(str).value_counts().head(8)
+    ax_feature.barh(np.arange(feature.shape[0]), feature.values, color=TEAL)
+    ax_feature.set_yticks(np.arange(feature.shape[0]), [_wrap_label(v.replace("_", " "), 25) for v in feature.index])
+    ax_feature.set_xlabel("Evidence rows")
+    ax_feature.set_title("Feature level")
+    _annotate_hbars(ax_feature)
+
+    _panel_label(ax_matrix, "C")
+    display = evidence.copy()
+    display["dataset_label"] = display["dataset_id"].astype(str) + "\n" + display["evidence_type"].astype(str).str.replace("_", " ")
+    display = display.head(9)
+    columns = ["readiness_class", "validation_strength", "supports_primary_claim"]
+    score_maps = {
+        "readiness_class": {"feature_ready_scanvi_reference": 4, "feature_ready_marker_reference": 3, "sanity_check_generated": 2, "ready_raw_adapter": 2, "marker_only": 1},
+        "validation_strength": {"scanvi_mapped_candidate": 4, "mapped_feature_candidate": 3, "marker_only_sanity": 2, "marker_context_only": 1, "blocked": 0},
+        "supports_primary_claim": {"candidate_after_replication_test": 3, "candidate_after_adapter": 2, "sanity_only": 1, "context_only": 1, "no": 0},
+    }
+    vals = []
+    for col in columns:
+        vals.append(display[col].fillna("missing").map(score_maps[col]).fillna(0).to_numpy(dtype=float))
+    matrix = np.vstack(vals).T
+    image = ax_matrix.imshow(matrix, aspect="auto", vmin=0, vmax=4, cmap="viridis")
+    ax_matrix.set_xticks(np.arange(len(columns)), [c.replace("_", " ") for c in columns], rotation=20, ha="right")
+    ax_matrix.set_yticks(np.arange(display.shape[0]), [_wrap_label(v, 38) for v in display["dataset_label"]])
+    ax_matrix.set_title("External evidence remains mostly guarded")
+    fig.colorbar(image, ax=ax_matrix, shrink=0.76, label="Evidence tier")
+
+    fig.suptitle("Extended Data 2. External validation ledger and claim strength", fontsize=14, fontweight="bold")
+    return _save(fig, figures / "extended_data_figure2_external_evidence")
+
+
+def _extended_figure3_scvi_validation(tables: Path, figures: Path, plt) -> Path:
+    gates = _read_table(tables / "scvi_embedding_claim_gates.tsv")
+    markers = _read_table(tables / "scvi_embedding_marker_concordance.tsv")
+
+    fig = plt.figure(figsize=(11.6, 6.5), constrained_layout=True)
+    grid = fig.add_gridspec(2, 2)
+    ax_cells = fig.add_subplot(grid[0, 0])
+    ax_purity = fig.add_subplot(grid[1, 0])
+    ax_markers = fig.add_subplot(grid[0, 1])
+    ax_validation = fig.add_subplot(grid[1, 1])
+
+    _panel_label(ax_cells, "A")
+    work = gates.copy()
+    work["cells"] = pd.to_numeric(work["cells"], errors="coerce")
+    work = work.sort_values("cells")
+    ax_cells.barh([_wrap_label(str(m).replace("_", " "), 22) for m in work["model"]], work["cells"] / 1_000_000, color=BLUE)
+    ax_cells.set_xlabel("Million cells")
+    ax_cells.set_title("scVI run scale")
+
+    _panel_label(ax_purity, "B")
+    work["fine_label_purity"] = pd.to_numeric(work["fine_label_purity"], errors="coerce")
+    work["coarse_label_purity"] = pd.to_numeric(work["coarse_label_purity"], errors="coerce")
+    x = np.arange(work.shape[0])
+    ax_purity.plot(x, work["fine_label_purity"], marker="o", color=TEAL, label="fine")
+    ax_purity.plot(x, work["coarse_label_purity"], marker="o", color=GOLD, label="coarse")
+    ax_purity.set_xticks(x, [_wrap_label(str(m).replace("_", " "), 13) for m in work["model"]], rotation=25, ha="right")
+    ax_purity.set_ylabel("Label purity")
+    ax_purity.set_ylim(0, 1.05)
+    ax_purity.set_title("Neighborhood purity")
+    ax_purity.legend()
+
+    _panel_label(ax_markers, "C")
+    marker_counts = markers["claim_gate"].fillna("missing").astype(str).value_counts().reindex(["supported", "guarded"]).fillna(0)
+    ax_markers.bar(marker_counts.index, marker_counts.values, color=[GREEN, GOLD])
+    ax_markers.set_ylabel("Marker programs")
+    ax_markers.set_title("Marker-continuity gates")
+    _annotate_bars(ax_markers, fmt="{:.0f}")
+
+    _panel_label(ax_validation, "D")
+    ax_validation.set_axis_off()
+    if gates.empty:
+        rows = ["No comparison table available"]
+    else:
+        rows = []
+        for _, row in gates.sort_values("cells", ascending=False).iterrows():
+            rows.append(
+                f"{str(row.get('model')).replace('_', ' ')}: "
+                f"{int(float(row.get('cells', 0))):,} cells, "
+                f"fine {float(row.get('fine_label_purity', np.nan)):.3f}, "
+                f"coarse {float(row.get('coarse_label_purity', np.nan)):.3f}"
+            )
+    ax_validation.text(0.08, 0.92, "\n\n".join(_wrap_label(row, 44) for row in rows), transform=ax_validation.transAxes, fontsize=7.4, linespacing=1.08, va="top")
+
+    fig.suptitle("Extended Data 3. Full 4M scVI is the primary latent substrate with guarded marker claims", fontsize=14, fontweight="bold")
+    return _save(fig, figures / "extended_data_figure3_scvi_validation")
+
+
+def _extended_figure4_de_audit(tables: Path, figures: Path, plt) -> Path:
+    audit = _read_table(tables / "manuscript_table_de_audit_summary.tsv")
+    fig = plt.figure(figsize=(11.6, 6.5), constrained_layout=True)
+    grid = fig.add_gridspec(2, 2)
+    ax_sig = fig.add_subplot(grid[0, 0])
+    ax_frac = fig.add_subplot(grid[1, 0])
+    ax_flags = fig.add_subplot(grid[:, 1])
+
+    audit = audit.copy()
+    for col in ["tested_rows", "significant_rows", "sex_linked_significant_rows", "hemoglobin_significant_rows", "immunoglobulin_significant_rows"]:
+        audit[col] = pd.to_numeric(audit[col], errors="coerce").fillna(0)
+    audit["label"] = audit["engine_context"].str.replace("_", " ") + "\n" + audit["contrast"].str.replace("_vs_healthy", "").str.upper()
+
+    _panel_label(ax_sig, "A")
+    ax_sig.barh(np.arange(audit.shape[0]), audit["significant_rows"], color=VERMILION)
+    ax_sig.set_yticks(np.arange(audit.shape[0]), audit["label"])
+    ax_sig.set_xlabel("FDR-significant rows")
+    ax_sig.set_title("DE calls depend on method and matching")
+    _annotate_hbars(ax_sig)
+
+    _panel_label(ax_frac, "B")
+    audit["significant_fraction"] = audit["significant_rows"] / audit["tested_rows"].replace(0, np.nan)
+    ax_frac.barh(np.arange(audit.shape[0]), 100 * audit["significant_fraction"], color=BLUE)
+    ax_frac.set_yticks(np.arange(audit.shape[0]), audit["label"])
+    ax_frac.set_xlabel("Significant rows (%)")
+    ax_frac.set_title("Large tested universe, small significant fraction")
+
+    _panel_label(ax_flags, "C")
+    flag_cols = ["sex_linked_significant_rows", "hemoglobin_significant_rows", "immunoglobulin_significant_rows"]
+    vals = audit[flag_cols].to_numpy(dtype=float)
+    image = ax_flags.imshow(vals, aspect="auto", cmap="magma")
+    ax_flags.set_xticks(np.arange(len(flag_cols)), ["sex linked", "hemoglobin", "immunoglobulin"], rotation=25, ha="right")
+    ax_flags.set_yticks(np.arange(audit.shape[0]), audit["label"])
+    ax_flags.set_title("Sentinel-hit audit")
+    for (i, j), value in np.ndenumerate(vals):
+        ax_flags.text(j, i, f"{int(value)}", ha="center", va="center", color="#ffffff" if value > vals.max() * 0.35 else INK, fontsize=8)
+    fig.colorbar(image, ax=ax_flags, shrink=0.78, label="Significant rows")
+
+    fig.suptitle("Extended Data 4. Genome-wide DE is hypothesis-generating until audit gates pass", fontsize=14, fontweight="bold")
+    return _save(fig, figures / "extended_data_figure4_de_audit")
+
+
+def _extended_figure5_latent_robustness(tables: Path, figures: Path, plt) -> Path:
+    gates = _read_table(tables / "manuscript_table_latent_neighborhood_gates.tsv")
+    age_full = _read_table(tables / "milo_full_4m_lineage_age_bin_summary.tsv")
+    age_matched = _read_table(tables / "milo_full_4m_lineage_matched_age_bin_summary.tsv")
+    programs = _read_table(tables / "milo_full_4m_lineage_matched_program_summary.tsv")
+
+    fig = plt.figure(figsize=(11.7, 6.6), constrained_layout=True)
+    grid = fig.add_gridspec(2, 2)
+    ax_gate = fig.add_subplot(grid[0, 0])
+    ax_bins = fig.add_subplot(grid[1, 0])
+    ax_prog = fig.add_subplot(grid[0, 1])
+    ax_text = fig.add_subplot(grid[1, 1])
+
+    _panel_label(ax_gate, "A")
+    da = gates[gates["category"].ne("scVI embedding")].copy()
+    da["sig"] = da["primary_metric"].str.extract(r"^([0-9,]+)").iloc[:, 0].str.replace(",", "").astype(float)
+    da = da.sort_values("sig")
+    ax_gate.barh(np.arange(da.shape[0]), da["sig"], color=[_gate_color(g) for g in da["claim_gate"]])
+    ax_gate.set_yticks(np.arange(da.shape[0]), [_wrap_label(a.replace("_", " "), 25) for a in da["analysis"]])
+    ax_gate.set_xlabel("FDR < 0.10 neighborhoods")
+    ax_gate.set_title("Neighborhood evidence layers")
+
+    _panel_label(ax_bins, "B")
+    bin_metrics = ["donors_lt45", "donors_45_59", "donors_60_74", "donors_75_plus"]
+    labels = ["<45", "45-59", "60-74", "75+"]
+    full_values = [_summary_metric(age_full, m) for m in bin_metrics]
+    matched_values = [_summary_metric(age_matched, m) for m in bin_metrics]
+    x = np.arange(len(labels))
+    ax_bins.bar(x - 0.18, full_values, 0.36, color=BLUE, label="all lineage")
+    ax_bins.bar(x + 0.18, matched_values, 0.36, color=TEAL, label="matched lineage")
+    ax_bins.set_xticks(x, labels)
+    ax_bins.set_ylabel("Donors")
+    ax_bins.set_title("Age-bin support differs by matched design")
+    ax_bins.legend()
+
+    _panel_label(ax_prog, "C")
+    prog = programs.copy()
+    prog["significant_median_z"] = pd.to_numeric(prog["significant_median_z"], errors="coerce")
+    prog = prog.dropna(subset=["significant_median_z"]).sort_values("significant_median_z").tail(8)
+    colors = np.where(prog["significant_median_z"] >= 0, GREEN, VERMILION)
+    ax_prog.barh([_wrap_label(m.replace("_", " "), 24) for m in prog["module"]], prog["significant_median_z"], color=colors)
+    ax_prog.axvline(0, color=INK, lw=0.9)
+    ax_prog.set_xlabel("Matched significant-neighborhood median z")
+    ax_prog.set_title("Program context for guarded Early iOSN hit")
+
+    _panel_label(ax_text, "D")
+    ax_text.set_axis_off()
+    notes = [
+        "Primary latent substrate: full 4M reduced scVI.",
+        "Primary neighborhood map: Python donor-level full 4M lineage neighborhoods.",
+        "Sensitivity: edgeR exact-neighborhood parity and official MiloR subset.",
+        "Claim language: broad lineage-neighborhood remodeling; exact Early iOSN wording remains narrow.",
+    ]
+    ax_text.text(0.08, 0.92, "\n\n".join(_wrap_label(n, 40) for n in notes), fontsize=7.8, transform=ax_text.transAxes, linespacing=1.08, va="top")
+
+    fig.suptitle("Extended Data 5. Latent-neighborhood robustness and matched program context", fontsize=14, fontweight="bold")
+    return _save(fig, figures / "extended_data_figure5_latent_robustness")
+
+
+def _extended_figure6_ndd_guardrails(tables: Path, figures: Path, plt) -> Path:
+    ndd = _read_table(tables / "manuscript_table_ndd_guardrails.tsv")
+    fig = plt.figure(figsize=(11.4, 6.3), constrained_layout=True)
+    grid = fig.add_gridspec(2, 2, width_ratios=[1.35, 1])
+    ax_oraa = fig.add_subplot(grid[:, 0])
+    ax_donors = fig.add_subplot(grid[0, 1])
+    ax_claim = fig.add_subplot(grid[1, 1])
+
+    work = ndd.copy()
+    work["mean_oraa"] = pd.to_numeric(work["mean_oraa"], errors="coerce")
+    work = work[work["model"].isin(["catboost", "xgboost", "boosted_ensemble", "random_forest", "ridge"])]
+    pivot = work.pivot_table(index="model", columns="disease_group", values="mean_oraa", observed=False)
+    pivot = pivot.reindex(["ridge", "random_forest", "xgboost", "catboost", "boosted_ensemble"]).dropna(how="all")
+    x = np.arange(pivot.shape[0])
+    width = 0.34
+    _panel_label(ax_oraa, "A")
+    ax_oraa.bar(x - width / 2, pivot.get("ad", pd.Series(index=pivot.index, dtype=float)), width, color=VERMILION, label="AD")
+    ax_oraa.bar(x + width / 2, pivot.get("pd", pd.Series(index=pivot.index, dtype=float)), width, color=GOLD, label="PD")
+    ax_oraa.axhline(0, color=INK, lw=0.9)
+    ax_oraa.set_xticks(x, [_model_label(m) for m in pivot.index], rotation=25, ha="right")
+    ax_oraa.set_ylabel("Mean ORA acceleration")
+    ax_oraa.set_title("Frozen disease projections are consistently negative")
+    ax_oraa.legend()
+
+    _panel_label(ax_donors, "B")
+    donors = work.groupby("disease_group")["donors"].max().reindex(["ad", "pd"])
+    ax_donors.bar(donors.index.str.upper(), donors.values, color=[VERMILION, GOLD])
+    ax_donors.set_ylabel("Donors")
+    ax_donors.set_title("Small disease strata")
+    _annotate_bars(ax_donors, fmt="{:.0f}")
+
+    _panel_label(ax_claim, "C")
+    ax_claim.set_axis_off()
+    text = [
+        "NDD projection is a frozen-model stress test, not a disease biomarker claim.",
+        "All AD/PD donors are small-n FLEX v2/device cases.",
+        "Use the result to anchor limitations and future validation design.",
+    ]
+    ax_claim.text(0.08, 0.82, "\n\n".join(_wrap_label(item, 40) for item in text), fontsize=8.0, transform=ax_claim.transAxes, linespacing=1.12, va="top")
+
+    fig.suptitle("Extended Data 6. NDD projection guardrails keep disease interpretation exploratory", fontsize=14, fontweight="bold")
+    return _save(fig, figures / "extended_data_figure6_ndd_guardrails")
+
+
 def _read_table(path: Path) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame()
@@ -631,6 +944,22 @@ def _annotate_bars(ax, fmt: str = "{:.1f}") -> None:
         )
 
 
+def _annotate_hbars(ax, fmt: str = "{:.0f}") -> None:
+    for patch in ax.patches:
+        width = patch.get_width()
+        if not np.isfinite(width):
+            continue
+        ax.text(
+            width,
+            patch.get_y() + patch.get_height() / 2,
+            fmt.format(width),
+            ha="left",
+            va="center",
+            fontsize=8,
+            color=INK,
+        )
+
+
 def _feature_label(feature: str) -> str:
     text = str(feature).replace("prop__", "prop: ").replace("clr__", "clr: ").replace("ratio__", "ratio: ")
     text = text.replace("_", " ")
@@ -647,6 +976,17 @@ def _wrap_label(value: str, width: int) -> str:
 
 def _theme_color(theme: str) -> str:
     return THEME_COLORS.get(str(theme), THEME_COLORS["other"])
+
+
+def _gate_color(gate: str) -> str:
+    gate_text = str(gate)
+    if "primary" in gate_text or "secondary" in gate_text:
+        return TEAL
+    if "sensitivity" in gate_text or "directionality" in gate_text:
+        return BLUE
+    if "guarded" in gate_text:
+        return GOLD
+    return GRAY
 
 
 def _theme_legend(fig, themes: list[str]) -> None:
