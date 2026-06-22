@@ -128,7 +128,7 @@ def _figure1_design(tables: Path, figures: Path, plt) -> Path:
         ("Gateway atlas", "4.03M cells\n202 donors", TEAL),
         ("Healthy training", "187 age-usable donors\nDonor-level CV", BLUE),
         ("ORA axis", "Composition, lineage ratios,\ncurated modules", GREEN),
-        ("Guarded extensions", "External mapping, NDD projection,\nDE audits, scaled scVI", GOLD),
+        ("Guarded extensions", "External mapping, NDD projection,\nDE audits, full 4M scVI/Milo-style", GOLD),
     ]
     y = 0.78
     for idx, (title, body, color) in enumerate(flow):
@@ -151,7 +151,7 @@ def _figure1_design(tables: Path, figures: Path, plt) -> Path:
         ("External", "GSE184117", "small-n mapped", GOLD),
         ("Disease", "AD/PD ORAA", "exploratory", VERMILION),
         ("DE", "edgeR + limma", "audited", BLUE),
-        ("Latent", "250k + lineage scVI", "seed-gated", PURPLE),
+        ("Latent", "Full 4M scVI/Milo-style", "guarded secondary", PURPLE),
     ]
     ax_gates.text(0, 0.97, "Claim gates", fontsize=12, fontweight="bold", transform=ax_gates.transAxes)
     for idx, (scope, item, status, color) in enumerate(gate_rows):
@@ -436,15 +436,21 @@ def _figure6_de_latent(tables: Path, figures: Path, plt) -> Path:
     limma = _read_table(tables / "pseudobulk_genomewide_limma_voom_de_audit.tsv")
     matched_edger = _read_table(tables / "pseudobulk_genomewide_de_audit_matched_flex_v2_device.tsv")
     matched_limma = _read_table(tables / "pseudobulk_genomewide_limma_voom_de_audit_matched_flex_v2_device.tsv")
-    scvi = _read_table(tables / "scvi_scaled_250k_validation.tsv")
-    if scvi.empty:
-        scvi = _read_table(tables / "scvi_pilot_validation.tsv")
+    scvi_gates = _read_table(tables / "scvi_embedding_claim_gates.tsv")
+    scvi_markers = _read_table(tables / "scvi_embedding_marker_concordance.tsv")
+    milo_full = _read_table(tables / "milo_full_4m_lineage_summary.tsv")
+    milo_matched = _read_table(tables / "milo_full_4m_lineage_matched_summary.tsv")
+    edger_parity = _read_table(tables / "milo_full_4m_lineage_edger_parity_summary.tsv")
+    edger_matched = _read_table(tables / "milo_full_4m_lineage_matched_edger_parity_summary.tsv")
+    milor_full = _read_table(tables / "milor_lineage_subset_summary.tsv")
+    milor_matched = _read_table(tables / "milor_lineage_matched_subset_summary.tsv")
 
-    fig = plt.figure(figsize=(11.4, 6.4), constrained_layout=True)
+    fig = plt.figure(figsize=(11.8, 7.0), constrained_layout=True)
     grid = fig.add_gridspec(2, 2)
     ax_sig = fig.add_subplot(grid[0, 0])
     ax_flags = fig.add_subplot(grid[1, 0])
-    ax_scvi = fig.add_subplot(grid[:, 1])
+    ax_milo = fig.add_subplot(grid[0, 1])
+    ax_scvi = fig.add_subplot(grid[1, 1])
 
     _panel_label(ax_sig, "A")
     de_summary = _de_summary(edger, limma, matched_edger, matched_limma)
@@ -473,32 +479,102 @@ def _figure6_de_latent(tables: Path, figures: Path, plt) -> Path:
         ax_flags.text(j, i, f"{int(value)}", ha="center", va="center", color=INK, fontsize=8)
     fig.colorbar(image, ax=ax_flags, shrink=0.75, label="Rows")
 
-    _panel_label(ax_scvi, "C")
-    ax_scvi.set_axis_off()
-    ax_scvi.text(0, 0.98, "Latent-space readiness", fontsize=12, fontweight="bold", transform=ax_scvi.transAxes)
-    rows = [
-        ("CELLxGENE export", "X_umap only", GRAY),
-        ("Scaled scVI", _scvi_detail(scvi, "pilot_h5ad"), TEAL),
-        ("Embedding", _scvi_detail(scvi, "embedding_dimensions"), BLUE),
-        ("Finite values", _scvi_detail(scvi, "embedding_finite"), GREEN),
-        ("Donor/sample balance", _scvi_status(scvi, "metadata__sample_id"), GOLD),
-        ("Trajectory/Milo/cNMF", _scvi_status(scvi, "claim_gate"), VERMILION),
-    ]
-    for idx, (label, value, color) in enumerate(rows):
-        yy = 0.84 - idx * 0.13
-        ax_scvi.scatter([0.03], [yy + 0.025], s=85, color=color, transform=ax_scvi.transAxes, clip_on=False)
-        ax_scvi.text(0.09, yy + 0.045, label, fontweight="bold", transform=ax_scvi.transAxes)
-        ax_scvi.text(0.09, yy - 0.005, _wrap_label(value, 42), transform=ax_scvi.transAxes, fontsize=8)
-    ax_scvi.text(
-        0,
-        0.04,
-        "Interpretation: scVI is now technically feasible, but biological latent claims remain gated.",
-        color=MUTED,
+    _panel_label(ax_milo, "C")
+    milo_rows = pd.DataFrame(
+        [
+            {
+                "analysis": "Python\nlineage",
+                "significant": _summary_metric(milo_full, "age_fdr_lt_0_10"),
+                "tested": _summary_metric(milo_full, "neighborhoods_tested"),
+                "color": BLUE,
+            },
+            {
+                "analysis": "Python\nmatched",
+                "significant": _summary_metric(milo_matched, "age_fdr_lt_0_10"),
+                "tested": _summary_metric(milo_matched, "neighborhoods_tested"),
+                "color": TEAL,
+            },
+            {
+                "analysis": "edgeR\nlineage",
+                "significant": _summary_metric(edger_parity, "edger_fdr_lt_0_10"),
+                "tested": _summary_metric(edger_parity, "neighborhoods_compared"),
+                "color": GOLD,
+            },
+            {
+                "analysis": "edgeR\nmatched",
+                "significant": _summary_metric(edger_matched, "edger_fdr_lt_0_10"),
+                "tested": _summary_metric(edger_matched, "neighborhoods_compared"),
+                "color": GREEN,
+            },
+            {
+                "analysis": "MiloR\nsubset",
+                "significant": _summary_metric(milor_full, "fdr_lt_0_10"),
+                "tested": _summary_metric(milor_full, "neighborhoods"),
+                "color": PURPLE,
+            },
+            {
+                "analysis": "MiloR\nmatched",
+                "significant": _summary_metric(milor_matched, "fdr_lt_0_10"),
+                "tested": _summary_metric(milor_matched, "neighborhoods"),
+                "color": VERMILION,
+            },
+        ]
+    )
+    x = np.arange(milo_rows.shape[0])
+    ax_milo.bar(x, milo_rows["significant"], color=milo_rows["color"], width=0.68)
+    ax_milo.set_xticks(x, milo_rows["analysis"])
+    ax_milo.set_ylabel("FDR < 0.10 neighborhoods")
+    ax_milo.set_title("Full-scale neighborhoods plus parity/sensitivity")
+    _annotate_bars(ax_milo, fmt="{:.0f}")
+    ax_milo.grid(axis="y", visible=True)
+    ax_milo.grid(axis="x", visible=False)
+    ax_milo.text(
+        0.02,
+        0.92,
+        "Matched Early iOSN is exact-neighborhood support;\nofficial MiloR emphasizes HBC/suprabasal/sustentacular.",
+        transform=ax_milo.transAxes,
         fontsize=8,
-        transform=ax_scvi.transAxes,
+        color=MUTED,
+        va="top",
+        bbox={"boxstyle": "round,pad=0.3", "fc": "#ffffff", "ec": GRID, "lw": 0.8},
     )
 
-    fig.suptitle("Genome-wide DE and latent-space analyses are presented with audit gates", fontsize=14, fontweight="bold")
+    _panel_label(ax_scvi, "D")
+    ax_scvi.set_axis_off()
+    ax_scvi.text(0.02, 0.98, "scVI run hierarchy and marker gates", fontsize=11, fontweight="bold", transform=ax_scvi.transAxes)
+    primary = scvi_gates[scvi_gates["model"].eq("full_4m_reduced")] if not scvi_gates.empty else pd.DataFrame()
+    if primary.empty:
+        primary_detail = "full 4M gate not available"
+    else:
+        row = primary.iloc[0]
+        primary_detail = (
+            f"{int(float(row['cells'])):,} cells; X_scvi {int(float(row['latent_dimensions']))}D; "
+            f"fine purity {float(row['fine_label_purity']):.3f}; coarse {float(row['coarse_label_purity']):.3f}"
+        )
+    supported_markers = _marker_gate_list(scvi_markers, "supported")
+    guarded_markers = _marker_gate_list(scvi_markers, "guarded")
+    rows = [
+        ("Primary latent", primary_detail, TEAL),
+        ("Sensitivity anchors", "250k seed13, 250k seed23, lineage 100k", BLUE),
+        ("Supported markers", supported_markers or "none", GREEN),
+        ("Guarded markers", guarded_markers or "none", GOLD),
+    ]
+    for idx, (label, value, color) in enumerate(rows):
+        yy = 0.72 - idx * 0.20
+        ax_scvi.scatter([0.04], [yy + 0.025], s=70, color=color, transform=ax_scvi.transAxes, clip_on=False)
+        ax_scvi.text(0.12, yy + 0.06, label, fontweight="bold", fontsize=9, transform=ax_scvi.transAxes)
+        ax_scvi.text(0.12, yy - 0.012, _wrap_label(value, 42), transform=ax_scvi.transAxes, fontsize=7.6, linespacing=1.12)
+    ax_scvi.text(
+        0.02,
+        0.03,
+        "Rule: full 4M supports neighborhoods; trajectory and exact lineage-flux claims stay deferred.",
+        transform=ax_scvi.transAxes,
+        fontsize=7.6,
+        color=MUTED,
+        bbox={"boxstyle": "round,pad=0.3", "fc": "#ffffff", "ec": GRID, "lw": 0.8},
+    )
+
+    fig.suptitle("Genome-wide DE and latent-neighborhood analyses are presented with explicit audit gates", fontsize=14, fontweight="bold")
     return _save(fig, figures / "manuscript_figure6_de_latent")
 
 
@@ -599,6 +675,22 @@ def _de_summary(edger: pd.DataFrame, limma: pd.DataFrame, matched_edger: pd.Data
         sub["engine"] = label
         pieces.append(sub)
     return pd.concat(pieces, ignore_index=True) if pieces else pd.DataFrame(columns=["contrast", "significant_rows", "engine"])
+
+
+def _summary_metric(summary: pd.DataFrame, metric: str) -> float:
+    if summary.empty or "metric" not in summary or "value" not in summary:
+        return 0.0
+    rows = summary[summary["metric"].astype(str).eq(metric)]
+    if rows.empty:
+        return 0.0
+    return float(pd.to_numeric(rows["value"], errors="coerce").fillna(0).iloc[0])
+
+
+def _marker_gate_list(markers: pd.DataFrame, gate: str) -> str:
+    if markers.empty or not {"marker", "claim_gate"}.issubset(markers.columns):
+        return ""
+    values = markers[markers["claim_gate"].astype(str).eq(gate)]["marker"].astype(str).str.replace("_", " ").tolist()
+    return ", ".join(values)
 
 
 def _scvi_detail(scvi: pd.DataFrame, check: str) -> str:
