@@ -147,8 +147,8 @@ These are valuable only after Priority 1 gates are done.
 
 ## Priority 5: Reproducibility And Repository Hardening
 
-- [ ] Decide whether to retire or refresh `workflows/Snakefile`.
-  - Acceptance: no stale workflow suggests an outdated MVP-only path.
+- [x] Retire stale Snakemake MVP workflow.
+  - Result: Makefile remains the canonical local workflow; the stale Snakemake MVP path was removed to avoid suggesting an outdated rerun route.
 
 - [ ] Add a manuscript rerun profile.
   - Could be a Make aggregate target, Snakemake profile, or documented staged rerun instructions.
