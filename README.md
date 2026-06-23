@@ -74,12 +74,6 @@ make manuscript-check
 make output-provenance
 ```
 
-If you do not have the real Gateway file yet, run the smoke workflow against a temporary toy H5AD:
-
-```bash
-make smoke-toy
-```
-
 `make download-gateway` uses the resolved CELLxGENE H5AD URL in `configs/gateway.yaml`. The file is large: 27,651,770,343 bytes, about 25.8 GiB. To check the resolved source without downloading:
 
 ```bash
