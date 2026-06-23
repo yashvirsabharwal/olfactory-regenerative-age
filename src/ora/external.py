@@ -80,6 +80,60 @@ def external_dataset_summary(config: dict[str, Any], base_dir: str | Path = ".")
     return pd.DataFrame(rows)
 
 
+def external_candidate_matrix(config: dict[str, Any], base_dir: str | Path = ".") -> pd.DataFrame:
+    """Build a reviewer-facing matrix of external validation candidates."""
+
+    summary = external_dataset_summary(config, base_dir=base_dir).set_index("dataset_id", drop=False)
+    rows = []
+    for dataset_id, spec in config.get("datasets", {}).items():
+        if not isinstance(spec, dict):
+            continue
+        summary_row = summary.loc[dataset_id].to_dict() if dataset_id in summary.index else {}
+        rows.append(
+            {
+                "dataset_id": dataset_id,
+                "accession": spec.get("accession", ""),
+                "title": spec.get("title", dataset_id),
+                "species": spec.get("species", ""),
+                "tissue": spec.get("tissue", ""),
+                "assay_or_level": spec.get("expected_level", ""),
+                "disease_context": _join_config_values(spec.get("disease_context", [])),
+                "cohort_notes": spec.get("cohort_notes", ""),
+                "validation_use": spec.get("validation_use", ""),
+                "validation_class": _candidate_validation_class(spec, summary_row),
+                "adapter_status": _candidate_adapter_status(summary_row),
+                "local_readiness": summary_row.get("readiness_class", "not_evaluated"),
+                "files_provided": summary_row.get("files_provided", ""),
+                "files_missing": summary_row.get("files_missing", ""),
+                "supports_primary_claim": _candidate_primary_claim_support(spec, summary_row),
+                "next_action": _candidate_next_action(spec, summary_row),
+                "source_url": spec.get("source_url", ""),
+                "notes": spec.get("notes", ""),
+            }
+        )
+    columns = [
+        "dataset_id",
+        "accession",
+        "title",
+        "species",
+        "tissue",
+        "assay_or_level",
+        "disease_context",
+        "cohort_notes",
+        "validation_use",
+        "validation_class",
+        "adapter_status",
+        "local_readiness",
+        "files_provided",
+        "files_missing",
+        "supports_primary_claim",
+        "next_action",
+        "source_url",
+        "notes",
+    ]
+    return pd.DataFrame(rows, columns=columns)
+
+
 def inspect_external_archive(archive_path: str | Path, dataset_id: str = "external") -> pd.DataFrame:
     """Inventory a raw external TAR archive without extracting it."""
 
@@ -970,6 +1024,94 @@ def _mapped_feature_evidence_row(
         ),
         "source_url": spec.get("source_url", ""),
     }
+
+
+def _join_config_values(value: Any) -> str:
+    if isinstance(value, (list, tuple, set)):
+        return ",".join(str(item) for item in value)
+    if value is None:
+        return ""
+    return str(value)
+
+
+def _candidate_validation_class(spec: dict[str, Any], summary_row: dict[str, Any]) -> str:
+    status = str(spec.get("status", "")).lower()
+    expected = str(spec.get("expected_level", "")).lower()
+    species = str(spec.get("species", "")).lower()
+    tissue = str(spec.get("tissue", "")).lower()
+    contexts = _join_config_values(spec.get("disease_context", [])).lower()
+    accession = str(spec.get("accession", "")).upper()
+    ready_feature = _as_bool(summary_row.get("ready_for_feature_validation", False))
+    ready_raw = _as_bool(summary_row.get("ready_for_raw_adapter", False))
+    is_human_olfactory = species == "human" and "olfactory" in tissue
+    is_aging_context = any(term in contexts for term in ["aging", "presbyosmia"])
+
+    if ready_feature:
+        return "direct_feature_matrix_candidate"
+    if accession == "GSE184117" or (is_human_olfactory and is_aging_context):
+        return "direct_small_n_mapping_candidate"
+    if "cell_culture" in status or "cell_culture" in expected or "cell_culture" in contexts:
+        return "context_only_cell_culture"
+    if "tcr" in expected:
+        return "context_only_immune_repertoire"
+    if ready_raw and is_human_olfactory:
+        return "human_olfactory_context_adapter_candidate"
+    if is_human_olfactory and "download_ready" in status and "single_cell" in expected:
+        return "human_olfactory_context_adapter_candidate"
+    if "bulk" in expected:
+        return "context_only_bulk_marker"
+    if species and species != "human":
+        return "context_only_cross_species"
+    if "context" in status:
+        return "context_only"
+    if "metadata_pending" in status:
+        return "blocked_metadata_pending"
+    return "blocked_or_context_candidate"
+
+
+def _candidate_adapter_status(summary_row: dict[str, Any]) -> str:
+    if _as_bool(summary_row.get("ready_for_feature_validation", False)):
+        return "feature_matrix_ready"
+    if _as_bool(summary_row.get("ready_for_raw_adapter", False)):
+        return "raw_adapter_ready"
+    status = str(summary_row.get("status", "")).lower()
+    missing = str(summary_row.get("files_missing", ""))
+    if missing and "download_ready" in status:
+        return "download_available_missing_local_files"
+    if missing:
+        return "missing_required_files"
+    return "metadata_only"
+
+
+def _candidate_primary_claim_support(spec: dict[str, Any], summary_row: dict[str, Any]) -> str:
+    validation_class = _candidate_validation_class(spec, summary_row)
+    if validation_class == "direct_feature_matrix_candidate":
+        return "candidate_after_replication_test"
+    if validation_class == "direct_small_n_mapping_candidate":
+        return "guarded_small_n_only"
+    if validation_class == "human_olfactory_context_adapter_candidate":
+        return "context_or_disease_only"
+    if validation_class.startswith("context_only"):
+        return "no"
+    return "blocked"
+
+
+def _candidate_next_action(spec: dict[str, Any], summary_row: dict[str, Any]) -> str:
+    accession = str(spec.get("accession", "")).upper()
+    validation_class = _candidate_validation_class(spec, summary_row)
+    if accession == "GSE184117":
+        return "Request author labels; keep marker/scANVI mapping as guarded small-n support."
+    if validation_class == "direct_feature_matrix_candidate":
+        return "Run feature harmonization and donor-level replication tests."
+    if validation_class in {"direct_small_n_mapping_candidate", "human_olfactory_context_adapter_candidate"}:
+        return "Download or verify raw files, map cells to Gateway-compatible states, and classify evidence strength."
+    if validation_class == "context_only_bulk_marker":
+        return "Use only for olfactory-versus-respiratory marker sanity checks."
+    if validation_class.startswith("context_only"):
+        return "Keep as context only; do not use to promote the primary ORA claim."
+    if validation_class == "blocked_metadata_pending":
+        return "Recover accession, files, or collaborator metadata before analysis."
+    return "Document why the dataset is blocked or add required files."
 
 
 def _configured_external_evidence_row(

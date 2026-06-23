@@ -159,6 +159,11 @@ commands:
     command: "make external-validation"
     inputs: ["configs/external_datasets.yaml", "data/metadata/gateway_var_columns.tsv"]
     outputs: ["results/tables/external_validation_summary.tsv", "results/tables/external_gene_list_coverage.tsv", "results/tables/external_feature_contract.tsv"]
+  external_candidate_matrix:
+    description: "Write the SOTA external validation candidate matrix from the configured dataset registry."
+    command: "make external-candidate-matrix"
+    inputs: ["configs/external_datasets.yaml"]
+    outputs: ["results/tables/external_candidate_matrix.tsv"]
   external_gse184117_inventory:
     description: "Download and inventory the GSE184117 raw 10x-style validation archive."
     command: "make download-gse184117 && make inspect-gse184117"

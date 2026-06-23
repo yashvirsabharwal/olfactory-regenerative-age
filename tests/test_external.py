@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from ora.external import (
     build_external_10x_marker_mapped_anndata,
+    external_candidate_matrix,
     external_dataset_summary,
     external_mapped_feature_concordance,
     external_marker_age_concordance,
@@ -55,6 +56,55 @@ class ExternalValidationTests(unittest.TestCase):
         self.assertFalse(bool(summary.loc[0, "ready_for_raw_adapter"]))
         self.assertIn("metadata", summary.loc[0, "files_missing"])
         self.assertEqual(summary.loc[0, "readiness_class"], "ready_feature_matrix")
+
+    def test_external_candidate_matrix_classifies_direct_and_context_sources(self):
+        config = {
+            "datasets": {
+                "direct": {
+                    "title": "Olfactory aging",
+                    "accession": "GSE184117",
+                    "status": "download_ready",
+                    "validation_use": "aging feature replication",
+                    "species": "human",
+                    "tissue": "olfactory epithelium",
+                    "disease_context": ["aging", "presbyosmia"],
+                    "expected_level": "single_cell",
+                    "required_files": {"expression": None, "metadata": None, "feature_matrix": None},
+                },
+                "bulk": {
+                    "title": "Bulk context",
+                    "status": "download_ready_bulk_reference",
+                    "validation_use": "marker sanity",
+                    "species": "human",
+                    "tissue": "olfactory neuroepithelium",
+                    "disease_context": ["healthy"],
+                    "expected_level": "bulk_rnaseq",
+                    "required_files": {"expression": None, "metadata": None, "feature_matrix": None},
+                },
+                "context": {
+                    "title": "Long COVID olfactory",
+                    "status": "download_ready_context",
+                    "validation_use": "disease context",
+                    "species": "human",
+                    "tissue": "olfactory epithelium",
+                    "disease_context": ["long_covid_hyposmia", "normosmic_control"],
+                    "expected_level": "single_cell",
+                    "required_files": {"expression": None, "metadata": None, "feature_matrix": None},
+                },
+            }
+        }
+
+        matrix = external_candidate_matrix(config)
+
+        direct = matrix[matrix["dataset_id"].eq("direct")].iloc[0]
+        bulk = matrix[matrix["dataset_id"].eq("bulk")].iloc[0]
+        self.assertEqual(direct["validation_class"], "direct_small_n_mapping_candidate")
+        self.assertEqual(direct["supports_primary_claim"], "guarded_small_n_only")
+        self.assertEqual(bulk["validation_class"], "context_only_bulk_marker")
+        self.assertEqual(bulk["supports_primary_claim"], "no")
+        context = matrix[matrix["dataset_id"].eq("context")].iloc[0]
+        self.assertEqual(context["validation_class"], "human_olfactory_context_adapter_candidate")
+        self.assertEqual(context["adapter_status"], "download_available_missing_local_files")
 
     def test_inspect_external_archive_classifies_10x_members(self):
         with tempfile.TemporaryDirectory() as tmpdir:

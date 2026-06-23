@@ -58,7 +58,7 @@ These are intentionally not present in the current local checkout and were not f
 | --- | --- | --- |
 | `results/tables/scvi_full_4m_reduced_validation.tsv` and scVI claim gates | Present locally and on `mia` | Supports current manuscript tables; upstream 4M H5AD/model checksums are recorded above. |
 | `results/tables/milo_full_4m_*` summaries, neighborhoods, age-bin, edgeR parity, and program tables | Present locally and on `mia` | Supports latent/neighborhood claim; primary 4M substrate is identified on `mia` until archived. |
-| `results/tables/milor_lineage*_subset_*` summaries and DA tables | Present locally and on `mia` | Supports official MiloR subset sensitivity; environment notes are in `docs/reproducibility_appendix.md`. |
+| `results/tables/milor_lineage*_subset_*` summaries and DA tables | Present locally and on `mia` | Supports official MiloR subset sensitivity; environment and rerun notes are in `docs/manuscript_rerun_profile.md` and `docs/run_hierarchy.md`. |
 
 ## Final Packaging Checklist
 
