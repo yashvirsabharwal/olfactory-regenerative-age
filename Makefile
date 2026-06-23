@@ -15,8 +15,9 @@ MILO_MATCHED_MIN_DONORS ?= 12
 MILOR_SUBSET_CELLS ?= 100000
 MILOR_MATCHED_SUBSET_CELLS ?= 75000
 MILOR_RSCRIPT ?= $(HOME)/bin/micromamba run -p $(HOME)/micromamba-envs/ora-milor Rscript
+REMOTE_FULL_SCVI_ACTION ?= help
 
-.PHONY: setup test download-gateway download-info download-gse184117 inspect-gse184117 external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-scanvi-reference-map external-scanvi-feature-concordance external-mapped-feature-concordance external-marker-age-concordance external-candidate-matrix external-evidence toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-diagnostics model-ora-repeated model-ora-augmented model-ora-candidate-repeated feature-interpretation project-ndd project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation report manuscript manuscript-check manuscript-figures publication-tables modules published-gene-modules external-validation external-feature-harmonization trajectory latent-space-audit latent-space-recompute-plan latent-space-plan scvi-pilot scvi-pilot-validation scvi-scaled-250k scvi-scaled-250k-seed23 scvi-scaled-validation scvi-scaled-comparison scvi-embedding-claim-gates scvi-scaled-500k scvi-scaled-1m scvi-reduced-4m scvi-full-4m scvi-full-4m-safe scvi-full-4m-reduced scvi-full-validation scvi-lineage-basal-neural scvi-lineage-validation pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-genomewide-edger pseudobulk-genomewide-edger-matched pseudobulk-genomewide-limma pseudobulk-genomewide-limma-matched pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-audit-matched pseudobulk-covariate-de ora-sensitivity ora-sensitivity-rf model-card output-provenance all-summary milo milo-lineage milo-secretory milo-full-4m milo-full-4m-lineage milo-full-4m-secretory milo-full-4m-matched milo-full-4m-lineage-matched milo-full-4m-secretory-matched milo-full-4m-annotation milo-full-4m-lineage-programs milo-full-4m-lineage-matched-programs milo-full-4m-lineage-age-bins milo-full-4m-lineage-matched-age-bins milo-full-4m-lineage-edger-parity milo-full-4m-lineage-matched-edger-parity milor-lineage-subset-parity milor-lineage-matched-subset-parity cnmf clean
+.PHONY: setup test download-gateway download-info download-gse184117 inspect-gse184117 external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-scanvi-reference-map external-scanvi-feature-concordance external-mapped-feature-concordance external-marker-age-concordance external-candidate-matrix external-evidence toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-diagnostics model-ora-repeated model-ora-augmented model-ora-candidate-repeated ora-feature-set-comparison ora-permutation-null ora-nested-tuning ora-stacking feature-interpretation project-ndd project-ndd-feature-sensitivity project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation report manuscript manuscript-check manuscript-figures publication-tables modules published-gene-modules external-validation external-feature-harmonization trajectory latent-space-audit latent-space-recompute-plan latent-space-plan scvi-pilot scvi-pilot-validation scvi-scaled-250k scvi-scaled-250k-seed23 scvi-scaled-validation scvi-scaled-comparison scvi-embedding-claim-gates scvi-scaled-500k scvi-scaled-1m scvi-reduced-4m scvi-full-4m scvi-full-4m-safe scvi-full-4m-reduced scvi-full-validation scvi-lineage-basal-neural scvi-lineage-validation pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-genomewide-edger pseudobulk-genomewide-edger-matched pseudobulk-genomewide-limma pseudobulk-genomewide-limma-matched pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-audit-matched pseudobulk-covariate-de ora-sensitivity ora-sensitivity-rf model-card output-provenance all-summary remote-full-scvi milo milo-lineage milo-secretory milo-full-4m milo-full-4m-lineage milo-full-4m-secretory milo-full-4m-matched milo-full-4m-lineage-matched milo-full-4m-secretory-matched milo-full-4m-annotation milo-full-4m-lineage-programs milo-full-4m-lineage-matched-programs milo-full-4m-lineage-age-bins milo-full-4m-lineage-matched-age-bins milo-full-4m-lineage-edger-parity milo-full-4m-lineage-matched-edger-parity milor-lineage-subset-parity milor-lineage-matched-subset-parity cnmf clean
 
 setup:
 	$(PYTHON) -m pip install -e ".[dev]"
@@ -98,11 +99,26 @@ model-ora-augmented:
 model-ora-candidate-repeated:
 	$(PYTHON) scripts/run_age_models_repeated.py --features data/processed/ora_augmented_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --model-config configs/models.yaml --gateway-config configs/gateway.yaml --models hist_gradient_boosting xgboost catboost boosted_ensemble --repeat-performance-out results/tables/ora_augmented_candidate_repeated_cv_performance.tsv --summary-out results/tables/ora_augmented_candidate_repeated_cv_summary.tsv --scores-out results/tables/ora_augmented_candidate_repeated_cv_scores.tsv --feature-stability-out results/tables/ora_augmented_candidate_repeated_cv_feature_stability.tsv --repeats 10
 
+ora-feature-set-comparison:
+	$(PYTHON) scripts/compare_ora_feature_sets.py
+
+ora-permutation-null:
+	$(PYTHON) scripts/run_ora_permutation_null.py --observed-summary results/tables/ora_augmented_candidate_repeated_cv_summary.tsv --models hist_gradient_boosting xgboost catboost boosted_ensemble --n-permutations 50 --repeats 2
+
+ora-nested-tuning:
+	$(PYTHON) scripts/run_ora_nested_tuning.py --allow-fallback
+
+ora-stacking:
+	$(PYTHON) scripts/run_ora_stacking.py --allow-fallback
+
 feature-interpretation:
 	$(PYTHON) scripts/build_feature_interpretation.py --gateway-config configs/gateway.yaml
 
 project-ndd:
 	$(PYTHON) scripts/project_ndd_ora.py --gateway-config configs/gateway.yaml --model-config configs/models.yaml
+
+project-ndd-feature-sensitivity:
+	$(PYTHON) scripts/run_ndd_feature_sensitivity.py --gateway-config configs/gateway.yaml --model-config configs/models.yaml
 
 project-ndd-uncertainty:
 	$(PYTHON) scripts/summarize_ndd_projection_uncertainty.py --gateway-config configs/gateway.yaml
@@ -265,7 +281,10 @@ model-card:
 output-provenance:
 	$(PYTHON) scripts/write_output_provenance.py --gateway-config configs/gateway.yaml --command-manifest configs/command_manifest.yaml
 
-all-summary: external-validation external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-marker-age-concordance external-mapped-feature-concordance external-evidence model-ora-diagnostics feature-interpretation pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-limma-de-audit-matched project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation model-card latent-space-audit latent-space-recompute-plan output-provenance report
+all-summary: external-validation external-candidate-matrix external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-marker-age-concordance external-mapped-feature-concordance external-evidence model-ora-diagnostics ora-feature-set-comparison ora-permutation-null ora-nested-tuning ora-stacking feature-interpretation pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-limma-de-audit-matched project-ndd-feature-sensitivity project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation model-card latent-space-audit latent-space-recompute-plan output-provenance report
+
+remote-full-scvi:
+	scripts/remote_full_scvi.sh $(REMOTE_FULL_SCVI_ACTION)
 
 milo:
 	$(PYTHON) scripts/run_milo_pilot.py --h5ad $(MILO_H5AD) --manifest data/processed/cohort_manifest.tsv --n-neighborhoods $(MILO_NEIGHBORHOODS) --n-neighbors $(MILO_NEIGHBORS) --seed-stratify-columns coarse_celltype,fine_celltype --out results/tables/milo_pilot_neighborhood_da.tsv --summary-out results/tables/milo_pilot_summary.tsv

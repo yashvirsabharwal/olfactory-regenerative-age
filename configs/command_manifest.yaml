@@ -318,6 +318,67 @@ commands:
     command: "make model-card"
     inputs: ["results/tables/ora_feature_set_model_comparison.tsv", "results/tables/ora_calibration.tsv", "results/tables/ora_permutation_empirical.tsv"]
     outputs: ["results/tables/ora_model_card.tsv"]
+  ora_feature_set_comparison:
+    description: "Compare composition-only and module-augmented repeated-CV ORA feature sets."
+    command: "make ora-feature-set-comparison"
+    inputs:
+      - "results/tables/ora_repeated_cv_summary.tsv"
+      - "results/tables/ora_augmented_repeated_cv_summary.tsv"
+    outputs:
+      - "results/tables/ora_feature_set_model_comparison.tsv"
+      - "results/tables/ora_feature_set_model_deltas.tsv"
+  ora_permutation_null:
+    description: "Run shuffled-age null tests for the candidate ORA models."
+    command: "make ora-permutation-null"
+    inputs:
+      - "data/processed/ora_augmented_feature_matrix.tsv"
+      - "data/processed/cohort_manifest.tsv"
+      - "configs/models.yaml"
+      - "results/tables/ora_augmented_candidate_repeated_cv_summary.tsv"
+    outputs:
+      - "results/tables/ora_permutation_repeat_performance.tsv"
+      - "results/tables/ora_permutation_summary.tsv"
+      - "results/tables/ora_permutation_empirical.tsv"
+  ora_nested_tuning:
+    description: "Run leakage-safe nested tuning for selected ORA candidate models."
+    command: "make ora-nested-tuning"
+    inputs:
+      - "data/processed/ora_augmented_feature_matrix.tsv"
+      - "data/processed/cohort_manifest.tsv"
+      - "configs/models.yaml"
+    outputs:
+      - "results/tables/ora_nested_tuning_performance.tsv"
+      - "results/tables/ora_nested_tuning_summary.tsv"
+      - "results/tables/ora_nested_tuning_scores.tsv"
+      - "results/tables/ora_nested_tuning_trace.tsv"
+      - "results/tables/ora_nested_tuning_selected_params.tsv"
+  ora_stacking:
+    description: "Run leakage-safe donor-level stacked ORA age models."
+    command: "make ora-stacking"
+    inputs:
+      - "data/processed/ora_augmented_feature_matrix.tsv"
+      - "data/processed/cohort_manifest.tsv"
+      - "configs/models.yaml"
+    outputs:
+      - "results/tables/ora_stacking_performance.tsv"
+      - "results/tables/ora_stacking_summary.tsv"
+      - "results/tables/ora_stacking_scores.tsv"
+      - "results/tables/ora_stacking_weights.tsv"
+  project_ndd_feature_sensitivity:
+    description: "Compare NDD ORA projections across composition-only and module-augmented feature sets."
+    command: "make project-ndd-feature-sensitivity"
+    inputs:
+      - "data/processed/ora_feature_matrix.tsv"
+      - "data/processed/ora_augmented_feature_matrix.tsv"
+      - "data/processed/cohort_manifest.tsv"
+      - "configs/models.yaml"
+    outputs:
+      - "results/tables/ndd_ora_projection_composition.tsv"
+      - "results/tables/ndd_ora_projection_composition_summary.tsv"
+      - "results/tables/ndd_ora_projection.tsv"
+      - "results/tables/ndd_ora_projection_summary.tsv"
+      - "results/tables/ndd_ora_projection_feature_comparison.tsv"
+      - "results/tables/ndd_ora_projection_donor_appendix.tsv"
   milo:
     description: "Run a first-pass Milo-style donor-level latent-neighborhood differential abundance pilot on the 250k scVI atlas."
     command: "make milo"
