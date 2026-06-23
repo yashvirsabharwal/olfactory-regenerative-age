@@ -18,14 +18,14 @@ Environment overrides:
   REMOTE_DIR=~/olfactory
   PYTHON_BIN=python3
   SESSION=ora_full_scvi
-  SSH_OPTS="-o ControlPath=~/.ssh/cm/%r@%h:%p"
+  SSH_OPTS="-o ControlPath=/Users/sabharwaly2/.ssh/cm/%r@%h:%p"
 
 Actions:
   check   Test SSH and print host/python/GPU/memory summary.
   push    Sync repo source plus required raw Gateway H5AD to REMOTE_DIR.
-  launch  Install environment if needed and start full 4M scVI in tmux/nohup.
+  launch  Install environment if needed and start reduced full 4M scVI in tmux/nohup.
   status  Show running process and tail remote log.
-  fetch   Sync full-model outputs and logs back to this workstation.
+  fetch   Sync reduced full 4M outputs and logs back to this workstation.
 EOF
 }
 
@@ -58,7 +58,8 @@ if [ ! -x .venv/bin/python ]; then
 fi
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install -e ".[dev,latent]"
-PYTHON=.venv/bin/python make scvi-full-4m
+PYTHON=.venv/bin/python make scvi-reduced-4m
+PYTHON=.venv/bin/python make scvi-full-4m-reduced
 PYTHON=.venv/bin/python make scvi-full-validation
 PYTHON=.venv/bin/python make output-provenance
 EOF
@@ -91,14 +92,18 @@ launch_remote() {
 }
 
 status_remote() {
-  ssh_remote "cd ${REMOTE_DIR} && { tmux ls 2>/dev/null || true; } && { pgrep -af 'run_scvi_latent|make scvi-full' || true; } && tail -n 80 results/logs/scvi_full_4m.log 2>/dev/null || true"
+  ssh_remote "cd ${REMOTE_DIR} && { tmux ls 2>/dev/null || true; } && { pgrep -af 'build_reduced_h5ad|run_scvi_latent|make scvi-(reduced|full)' || true; } && tail -n 80 results/logs/scvi_full_4m.log 2>/dev/null || true"
 }
 
 fetch_remote() {
   mkdir -p data/processed results/models results/tables results/reports results/logs
-  rsync -az ${RSYNC_PROGRESS} -e "ssh ${SSH_OPTS}" "${REMOTE}:${REMOTE_DIR}/data/processed/gateway_scvi_full_4m.h5ad" data/processed/ || true
-  rsync -az ${RSYNC_PROGRESS} -e "ssh ${SSH_OPTS}" "${REMOTE}:${REMOTE_DIR}/results/models/gateway_scvi_full_4m/" results/models/gateway_scvi_full_4m/ || true
-  rsync -az ${RSYNC_PROGRESS} -e "ssh ${SSH_OPTS}" "${REMOTE}:${REMOTE_DIR}/results/tables/scvi_full_4m_validation.tsv" results/tables/ || true
+  rsync -az ${RSYNC_PROGRESS} -e "ssh ${SSH_OPTS}" "${REMOTE}:${REMOTE_DIR}/data/processed/gateway_hvg3003_4m.h5ad" data/processed/ || true
+  rsync -az ${RSYNC_PROGRESS} -e "ssh ${SSH_OPTS}" "${REMOTE}:${REMOTE_DIR}/data/processed/gateway_scvi_full_4m_reduced.h5ad" data/processed/ || true
+  rsync -az ${RSYNC_PROGRESS} -e "ssh ${SSH_OPTS}" "${REMOTE}:${REMOTE_DIR}/data/processed/gateway_scvi_stratified_250k_seed23.h5ad" data/processed/ || true
+  rsync -az ${RSYNC_PROGRESS} -e "ssh ${SSH_OPTS}" "${REMOTE}:${REMOTE_DIR}/results/models/gateway_scvi_full_4m_reduced/" results/models/gateway_scvi_full_4m_reduced/ || true
+  rsync -az ${RSYNC_PROGRESS} -e "ssh ${SSH_OPTS}" "${REMOTE}:${REMOTE_DIR}/results/models/gateway_scvi_stratified_250k_seed23/" results/models/gateway_scvi_stratified_250k_seed23/ || true
+  rsync -az ${RSYNC_PROGRESS} -e "ssh ${SSH_OPTS}" "${REMOTE}:${REMOTE_DIR}/results/tables/scvi_full_4m_reduced_validation.tsv" results/tables/ || true
+  rsync -az ${RSYNC_PROGRESS} -e "ssh ${SSH_OPTS}" "${REMOTE}:${REMOTE_DIR}/results/tables/scvi_scaled_250k_seed23_validation.tsv" results/tables/ || true
   rsync -az ${RSYNC_PROGRESS} -e "ssh ${SSH_OPTS}" "${REMOTE}:${REMOTE_DIR}/results/reports/output_provenance.tsv" results/reports/ || true
   rsync -az ${RSYNC_PROGRESS} -e "ssh ${SSH_OPTS}" "${REMOTE}:${REMOTE_DIR}/results/logs/scvi_full_4m.log" results/logs/ || true
 }

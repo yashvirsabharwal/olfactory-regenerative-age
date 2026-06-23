@@ -150,15 +150,14 @@ These are valuable only after Priority 1 gates are done.
 - [x] Retire stale Snakemake MVP workflow.
   - Result: Makefile remains the canonical local workflow; the stale Snakemake MVP path was removed to avoid suggesting an outdated rerun route.
 
-- [ ] Add a manuscript rerun profile.
-  - Could be a Make aggregate target, Snakemake profile, or documented staged rerun instructions.
-  - Acceptance: user can regenerate manuscript-facing outputs without guessing command order.
+- [x] Add a manuscript rerun profile.
+  - Result: `docs/manuscript_rerun_profile.md` documents local refresh, heavyweight remote rerun, and final submission build profiles.
 
-- [ ] Preserve remote-compute notes.
-  - Include `mia` tmux/rsync workflow, memory notes, runtime notes, and which large artifacts stay remote.
+- [x] Preserve remote-compute notes.
+  - Result: `docs/full_4m_compute_plan.md`, `docs/reproducibility_appendix.md`, and `docs/large_artifact_manifest.md` capture the `mia` tmux/rsync workflow, memory notes, runtime notes, remote paths, and current SHA-256 checksums.
 
-- [ ] Update output provenance after final figure/table generation.
-  - Acceptance: 0 missing outputs for manuscript-facing artifacts.
+- [x] Update output provenance after final figure/table generation.
+  - Result: `PYTHON=.venv/bin/python make output-provenance` reports 166 outputs and 0 missing non-deferred outputs as of 2026-06-23.
 
 - [ ] Run final checks before preprint.
   - `.venv/bin/python -m ruff check .`
