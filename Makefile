@@ -26,10 +26,10 @@ test:
 	$(PYTHON) -m unittest discover -s tests -p "test_*.py"
 
 download-gateway:
-	$(PYTHON) scripts/download_cellxgene.py --config configs/gateway.yaml
+	$(PYTHON) scripts/data.py download --config configs/gateway.yaml
 
 download-info:
-	$(PYTHON) scripts/download_cellxgene.py --config configs/gateway.yaml --dry-run
+	$(PYTHON) scripts/data.py download --config configs/gateway.yaml --dry-run
 
 download-gse184117:
 	mkdir -p data/external
@@ -37,103 +37,103 @@ download-gse184117:
 	curl -L -C - -o data/external/GSE184117_series_matrix.txt.gz https://ftp.ncbi.nlm.nih.gov/geo/series/GSE184nnn/GSE184117/matrix/GSE184117_series_matrix.txt.gz
 
 inspect-gse184117:
-	$(PYTHON) scripts/inspect_external_raw_archive.py --archive data/external/GSE184117_RAW.tar --dataset-id oliva_2022
+	$(PYTHON) scripts/external.py inspect-archive --archive data/external/GSE184117_RAW.tar --dataset-id oliva_2022
 
 external-gse184117-modules:
-	$(PYTHON) scripts/score_external_10x_modules.py --archive data/external/GSE184117_RAW.tar --metadata data/external/GSE184117_series_matrix.txt.gz --dataset-id oliva_2022
+	$(PYTHON) scripts/external.py score-modules --archive data/external/GSE184117_RAW.tar --metadata data/external/GSE184117_series_matrix.txt.gz --dataset-id oliva_2022
 
 external-gse184117-markers:
-	$(PYTHON) scripts/score_external_10x_markers.py --archive data/external/GSE184117_RAW.tar --metadata data/external/GSE184117_series_matrix.txt.gz --dataset-id oliva_2022
+	$(PYTHON) scripts/external.py score-markers --archive data/external/GSE184117_RAW.tar --metadata data/external/GSE184117_series_matrix.txt.gz --dataset-id oliva_2022
 
 external-gse184117-mapped:
-	$(PYTHON) scripts/build_external_10x_anndata.py --archive data/external/GSE184117_RAW.tar --metadata data/external/GSE184117_series_matrix.txt.gz --dataset-id oliva_2022
+	$(PYTHON) scripts/external.py build-mapped --archive data/external/GSE184117_RAW.tar --metadata data/external/GSE184117_series_matrix.txt.gz --dataset-id oliva_2022
 
 external-scanvi-reference-map:
 	$(PYTHON) scripts/run_scanvi_reference_mapping.py --reference-h5ad data/processed/gateway_scvi_stratified_250k.h5ad --query-h5ad data/processed/gse184117_marker_mapped.h5ad --model-dir results/models/gateway_scanvi_reference --query-out data/processed/gse184117_scanvi_mapped.h5ad --qc-out results/tables/external_scanvi_mapping_qc.tsv --donor-features-out data/processed/gse184117_scanvi_donor_features.tsv --metadata-out results/tables/gateway_scanvi_reference_metadata.tsv --overwrite-model
 
 external-scanvi-feature-concordance:
-	$(PYTHON) scripts/compare_external_mapped_features.py --external-config configs/external_datasets.yaml --gateway-config configs/gateway.yaml --mapped-features data/processed/gse184117_scanvi_donor_features.tsv --out results/tables/external_scanvi_feature_concordance.tsv --direct-feature-map
+	$(PYTHON) scripts/external.py compare-mapped --external-config configs/external_datasets.yaml --gateway-config configs/gateway.yaml --mapped-features data/processed/gse184117_scanvi_donor_features.tsv --out results/tables/external_scanvi_feature_concordance.tsv --direct-feature-map
 
 external-mapped-feature-concordance:
-	$(PYTHON) scripts/compare_external_mapped_features.py --external-config configs/external_datasets.yaml --gateway-config configs/gateway.yaml
+	$(PYTHON) scripts/external.py compare-mapped --external-config configs/external_datasets.yaml --gateway-config configs/gateway.yaml
 
 external-marker-age-concordance:
-	$(PYTHON) scripts/compare_external_marker_age.py --gateway-config configs/gateway.yaml
+	$(PYTHON) scripts/external.py compare-marker-age --gateway-config configs/gateway.yaml
 
 inspect:
-	$(PYTHON) scripts/inspect_h5ad.py --config configs/gateway.yaml
+	$(PYTHON) scripts/data.py inspect --config configs/gateway.yaml
 
 cohort:
-	$(PYTHON) scripts/build_sample_manifest.py --config configs/gateway.yaml
+	$(PYTHON) scripts/data.py manifest --config configs/gateway.yaml
 
 aggregate:
-	$(PYTHON) scripts/aggregate_cell_counts.py --config configs/gateway.yaml
+	$(PYTHON) scripts/data.py aggregate --config configs/gateway.yaml
 
 features:
-	$(PYTHON) scripts/build_feature_matrix.py --config configs/gateway.yaml
+	$(PYTHON) scripts/data.py features --config configs/gateway.yaml
 
 features-augmented:
-	$(PYTHON) scripts/build_feature_matrix.py --config configs/gateway.yaml --include-modules
+	$(PYTHON) scripts/data.py features --config configs/gateway.yaml --include-modules
 
 age-associations:
-	$(PYTHON) scripts/run_age_associations.py --features data/processed/donor_cell_state_features.tsv --manifest data/processed/cohort_manifest.tsv --config configs/gateway.yaml
+	$(PYTHON) scripts/modeling.py age-associations --features data/processed/donor_cell_state_features.tsv --manifest data/processed/cohort_manifest.tsv --config configs/gateway.yaml
 
 model-ora:
-	$(PYTHON) scripts/run_age_models.py --features data/processed/ora_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --config configs/models.yaml
+	$(PYTHON) scripts/modeling.py train --features data/processed/ora_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --config configs/models.yaml
 
 model-ora-diagnostics:
-	$(PYTHON) scripts/summarize_ora_diagnostics.py --model-config configs/models.yaml --gateway-config configs/gateway.yaml
+	$(PYTHON) scripts/modeling.py diagnostics --model-config configs/models.yaml --gateway-config configs/gateway.yaml
 
 model-ora-repeated:
-	$(PYTHON) scripts/run_age_models_repeated.py --features data/processed/ora_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --model-config configs/models.yaml --gateway-config configs/gateway.yaml
+	$(PYTHON) scripts/modeling.py repeated --features data/processed/ora_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --model-config configs/models.yaml --gateway-config configs/gateway.yaml
 
 model-ora-augmented:
-	$(PYTHON) scripts/run_age_models.py --features data/processed/ora_augmented_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --config configs/models.yaml --performance-out results/tables/ora_augmented_model_performance.tsv --scores-out results/tables/augmented_donor_ora_scores.tsv --importance-out results/tables/ora_augmented_feature_importance.tsv
+	$(PYTHON) scripts/modeling.py train --features data/processed/ora_augmented_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --config configs/models.yaml --performance-out results/tables/ora_augmented_model_performance.tsv --scores-out results/tables/augmented_donor_ora_scores.tsv --importance-out results/tables/ora_augmented_feature_importance.tsv
 
 model-ora-candidate-repeated:
-	$(PYTHON) scripts/run_age_models_repeated.py --features data/processed/ora_augmented_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --model-config configs/models.yaml --gateway-config configs/gateway.yaml --models hist_gradient_boosting xgboost catboost boosted_ensemble --repeat-performance-out results/tables/ora_augmented_candidate_repeated_cv_performance.tsv --summary-out results/tables/ora_augmented_candidate_repeated_cv_summary.tsv --scores-out results/tables/ora_augmented_candidate_repeated_cv_scores.tsv --feature-stability-out results/tables/ora_augmented_candidate_repeated_cv_feature_stability.tsv --repeats 10
+	$(PYTHON) scripts/modeling.py repeated --features data/processed/ora_augmented_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --model-config configs/models.yaml --gateway-config configs/gateway.yaml --models hist_gradient_boosting xgboost catboost boosted_ensemble --repeat-performance-out results/tables/ora_augmented_candidate_repeated_cv_performance.tsv --summary-out results/tables/ora_augmented_candidate_repeated_cv_summary.tsv --scores-out results/tables/ora_augmented_candidate_repeated_cv_scores.tsv --feature-stability-out results/tables/ora_augmented_candidate_repeated_cv_feature_stability.tsv --repeats 10
 
 ora-feature-set-comparison:
-	$(PYTHON) scripts/compare_ora_feature_sets.py
+	$(PYTHON) scripts/modeling.py feature-set-comparison
 
 ora-permutation-null:
-	$(PYTHON) scripts/run_ora_permutation_null.py --observed-summary results/tables/ora_augmented_candidate_repeated_cv_summary.tsv --models hist_gradient_boosting xgboost catboost boosted_ensemble --n-permutations 50 --repeats 2
+	$(PYTHON) scripts/modeling.py permutation-null --observed-summary results/tables/ora_augmented_candidate_repeated_cv_summary.tsv --models hist_gradient_boosting xgboost catboost boosted_ensemble --n-permutations 50 --repeats 2
 
 ora-nested-tuning:
-	$(PYTHON) scripts/run_ora_nested_tuning.py --allow-fallback
+	$(PYTHON) scripts/modeling.py nested-tuning --allow-fallback
 
 ora-stacking:
-	$(PYTHON) scripts/run_ora_stacking.py --allow-fallback
+	$(PYTHON) scripts/modeling.py stacking --allow-fallback
 
 feature-interpretation:
-	$(PYTHON) scripts/build_feature_interpretation.py --gateway-config configs/gateway.yaml
+	$(PYTHON) scripts/modeling.py interpretation --gateway-config configs/gateway.yaml
 
 project-ndd:
-	$(PYTHON) scripts/project_ndd_ora.py --gateway-config configs/gateway.yaml --model-config configs/models.yaml
+	$(PYTHON) scripts/ndd.py project --gateway-config configs/gateway.yaml --model-config configs/models.yaml
 
 project-ndd-feature-sensitivity:
-	$(PYTHON) scripts/run_ndd_feature_sensitivity.py --gateway-config configs/gateway.yaml --model-config configs/models.yaml
+	$(PYTHON) scripts/ndd.py feature-sensitivity --gateway-config configs/gateway.yaml --model-config configs/models.yaml
 
 project-ndd-uncertainty:
-	$(PYTHON) scripts/summarize_ndd_projection_uncertainty.py --gateway-config configs/gateway.yaml
+	$(PYTHON) scripts/ndd.py uncertainty --gateway-config configs/gateway.yaml
 
 project-ndd-diagnostics:
-	$(PYTHON) scripts/summarize_ndd_projection_diagnostics.py --gateway-config configs/gateway.yaml
+	$(PYTHON) scripts/ndd.py diagnostics --gateway-config configs/gateway.yaml
 
 project-ndd-label-permutation:
-	$(PYTHON) scripts/run_ndd_label_permutation.py --gateway-config configs/gateway.yaml
+	$(PYTHON) scripts/ndd.py label-permutation --gateway-config configs/gateway.yaml
 
 manuscript-figures:
 	$(PYTHON) scripts/build_manuscript_figures.py --tables-dir results/tables --figures-dir results/figures
 
 publication-tables:
-	$(PYTHON) scripts/build_publication_tables.py --tables-dir results/tables --out-dir results/tables --index-out results/reports/publication_tables.md
+	$(PYTHON) scripts/reporting.py publication-tables --tables-dir results/tables --out-dir results/tables --index-out results/reports/publication_tables.md
 
 manuscript:
 	cd manuscript && if command -v latexmk >/dev/null 2>&1; then latexmk -pdf main.tex; elif command -v pdflatex >/dev/null 2>&1 && command -v bibtex >/dev/null 2>&1; then pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex; else echo "No LaTeX engine found. Install latexmk or pdflatex+bibtex to build manuscript/main.pdf."; exit 2; fi
 
 manuscript-check:
-	$(PYTHON) scripts/check_manuscript_package.py
+	$(PYTHON) scripts/reporting.py manuscript-check
 
 latent-space-audit:
 	$(PYTHON) scripts/audit_latent_space.py --config configs/gateway.yaml
@@ -192,31 +192,31 @@ scvi-lineage-validation:
 	$(PYTHON) scripts/validate_scvi_pilot.py --config configs/gateway.yaml --h5ad data/processed/gateway_scvi_lineage_basal_neural_100k.h5ad --out results/tables/scvi_lineage_basal_neural_validation.tsv --max-validation-cells 50000 --seed 17
 
 modules:
-	$(PYTHON) scripts/score_gene_sets.py --config configs/gateway.yaml --gene-sets configs/gene_sets.yaml
+	$(PYTHON) scripts/data.py modules --config configs/gateway.yaml --gene-sets configs/gene_sets.yaml
 
 published-gene-modules:
-	$(PYTHON) scripts/score_gene_sets.py --config configs/gateway.yaml --gene-sets configs/external_datasets.yaml --summary-out results/tables/published_module_score_summary.tsv --coverage-out results/tables/published_module_gene_list_coverage.tsv --donor-features-out data/processed/published_donor_module_features.tsv
+	$(PYTHON) scripts/data.py modules --config configs/gateway.yaml --gene-sets configs/external_datasets.yaml --summary-out results/tables/published_module_score_summary.tsv --coverage-out results/tables/published_module_gene_list_coverage.tsv --donor-features-out data/processed/published_donor_module_features.tsv
 
 external-validation:
-	$(PYTHON) scripts/summarize_external_validation.py --external-config configs/external_datasets.yaml --gateway-config configs/gateway.yaml
+	$(PYTHON) scripts/external.py summarize-validation --external-config configs/external_datasets.yaml --gateway-config configs/gateway.yaml
 
 external-candidate-matrix:
-	$(PYTHON) scripts/write_external_candidate_matrix.py --external-config configs/external_datasets.yaml
+	$(PYTHON) scripts/external.py candidate-matrix --external-config configs/external_datasets.yaml
 
 external-evidence:
-	$(PYTHON) scripts/summarize_external_evidence.py --external-config configs/external_datasets.yaml
+	$(PYTHON) scripts/external.py evidence --external-config configs/external_datasets.yaml
 
 external-feature-harmonization:
-	$(PYTHON) scripts/import_external_feature_matrix.py --external-config configs/external_datasets.yaml --gateway-config configs/gateway.yaml
+	$(PYTHON) scripts/external.py validate-feature-matrix --external-config configs/external_datasets.yaml --gateway-config configs/gateway.yaml
 
 pseudobulk:
-	$(PYTHON) scripts/aggregate_pseudobulk.py --config configs/gateway.yaml --gene-sets configs/gene_sets.yaml
+	$(PYTHON) scripts/pseudobulk.py targeted --config configs/gateway.yaml --gene-sets configs/gene_sets.yaml
 
 pseudobulk-genomewide:
-	$(PYTHON) scripts/export_genomewide_pseudobulk.py --config configs/gateway.yaml
+	$(PYTHON) scripts/pseudobulk.py export-genomewide --config configs/gateway.yaml
 
 pseudobulk-genomewide-qc:
-	$(PYTHON) scripts/summarize_genomewide_pseudobulk.py --config configs/gateway.yaml
+	$(PYTHON) scripts/pseudobulk.py qc --config configs/gateway.yaml
 
 pseudobulk-genomewide-edger:
 	$(RSCRIPT) scripts/run_genomewide_edger.R --counts data/processed/pseudobulk_genomewide_counts.tsv.gz --metadata data/processed/pseudobulk_genomewide_metadata.tsv --manifest data/processed/cohort_manifest.tsv --out results/tables/pseudobulk_genomewide_edger.tsv.gz --summary-out results/tables/pseudobulk_genomewide_edger_summary.tsv
@@ -231,43 +231,43 @@ pseudobulk-genomewide-limma-matched:
 	$(RSCRIPT) scripts/run_genomewide_limma_voom.R --counts data/processed/pseudobulk_genomewide_counts.tsv.gz --metadata data/processed/pseudobulk_genomewide_metadata.tsv --manifest data/processed/cohort_manifest.tsv --chemistry flex_v2 --collection-method device --out results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device.tsv.gz --summary-out results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device_summary.tsv
 
 pseudobulk-genomewide-de-summary:
-	$(PYTHON) scripts/summarize_genomewide_de.py --config configs/gateway.yaml
+	$(PYTHON) scripts/pseudobulk.py de-summary --config configs/gateway.yaml
 
 pseudobulk-genomewide-de-summary-matched:
-	$(PYTHON) scripts/summarize_genomewide_de.py --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device.tsv.gz --run-summary results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device_summary.tsv --summary-out results/tables/pseudobulk_genomewide_de_summary_matched_flex_v2_device.tsv --top-hits-out results/tables/pseudobulk_genomewide_de_top_hits_matched_flex_v2_device.tsv
+	$(PYTHON) scripts/pseudobulk.py de-summary --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device.tsv.gz --run-summary results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device_summary.tsv --summary-out results/tables/pseudobulk_genomewide_de_summary_matched_flex_v2_device.tsv --top-hits-out results/tables/pseudobulk_genomewide_de_top_hits_matched_flex_v2_device.tsv
 
 pseudobulk-genomewide-limma-de-summary:
-	$(PYTHON) scripts/summarize_genomewide_de.py --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_limma_voom.tsv.gz --run-summary results/tables/pseudobulk_genomewide_limma_voom_summary.tsv --summary-out results/tables/pseudobulk_genomewide_limma_voom_de_summary.tsv --top-hits-out results/tables/pseudobulk_genomewide_limma_voom_de_top_hits.tsv
+	$(PYTHON) scripts/pseudobulk.py de-summary --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_limma_voom.tsv.gz --run-summary results/tables/pseudobulk_genomewide_limma_voom_summary.tsv --summary-out results/tables/pseudobulk_genomewide_limma_voom_de_summary.tsv --top-hits-out results/tables/pseudobulk_genomewide_limma_voom_de_top_hits.tsv
 
 pseudobulk-genomewide-limma-de-summary-matched:
-	$(PYTHON) scripts/summarize_genomewide_de.py --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device.tsv.gz --run-summary results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device_summary.tsv --summary-out results/tables/pseudobulk_genomewide_limma_voom_de_summary_matched_flex_v2_device.tsv --top-hits-out results/tables/pseudobulk_genomewide_limma_voom_de_top_hits_matched_flex_v2_device.tsv
+	$(PYTHON) scripts/pseudobulk.py de-summary --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device.tsv.gz --run-summary results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device_summary.tsv --summary-out results/tables/pseudobulk_genomewide_limma_voom_de_summary_matched_flex_v2_device.tsv --top-hits-out results/tables/pseudobulk_genomewide_limma_voom_de_top_hits_matched_flex_v2_device.tsv
 
 pseudobulk-genomewide-de-audit:
-	$(PYTHON) scripts/audit_genomewide_de.py --config configs/gateway.yaml
+	$(PYTHON) scripts/pseudobulk.py de-audit --config configs/gateway.yaml
 
 pseudobulk-genomewide-de-audit-matched:
-	$(PYTHON) scripts/audit_genomewide_de.py --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device.tsv.gz --run-summary results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device_summary.tsv --audit-out results/tables/pseudobulk_genomewide_de_audit_matched_flex_v2_device.tsv --donor-balance-out results/tables/pseudobulk_genomewide_donor_balance_matched_flex_v2_device.tsv --matched-feasibility-out results/tables/pseudobulk_genomewide_matched_feasibility_matched_flex_v2_device.tsv
+	$(PYTHON) scripts/pseudobulk.py de-audit --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device.tsv.gz --run-summary results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device_summary.tsv --audit-out results/tables/pseudobulk_genomewide_de_audit_matched_flex_v2_device.tsv --donor-balance-out results/tables/pseudobulk_genomewide_donor_balance_matched_flex_v2_device.tsv --matched-feasibility-out results/tables/pseudobulk_genomewide_matched_feasibility_matched_flex_v2_device.tsv
 
 pseudobulk-genomewide-limma-de-audit:
-	$(PYTHON) scripts/audit_genomewide_de.py --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_limma_voom.tsv.gz --run-summary results/tables/pseudobulk_genomewide_limma_voom_summary.tsv --audit-out results/tables/pseudobulk_genomewide_limma_voom_de_audit.tsv --donor-balance-out results/tables/pseudobulk_genomewide_limma_voom_donor_balance.tsv --matched-feasibility-out results/tables/pseudobulk_genomewide_limma_voom_matched_feasibility.tsv
+	$(PYTHON) scripts/pseudobulk.py de-audit --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_limma_voom.tsv.gz --run-summary results/tables/pseudobulk_genomewide_limma_voom_summary.tsv --audit-out results/tables/pseudobulk_genomewide_limma_voom_de_audit.tsv --donor-balance-out results/tables/pseudobulk_genomewide_limma_voom_donor_balance.tsv --matched-feasibility-out results/tables/pseudobulk_genomewide_limma_voom_matched_feasibility.tsv
 
 pseudobulk-genomewide-limma-de-audit-matched:
-	$(PYTHON) scripts/audit_genomewide_de.py --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device.tsv.gz --run-summary results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device_summary.tsv --audit-out results/tables/pseudobulk_genomewide_limma_voom_de_audit_matched_flex_v2_device.tsv --donor-balance-out results/tables/pseudobulk_genomewide_limma_voom_donor_balance_matched_flex_v2_device.tsv --matched-feasibility-out results/tables/pseudobulk_genomewide_limma_voom_matched_feasibility_matched_flex_v2_device.tsv
+	$(PYTHON) scripts/pseudobulk.py de-audit --config configs/gateway.yaml --de results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device.tsv.gz --run-summary results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device_summary.tsv --audit-out results/tables/pseudobulk_genomewide_limma_voom_de_audit_matched_flex_v2_device.tsv --donor-balance-out results/tables/pseudobulk_genomewide_limma_voom_donor_balance_matched_flex_v2_device.tsv --matched-feasibility-out results/tables/pseudobulk_genomewide_limma_voom_matched_feasibility_matched_flex_v2_device.tsv
 
 pseudobulk-covariate-de:
-	$(PYTHON) scripts/run_pseudobulk_covariate_de.py --config configs/gateway.yaml
+	$(PYTHON) scripts/pseudobulk.py covariate-de --config configs/gateway.yaml
 
 ora-sensitivity:
-	$(PYTHON) scripts/run_ora_sensitivity.py --gateway-config configs/gateway.yaml --model-config configs/models.yaml
+	$(PYTHON) scripts/modeling.py sensitivity --gateway-config configs/gateway.yaml --model-config configs/models.yaml
 
 ora-sensitivity-rf:
-	$(PYTHON) scripts/run_ora_sensitivity.py --gateway-config configs/gateway.yaml --model-config configs/models.yaml --models random_forest
+	$(PYTHON) scripts/modeling.py sensitivity --gateway-config configs/gateway.yaml --model-config configs/models.yaml --models random_forest
 
 model-card:
-	$(PYTHON) scripts/build_model_card.py --gateway-config configs/gateway.yaml
+	$(PYTHON) scripts/reporting.py model-card --gateway-config configs/gateway.yaml
 
 output-provenance:
-	$(PYTHON) scripts/write_output_provenance.py --gateway-config configs/gateway.yaml --command-manifest configs/command_manifest.yaml
+	$(PYTHON) scripts/reporting.py output-provenance --gateway-config configs/gateway.yaml --command-manifest configs/command_manifest.yaml
 
 all-summary: external-validation external-candidate-matrix external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-marker-age-concordance external-mapped-feature-concordance external-evidence model-ora-diagnostics ora-feature-set-comparison ora-permutation-null ora-nested-tuning ora-stacking feature-interpretation pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-limma-de-audit-matched project-ndd-feature-sensitivity project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation model-card latent-space-audit latent-space-recompute-plan output-provenance
 
