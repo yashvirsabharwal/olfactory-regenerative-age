@@ -537,3 +537,15 @@ commands:
       - "results/tables/manuscript_table_de_audit_summary.tsv"
       - "results/tables/manuscript_table_ndd_guardrails.tsv"
       - "docs/publication_tables.md"
+  manuscript_check:
+    description: "Check manuscript citation keys, figure/table assets, and local TeX readiness."
+    command: "make manuscript-check"
+    inputs:
+      - "manuscript/main.tex"
+      - "manuscript/references.bib"
+      - "results/figures"
+      - "results/tables"
+      - "scripts/check_manuscript_package.py"
+    outputs:
+      - "results/reports/manuscript_package_check.tsv"
+      - "docs/manuscript_package_check.md"

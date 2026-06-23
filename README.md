@@ -69,6 +69,7 @@ make scvi-lineage-validation
 make model-card
 make manuscript-figures
 make publication-tables
+make manuscript-check
 make output-provenance
 make report
 ```

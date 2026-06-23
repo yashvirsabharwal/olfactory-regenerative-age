@@ -163,8 +163,7 @@ These are valuable only after Priority 1 gates are done.
   - `.venv/bin/python -m ruff check .`
   - `PYTHON=.venv/bin/python make test`
   - `PYTHON=.venv/bin/python make output-provenance`
-  - citation-key check
-  - figure existence check
+  - `PYTHON=.venv/bin/python make manuscript-check`
   - PDF build check
 
 ## Completed Major Milestones
