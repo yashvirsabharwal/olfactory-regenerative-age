@@ -8,8 +8,8 @@ Purpose: one journal-submission workspace for administrative fields, data/code a
 
 | Area | Status | Evidence | Remaining action |
 | --- | --- | --- | --- |
-| Manuscript source | ready except PDF build | `manuscript/main.tex`, `manuscript/references.bib`, `docs/manuscript_package_check.md`. | Compile in a TeX-enabled environment. |
-| Figures and tables | ready except visual PDF QA | Six main figures, six extended-data figures, six manuscript tables, `docs/publication_tables.md`. | Inspect final compiled PDF. |
+| Manuscript source | ready except PDF build | `manuscript/main.tex`, `manuscript/references.bib`, `results/reports/manuscript_package_check.md`. | Compile in a TeX-enabled environment. |
+| Figures and tables | ready except visual PDF QA | Six main figures, six extended-data figures, six manuscript tables, `results/reports/publication_tables.md`. | Inspect final compiled PDF. |
 | Claims | ready with conservative framing | `docs/claim_ledger.md`, `docs/journal_acceptance_tracker.md`. | Final title/abstract/caption audit. |
 | External validation | exhausted but label request pending | `docs/external_validation_final_search.md`, `docs/gse184117_label_request.md`, `results/tables/external_candidate_matrix.tsv`. | Send/log GSE184117 label request outcome. |
 | Reproducibility | partial | Makefile, command manifest, output provenance, `docs/large_artifact_manifest.md`, `docs/manuscript_rerun_profile.md`. | Add durable artifact archive URI. |
@@ -58,8 +58,8 @@ Large raw, processed, model, and result artifacts are intentionally not stored i
 | --- | --- | --- |
 | Main figures | `results/figures/manuscript_figure*.pdf` | Present; final PDF visual QA needed. |
 | Extended-data figures | `results/figures/extended_data_figure*.pdf` | Present; target journal may require supplement-only formatting. |
-| Manuscript tables | `results/tables/manuscript_table_*.tsv` | Present and indexed in `docs/publication_tables.md`. |
-| Supplement tables | Pipeline result TSVs listed through `docs/publication_tables.md` and provenance. | Select target-journal bundle after venue choice. |
+| Manuscript tables | `results/tables/manuscript_table_*.tsv` | Present and indexed in `results/reports/publication_tables.md`. |
+| Supplement tables | Pipeline result TSVs listed through `results/reports/publication_tables.md` and provenance. | Select target-journal bundle after venue choice. |
 | Reproducibility supplement | `docs/run_hierarchy.md`, `docs/manuscript_rerun_profile.md`, `docs/large_artifact_manifest.md`. | Needs archive URI. |
 
 ## Reviewer Risk Memo

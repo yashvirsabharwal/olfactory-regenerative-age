@@ -17,7 +17,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tables-dir", default="results/tables")
     parser.add_argument("--out-dir", default="results/tables")
-    parser.add_argument("--index-out", default="docs/publication_tables.md")
+    parser.add_argument("--index-out", default="results/reports/publication_tables.md")
     args = parser.parse_args()
 
     tables = build_publication_tables(args.tables_dir)

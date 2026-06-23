@@ -25,7 +25,7 @@ def main() -> None:
     )
     parser.add_argument("--summary-out", default="results/tables/scvi_embedding_claim_gates.tsv")
     parser.add_argument("--markers-out", default="results/tables/scvi_embedding_marker_concordance.tsv")
-    parser.add_argument("--note-out", default="docs/scvi_embedding_comparison.md")
+    parser.add_argument("--note-out", default="results/reports/scvi_embedding_comparison.md")
     args = parser.parse_args()
 
     validation_paths = {model: path for model, path in args.validation}

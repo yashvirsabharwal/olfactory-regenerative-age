@@ -17,7 +17,7 @@ MILOR_MATCHED_SUBSET_CELLS ?= 75000
 MILOR_RSCRIPT ?= $(HOME)/bin/micromamba run -p $(HOME)/micromamba-envs/ora-milor Rscript
 REMOTE_FULL_SCVI_ACTION ?= help
 
-.PHONY: setup test download-gateway download-info download-gse184117 inspect-gse184117 external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-scanvi-reference-map external-scanvi-feature-concordance external-mapped-feature-concordance external-marker-age-concordance external-candidate-matrix external-evidence toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-diagnostics model-ora-repeated model-ora-augmented model-ora-candidate-repeated ora-feature-set-comparison ora-permutation-null ora-nested-tuning ora-stacking feature-interpretation project-ndd project-ndd-feature-sensitivity project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation report manuscript manuscript-check manuscript-figures publication-tables modules published-gene-modules external-validation external-feature-harmonization trajectory latent-space-audit latent-space-recompute-plan latent-space-plan scvi-pilot scvi-pilot-validation scvi-scaled-250k scvi-scaled-250k-seed23 scvi-scaled-validation scvi-scaled-comparison scvi-embedding-claim-gates scvi-scaled-500k scvi-scaled-1m scvi-reduced-4m scvi-full-4m scvi-full-4m-safe scvi-full-4m-reduced scvi-full-validation scvi-lineage-basal-neural scvi-lineage-validation pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-genomewide-edger pseudobulk-genomewide-edger-matched pseudobulk-genomewide-limma pseudobulk-genomewide-limma-matched pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-audit-matched pseudobulk-covariate-de ora-sensitivity ora-sensitivity-rf model-card output-provenance all-summary remote-full-scvi milo milo-lineage milo-secretory milo-full-4m milo-full-4m-lineage milo-full-4m-secretory milo-full-4m-matched milo-full-4m-lineage-matched milo-full-4m-secretory-matched milo-full-4m-annotation milo-full-4m-lineage-programs milo-full-4m-lineage-matched-programs milo-full-4m-lineage-age-bins milo-full-4m-lineage-matched-age-bins milo-full-4m-lineage-edger-parity milo-full-4m-lineage-matched-edger-parity milor-lineage-subset-parity milor-lineage-matched-subset-parity cnmf clean
+.PHONY: setup test download-gateway download-info download-gse184117 inspect-gse184117 external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-scanvi-reference-map external-scanvi-feature-concordance external-mapped-feature-concordance external-marker-age-concordance external-candidate-matrix external-evidence toy-data smoke-toy inspect cohort aggregate features features-augmented age-associations model-ora model-ora-diagnostics model-ora-repeated model-ora-augmented model-ora-candidate-repeated ora-feature-set-comparison ora-permutation-null ora-nested-tuning ora-stacking feature-interpretation project-ndd project-ndd-feature-sensitivity project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation manuscript manuscript-check manuscript-figures publication-tables modules published-gene-modules external-validation external-feature-harmonization latent-space-audit latent-space-recompute-plan latent-space-plan scvi-pilot scvi-pilot-validation scvi-scaled-250k scvi-scaled-250k-seed23 scvi-scaled-validation scvi-scaled-comparison scvi-embedding-claim-gates scvi-scaled-500k scvi-scaled-1m scvi-reduced-4m scvi-full-4m scvi-full-4m-safe scvi-full-4m-reduced scvi-full-validation scvi-lineage-basal-neural scvi-lineage-validation pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-genomewide-edger pseudobulk-genomewide-edger-matched pseudobulk-genomewide-limma pseudobulk-genomewide-limma-matched pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-audit-matched pseudobulk-covariate-de ora-sensitivity ora-sensitivity-rf model-card output-provenance all-summary remote-full-scvi milo milo-lineage milo-secretory milo-full-4m milo-full-4m-lineage milo-full-4m-secretory milo-full-4m-matched milo-full-4m-lineage-matched milo-full-4m-secretory-matched milo-full-4m-annotation milo-full-4m-lineage-programs milo-full-4m-lineage-matched-programs milo-full-4m-lineage-age-bins milo-full-4m-lineage-matched-age-bins milo-full-4m-lineage-edger-parity milo-full-4m-lineage-matched-edger-parity milor-lineage-subset-parity milor-lineage-matched-subset-parity clean
 
 setup:
 	$(PYTHON) -m pip install -e ".[dev]"
@@ -129,23 +129,17 @@ project-ndd-diagnostics:
 project-ndd-label-permutation:
 	$(PYTHON) scripts/run_ndd_label_permutation.py --gateway-config configs/gateway.yaml
 
-report:
-	$(PYTHON) scripts/generate_mvp_report.py --config configs/gateway.yaml
-
 manuscript-figures:
 	$(PYTHON) scripts/build_manuscript_figures.py --tables-dir results/tables --figures-dir results/figures
 
 publication-tables:
-	$(PYTHON) scripts/build_publication_tables.py --tables-dir results/tables --out-dir results/tables --index-out docs/publication_tables.md
+	$(PYTHON) scripts/build_publication_tables.py --tables-dir results/tables --out-dir results/tables --index-out results/reports/publication_tables.md
 
 manuscript:
 	cd manuscript && if command -v latexmk >/dev/null 2>&1; then latexmk -pdf main.tex; elif command -v pdflatex >/dev/null 2>&1 && command -v bibtex >/dev/null 2>&1; then pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex; else echo "No LaTeX engine found. Install latexmk or pdflatex+bibtex to build manuscript/main.pdf."; exit 2; fi
 
 manuscript-check:
 	$(PYTHON) scripts/check_manuscript_package.py
-
-trajectory:
-	$(PYTHON) scripts/run_trajectory.py --config configs/gateway.yaml
 
 latent-space-audit:
 	$(PYTHON) scripts/audit_latent_space.py --config configs/gateway.yaml
@@ -171,19 +165,19 @@ scvi-scaled-validation:
 	$(PYTHON) scripts/validate_scvi_pilot.py --config configs/gateway.yaml --h5ad data/processed/gateway_scvi_stratified_250k.h5ad --out results/tables/scvi_scaled_250k_validation.tsv --max-validation-cells 50000 --seed 13
 
 scvi-scaled-500k:
-	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_stratified_500k.h5ad --model-dir results/models/gateway_scvi_stratified_500k --max-cells 500000 --sampling-strategy stratified --stratify-keys condition,fine_celltype,sex,flex_version,device_guided --gene-list-file configs/scvi_full_4m_genes.txt --n-top-genes 3000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 100 --accelerator auto --devices auto --seed 23
+	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_stratified_500k.h5ad --model-dir results/models/gateway_scvi_stratified_500k --max-cells 500000 --sampling-strategy stratified --stratify-keys condition,fine_celltype,sex,flex_version,device_guided --gene-list-file resources/scvi/full_4m_genes.txt --n-top-genes 3000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 100 --accelerator auto --devices auto --seed 23
 
 scvi-scaled-1m:
-	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_stratified_1m.h5ad --model-dir results/models/gateway_scvi_stratified_1m --max-cells 1000000 --sampling-strategy stratified --stratify-keys condition,fine_celltype,sex,flex_version,device_guided --gene-list-file configs/scvi_full_4m_genes.txt --n-top-genes 3000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 100 --accelerator auto --devices auto --seed 23
+	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_stratified_1m.h5ad --model-dir results/models/gateway_scvi_stratified_1m --max-cells 1000000 --sampling-strategy stratified --stratify-keys condition,fine_celltype,sex,flex_version,device_guided --gene-list-file resources/scvi/full_4m_genes.txt --n-top-genes 3000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 100 --accelerator auto --devices auto --seed 23
 
 scvi-reduced-4m:
-	$(PYTHON) scripts/build_reduced_h5ad.py --h5ad data/raw/gateway.h5ad --gene-list-file configs/scvi_full_4m_genes.txt --out data/processed/gateway_hvg3003_4m.h5ad --chunk-dir data/processed/gateway_hvg3003_4m_chunks --chunk-size 25000 --overwrite
+	$(PYTHON) scripts/build_reduced_h5ad.py --h5ad data/raw/gateway.h5ad --gene-list-file resources/scvi/full_4m_genes.txt --out data/processed/gateway_hvg3003_4m.h5ad --chunk-dir data/processed/gateway_hvg3003_4m_chunks --chunk-size 25000 --overwrite
 
 scvi-full-4m:
-	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_full_4m.h5ad --model-dir results/models/gateway_scvi_full_4m --gene-list-file configs/scvi_full_4m_genes.txt --n-top-genes 3000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 100 --accelerator auto --devices auto --seed 23
+	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_full_4m.h5ad --model-dir results/models/gateway_scvi_full_4m --gene-list-file resources/scvi/full_4m_genes.txt --n-top-genes 3000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 100 --accelerator auto --devices auto --seed 23
 
 scvi-full-4m-safe:
-	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_full_4m_safe.h5ad --model-dir results/models/gateway_scvi_full_4m_safe --gene-list-file configs/scvi_full_4m_genes_1500.txt --n-top-genes 1500 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 100 --accelerator auto --devices auto --seed 23
+	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_full_4m_safe.h5ad --model-dir results/models/gateway_scvi_full_4m_safe --gene-list-file resources/scvi/full_4m_genes_1500.txt --n-top-genes 1500 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 100 --accelerator auto --devices auto --seed 23
 
 scvi-full-4m-reduced:
 	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/processed/gateway_hvg3003_4m.h5ad --out data/processed/gateway_scvi_full_4m_reduced.h5ad --model-dir results/models/gateway_scvi_full_4m_reduced --n-top-genes 3000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 100 --accelerator auto --devices auto --seed 23
@@ -195,7 +189,7 @@ scvi-scaled-comparison:
 	$(PYTHON) scripts/summarize_scvi_validations.py --validation full_4m_reduced results/tables/scvi_full_4m_reduced_validation.tsv --validation stratified_250k_seed13 results/tables/scvi_scaled_250k_validation.tsv --validation stratified_250k_seed23 results/tables/scvi_scaled_250k_seed23_validation.tsv --validation lineage_basal_neural_100k results/tables/scvi_lineage_basal_neural_validation.tsv --out results/tables/scvi_latent_validation_comparison.tsv
 
 scvi-embedding-claim-gates:
-	$(PYTHON) scripts/compare_scvi_embeddings.py --validation full_4m_reduced results/tables/scvi_full_4m_reduced_validation.tsv --validation stratified_250k_seed13 results/tables/scvi_scaled_250k_validation.tsv --validation stratified_250k_seed23 results/tables/scvi_scaled_250k_seed23_validation.tsv --validation lineage_basal_neural_100k results/tables/scvi_lineage_basal_neural_validation.tsv --summary-out results/tables/scvi_embedding_claim_gates.tsv --markers-out results/tables/scvi_embedding_marker_concordance.tsv --note-out docs/scvi_embedding_comparison.md
+	$(PYTHON) scripts/compare_scvi_embeddings.py --validation full_4m_reduced results/tables/scvi_full_4m_reduced_validation.tsv --validation stratified_250k_seed13 results/tables/scvi_scaled_250k_validation.tsv --validation stratified_250k_seed23 results/tables/scvi_scaled_250k_seed23_validation.tsv --validation lineage_basal_neural_100k results/tables/scvi_lineage_basal_neural_validation.tsv --summary-out results/tables/scvi_embedding_claim_gates.tsv --markers-out results/tables/scvi_embedding_marker_concordance.tsv --note-out results/reports/scvi_embedding_comparison.md
 
 scvi-lineage-basal-neural:
 	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_lineage_basal_neural_100k.h5ad --max-cells 100000 --sampling-strategy stratified --stratify-keys condition,fine_celltype,sex,flex_version,device_guided --include-fine-celltype-regex "basal|HBC|GBC|INP|OSN|neuro|globose|horizontal|microvillar|secretory|sustentacular" --n-top-genes 3000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 50 --seed 17
@@ -281,10 +275,10 @@ model-card:
 output-provenance:
 	$(PYTHON) scripts/write_output_provenance.py --gateway-config configs/gateway.yaml --command-manifest configs/command_manifest.yaml
 
-all-summary: external-validation external-candidate-matrix external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-marker-age-concordance external-mapped-feature-concordance external-evidence model-ora-diagnostics ora-feature-set-comparison ora-permutation-null ora-nested-tuning ora-stacking feature-interpretation pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-limma-de-audit-matched project-ndd-feature-sensitivity project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation model-card latent-space-audit latent-space-recompute-plan output-provenance report
+all-summary: external-validation external-candidate-matrix external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-marker-age-concordance external-mapped-feature-concordance external-evidence model-ora-diagnostics ora-feature-set-comparison ora-permutation-null ora-nested-tuning ora-stacking feature-interpretation pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-limma-de-audit-matched project-ndd-feature-sensitivity project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation model-card latent-space-audit latent-space-recompute-plan output-provenance
 
 remote-full-scvi:
-	scripts/remote_full_scvi.sh $(REMOTE_FULL_SCVI_ACTION)
+	tools/remote_full_scvi.sh $(REMOTE_FULL_SCVI_ACTION)
 
 milo:
 	$(PYTHON) scripts/run_milo_pilot.py --h5ad $(MILO_H5AD) --manifest data/processed/cohort_manifest.tsv --n-neighborhoods $(MILO_NEIGHBORHOODS) --n-neighbors $(MILO_NEIGHBORS) --seed-stratify-columns coarse_celltype,fine_celltype --out results/tables/milo_pilot_neighborhood_da.tsv --summary-out results/tables/milo_pilot_summary.tsv
@@ -345,9 +339,6 @@ milor-lineage-subset-parity:
 milor-lineage-matched-subset-parity:
 	$(PYTHON) scripts/export_milor_subset.py --h5ad $(MILO_FULL_H5AD) --manifest data/processed/cohort_manifest.tsv --donor-query "$(MILO_MATCHED_DONOR_QUERY)" --max-cells $(MILOR_MATCHED_SUBSET_CELLS) --metadata-out data/processed/milor_lineage_matched_subset_metadata.tsv --embedding-out data/processed/milor_lineage_matched_subset_embedding.tsv --summary-out results/tables/milor_lineage_matched_subset_export_summary.tsv
 	$(MILOR_RSCRIPT) scripts/run_milor_parity.R --metadata data/processed/milor_lineage_matched_subset_metadata.tsv --embedding data/processed/milor_lineage_matched_subset_embedding.tsv --run-name lineage_matched_subset --out results/tables/milor_lineage_matched_subset_da.tsv --summary-out results/tables/milor_lineage_matched_subset_summary.tsv
-
-cnmf:
-	$(PYTHON) scripts/run_cnmf.py --config configs/gateway.yaml
 
 clean:
 	rm -rf .pytest_cache .ruff_cache build dist *.egg-info

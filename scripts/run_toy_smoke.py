@@ -41,8 +41,6 @@ def main() -> None:
         pseudobulk_coverage = tmp / "pseudobulk_gene_coverage.tsv"
         pseudobulk_de = tmp / "pseudobulk_de.tsv"
         pseudobulk_covariate_de = tmp / "pseudobulk_covariate_de.tsv"
-        report = tmp / "mvp_report.md"
-        figure_dir = tmp / "figures"
 
         _run([python, "scripts/create_toy_gateway_h5ad.py", "--out", str(h5ad)], root)
         _run(
@@ -216,55 +214,6 @@ def main() -> None:
                 str(ndd_projection),
                 "--summary-out",
                 str(ndd_projection_summary),
-            ],
-            root,
-        )
-        _run(
-            [
-                python,
-                "scripts/generate_mvp_report.py",
-                "--manifest",
-                str(manifest),
-                "--cohort-summary",
-                str(cohort_summary),
-                "--associations",
-                str(associations),
-                "--performance",
-                str(performance),
-                "--scores",
-                str(scores),
-                "--importance",
-                str(importance),
-                "--augmented-performance",
-                str(augmented_performance),
-                "--augmented-scores",
-                str(augmented_scores),
-                "--augmented-importance",
-                str(augmented_importance),
-                "--ndd-projection",
-                str(ndd_projection),
-                "--ndd-projection-summary",
-                str(ndd_projection_summary),
-                "--module-summary",
-                str(module_summary),
-                "--module-coverage",
-                str(module_coverage),
-                "--donor-module-features",
-                str(donor_module_features),
-                "--pseudobulk-de",
-                str(pseudobulk_de),
-                "--pseudobulk-coverage",
-                str(pseudobulk_coverage),
-                "--pseudobulk-metadata",
-                str(pseudobulk_metadata),
-                "--pseudobulk-covariate-de",
-                str(pseudobulk_covariate_de),
-                "--schema",
-                str(schema),
-                "--out",
-                str(report),
-                "--figure-dir",
-                str(figure_dir),
             ],
             root,
         )

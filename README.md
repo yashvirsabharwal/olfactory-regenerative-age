@@ -6,7 +6,7 @@ Primary source: **Gateway: patient olfactory neurons for large-scale discovery i
 
 ## Current Scope
 
-The implementation focuses on memory-safe metadata inspection, healthy-donor cohort definition, cell-state composition features, age associations, composition-only and module-augmented ORA modeling, frozen healthy-trained AD/PD projection, reporting, chunked average-expression module scoring, targeted curated-gene pseudobulk DE, donor-level covariate-adjusted pseudobulk DE, genome-wide edgeR and limma-voom DE summaries, GSE184117 raw 10x mapping, Gateway scANVI/scArches reference mapping, scaled and all-cell reduced scVI latent validation, full-scale Milo-style neighborhood analyses with edgeR and official-MiloR subset sensitivity, provenance, and manuscript-readiness tables. SOTA mechanistic upgrades such as external-atlas harmonization, foundation-model benchmarking, cross-tissue specificity, fate analysis, spatial validation, and regulatory drivers are tracked in `docs/sota_research_tracker.md`.
+The implementation focuses on memory-safe metadata inspection, healthy-donor cohort definition, cell-state composition features, age associations, composition-only and module-augmented ORA modeling, frozen healthy-trained AD/PD projection, chunked average-expression module scoring, targeted curated-gene pseudobulk DE, donor-level covariate-adjusted pseudobulk DE, genome-wide edgeR and limma-voom DE summaries, GSE184117 raw 10x mapping, Gateway scANVI/scArches reference mapping, scaled and all-cell reduced scVI latent validation, full-scale Milo-style neighborhood analyses with edgeR and official-MiloR subset sensitivity, provenance, and manuscript-readiness tables. SOTA mechanistic upgrades such as external-atlas harmonization, foundation-model benchmarking, cross-tissue specificity, fate analysis, spatial validation, and regulatory drivers are tracked in `docs/sota_research_tracker.md`.
 
 Research upgrades are tracked in `docs/sota_research_tracker.md`; journal-readiness gates are tracked in `docs/journal_acceptance_tracker.md`; claim boundaries are tracked in `docs/claim_ledger.md`. External-validation exhaustion and reproducibility packaging are recorded in `docs/external_validation_final_search.md`, `docs/gse184117_label_request.md`, `docs/large_artifact_manifest.md`, and `docs/manuscript_rerun_profile.md`.
 
@@ -72,7 +72,6 @@ make manuscript-figures
 make publication-tables
 make manuscript-check
 make output-provenance
-make report
 ```
 
 If you do not have the real Gateway file yet, run the smoke workflow against a temporary toy H5AD:
@@ -179,23 +178,16 @@ Generated data and analysis outputs are intentionally ignored by Git:
 - `results/tables/scvi_embedding_marker_concordance.tsv`
 - `data/processed/gateway_scvi_lineage_basal_neural_100k.h5ad`
 - `results/tables/scvi_lineage_basal_neural_validation.tsv`
-- `docs/latent_space_recovery_plan.md`
-- `docs/latent_recompute_workflow.md`
+- `results/reports/latent_space_recovery_plan.md`
+- `results/reports/latent_recompute_workflow.md`
 - `results/reports/command_manifest.tsv`
 - `results/reports/output_provenance.tsv`
-- `results/reports/mvp_report.md`
-- `results/figures/mvp_*.png`
 - `results/figures/manuscript_figure*.png`
 - `results/figures/manuscript_figure*.pdf`
 - `results/figures/extended_data_figure*.png`
 - `results/figures/extended_data_figure*.pdf`
 - `results/tables/manuscript_table_*.tsv`
-- `docs/publication_tables.md`
-- `docs/sota_research_tracker.md`
-- `docs/journal_acceptance_tracker.md`
-- `docs/claim_ledger.md`
-- `manuscript/main.tex`
-- `manuscript/references.bib`
+- `results/reports/publication_tables.md`
 
 ## Guardrails
 

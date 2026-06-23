@@ -11,7 +11,7 @@ ACTION="${1:-help}"
 
 usage() {
   cat <<'EOF'
-Usage: scripts/remote_full_scvi.sh <check|push|launch|status|fetch>
+Usage: tools/remote_full_scvi.sh <check|push|launch|status|fetch>
 
 Environment overrides:
   REMOTE=sabharwaly2@mia.ninds.nih.gov

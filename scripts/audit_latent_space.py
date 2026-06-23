@@ -48,7 +48,7 @@ def main() -> None:
         "latent_space_readiness_tsv",
         "results/tables/latent_space_readiness.tsv",
     )
-    plan_out = args.plan_out or outputs.get("latent_space_plan_md", "docs/latent_space_recovery_plan.md")
+    plan_out = args.plan_out or outputs.get("latent_space_plan_md", "results/reports/latent_space_recovery_plan.md")
     portal_json_out = args.portal_json_out or outputs.get(
         "latent_space_portal_json",
         "results/reports/latent_space_portal_collection.json",

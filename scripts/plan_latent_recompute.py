@@ -6,13 +6,22 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
+import json
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from ora.config import load_config
 from ora.latent_recompute import latent_recompute_feasibility, render_latent_recompute_workflow
-from ora.reporting import load_schema
 from ora.utils import ensure_parent
+
+
+def load_schema(path: str | Path | None) -> dict:
+    if not path:
+        return {}
+    candidate = Path(path)
+    if not candidate.exists():
+        return {}
+    return json.loads(candidate.read_text(encoding="utf-8"))
 
 
 def main() -> None:
@@ -42,7 +51,7 @@ def main() -> None:
     )
     workflow_out = args.workflow_out or outputs.get(
         "latent_recompute_workflow_md",
-        "docs/latent_recompute_workflow.md",
+        "results/reports/latent_recompute_workflow.md",
     )
 
     feasibility = latent_recompute_feasibility(

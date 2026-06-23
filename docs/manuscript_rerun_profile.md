@@ -14,10 +14,10 @@ Use this profile when raw and processed inputs already exist locally and the goa
 | External registry/evidence refresh | `PYTHON=.venv/bin/python make external-validation` then `PYTHON=.venv/bin/python make external-evidence` | Rebuilds external readiness and claim-strength ledgers from `configs/external_datasets.yaml`. |
 | ORA summary tables | `PYTHON=.venv/bin/python make model-card` and `PYTHON=.venv/bin/python make feature-interpretation` | Rebuilds compact model-card and interpretation tables. |
 | Guardrail summaries | `PYTHON=.venv/bin/python make project-ndd-uncertainty`, `PYTHON=.venv/bin/python make project-ndd-diagnostics`, `PYTHON=.venv/bin/python make project-ndd-label-permutation` | Refreshes exploratory AD/PD projection guardrails. |
-| Publication tables | `PYTHON=.venv/bin/python make publication-tables` | Rebuilds `results/tables/manuscript_table_*.tsv` and `docs/publication_tables.md`. |
+| Publication tables | `PYTHON=.venv/bin/python make publication-tables` | Rebuilds `results/tables/manuscript_table_*.tsv` and `results/reports/publication_tables.md`. |
 | Manuscript figures | `PYTHON=.venv/bin/python make manuscript-figures` | Rebuilds main and extended-data figure files from current result tables. |
-| Provenance | `PYTHON=.venv/bin/python make output-provenance` | Rebuilds command manifest and output provenance report. |
-| Report | `PYTHON=.venv/bin/python make report` | Optional local Markdown report refresh. |
+| Provenance | `PYTHON=.venv/bin/python make output-provenance` | Rebuilds command manifest and output provenance. |
+| Report | `PYTHON=.venv/bin/python make` | Optional local Markdown refresh. |
 
 ## Profile B: Heavyweight Latent/Neighborhood Refresh
 

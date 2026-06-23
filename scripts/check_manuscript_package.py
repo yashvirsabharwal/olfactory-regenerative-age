@@ -37,7 +37,7 @@ def main() -> None:
     parser.add_argument("--figures-dir", default="results/figures")
     parser.add_argument("--tables-dir", default="results/tables")
     parser.add_argument("--out", default="results/reports/manuscript_package_check.tsv")
-    parser.add_argument("--markdown-out", default="docs/manuscript_package_check.md")
+    parser.add_argument("--markdown-out", default="results/reports/manuscript_package_check.md")
     args = parser.parse_args()
 
     rows = check_package(

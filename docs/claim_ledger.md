@@ -9,7 +9,7 @@ Updated: 2026-06-22
 
 ## Supported Engineering Claim
 
-- The repository can generate donor-level features, ORA model benchmarks, module summaries, NDD projections, targeted pseudobulk DE, genome-wide pseudobulk export, edgeR and limma-voom summaries, and an MVP report from ignored local artifacts.
+- The repository can generate donor-level features, ORA model benchmarks, module summaries, NDD projections, targeted pseudobulk DE, genome-wide pseudobulk export, edgeR and limma-voom summaries, and an MVP from ignored local artifacts.
 
 ## Exploratory Claims
 

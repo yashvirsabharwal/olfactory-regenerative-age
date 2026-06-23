@@ -7,7 +7,7 @@ commands:
   cohort:
     description: "Build donor/sample cohort manifest and cohort summary."
     command: "make cohort"
-    inputs: ["data/raw/gateway.h5ad", "configs/scvi_full_4m_genes.txt", "configs/gateway.yaml"]
+    inputs: ["data/raw/gateway.h5ad", "resources/scvi/full_4m_genes.txt", "configs/gateway.yaml"]
     outputs: ["data/processed/cohort_manifest.tsv", "results/tables/cohort_summary.tsv"]
   aggregate:
     description: "Aggregate donor/fine-cell-state counts and composition features."
@@ -115,12 +115,12 @@ commands:
     inputs: ["data/processed/pseudobulk_genomewide_counts.tsv.gz", "data/processed/pseudobulk_genomewide_metadata.tsv", "data/processed/cohort_manifest.tsv"]
     outputs: ["results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device.tsv.gz", "results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device_summary.tsv"]
   pseudobulk_genomewide_de_summary:
-    description: "Summarize all-donor genome-wide edgeR outputs for the report."
+    description: "Summarize all-donor genome-wide edgeR outputs."
     command: "make pseudobulk-genomewide-de-summary"
     inputs: ["results/tables/pseudobulk_genomewide_edger.tsv.gz", "results/tables/pseudobulk_genomewide_edger_summary.tsv"]
     outputs: ["results/tables/pseudobulk_genomewide_de_summary.tsv", "results/tables/pseudobulk_genomewide_de_top_hits.tsv"]
   pseudobulk_genomewide_de_summary_matched:
-    description: "Summarize matched FLEX v2/device genome-wide edgeR outputs for the report."
+    description: "Summarize matched FLEX v2/device genome-wide edgeR outputs."
     command: "make pseudobulk-genomewide-de-summary-matched"
     inputs: ["results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device.tsv.gz", "results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device_summary.tsv"]
     outputs: ["results/tables/pseudobulk_genomewide_de_summary_matched_flex_v2_device.tsv", "results/tables/pseudobulk_genomewide_de_top_hits_matched_flex_v2_device.tsv"]
@@ -135,12 +135,12 @@ commands:
     inputs: ["results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device.tsv.gz", "results/tables/pseudobulk_genomewide_edger_matched_flex_v2_device_summary.tsv", "data/processed/pseudobulk_genomewide_metadata.tsv"]
     outputs: ["results/tables/pseudobulk_genomewide_de_audit_matched_flex_v2_device.tsv", "results/tables/pseudobulk_genomewide_donor_balance_matched_flex_v2_device.tsv", "results/tables/pseudobulk_genomewide_matched_feasibility_matched_flex_v2_device.tsv"]
   pseudobulk_genomewide_limma_de_summary:
-    description: "Summarize all-donor genome-wide limma-voom outputs for the report."
+    description: "Summarize all-donor genome-wide limma-voom outputs."
     command: "make pseudobulk-genomewide-limma-de-summary"
     inputs: ["results/tables/pseudobulk_genomewide_limma_voom.tsv.gz", "results/tables/pseudobulk_genomewide_limma_voom_summary.tsv"]
     outputs: ["results/tables/pseudobulk_genomewide_limma_voom_de_summary.tsv", "results/tables/pseudobulk_genomewide_limma_voom_de_top_hits.tsv"]
   pseudobulk_genomewide_limma_de_summary_matched:
-    description: "Summarize matched FLEX v2/device genome-wide limma-voom outputs for the report."
+    description: "Summarize matched FLEX v2/device genome-wide limma-voom outputs."
     command: "make pseudobulk-genomewide-limma-de-summary-matched"
     inputs: ["results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device.tsv.gz", "results/tables/pseudobulk_genomewide_limma_voom_matched_flex_v2_device_summary.tsv"]
     outputs: ["results/tables/pseudobulk_genomewide_limma_voom_de_summary_matched_flex_v2_device.tsv", "results/tables/pseudobulk_genomewide_limma_voom_de_top_hits_matched_flex_v2_device.tsv"]
@@ -213,12 +213,12 @@ commands:
     description: "Audit local H5AD and CELLxGENE portal embeddings before trajectory/neighborhood work."
     command: "make latent-space-audit"
     inputs: ["data/raw/gateway.h5ad", "configs/gateway.yaml"]
-    outputs: ["results/tables/latent_space_local_audit.tsv", "results/tables/latent_space_portal_assets.tsv", "results/tables/latent_space_readiness.tsv", "docs/latent_space_recovery_plan.md"]
+    outputs: ["results/tables/latent_space_local_audit.tsv", "results/tables/latent_space_portal_assets.tsv", "results/tables/latent_space_readiness.tsv", "results/reports/latent_space_recovery_plan.md"]
   latent_space_recompute_plan:
     description: "Write dry-run scVI recomputation feasibility and workflow notes."
     command: "make latent-space-recompute-plan"
     inputs: ["results/reports/h5ad_schema.json", "configs/gateway.yaml"]
-    outputs: ["results/tables/latent_recompute_feasibility.tsv", "docs/latent_recompute_workflow.md"]
+    outputs: ["results/tables/latent_recompute_feasibility.tsv", "results/reports/latent_recompute_workflow.md"]
   scvi_pilot_validation:
     description: "Validate the bounded local scVI pilot embedding and keep latent claims gated."
     command: "make scvi-pilot-validation"
@@ -244,31 +244,31 @@ commands:
     description: "Train a 500k-cell stratified Gateway scVI atlas with the full 3003-gene selected feature set for memory-safe seed/scale comparison."
     command: "make scvi-scaled-500k"
     deferred: true
-    inputs: ["data/raw/gateway.h5ad", "configs/scvi_full_4m_genes.txt", "configs/gateway.yaml"]
+    inputs: ["data/raw/gateway.h5ad", "resources/scvi/full_4m_genes.txt", "configs/gateway.yaml"]
     outputs: ["data/processed/gateway_scvi_stratified_500k.h5ad", "results/models/gateway_scvi_stratified_500k"]
   scvi_scaled_1m:
     description: "Train a 1M-cell stratified Gateway scVI atlas with the full 3003-gene selected feature set as the large-scale fallback when all-cell materialization is memory-limited."
     command: "make scvi-scaled-1m"
     deferred: true
-    inputs: ["data/raw/gateway.h5ad", "configs/scvi_full_4m_genes.txt", "configs/gateway.yaml"]
+    inputs: ["data/raw/gateway.h5ad", "resources/scvi/full_4m_genes.txt", "configs/gateway.yaml"]
     outputs: ["data/processed/gateway_scvi_stratified_1m.h5ad", "results/models/gateway_scvi_stratified_1m"]
   scvi_reduced_4m:
     description: "Build a reduced all-cell Gateway H5AD in row chunks using the 3003-gene HVG/marker feature set, avoiding large backed row/column fancy slices."
     command: "make scvi-reduced-4m"
     deferred: true
-    inputs: ["data/raw/gateway.h5ad", "configs/scvi_full_4m_genes.txt"]
+    inputs: ["data/raw/gateway.h5ad", "resources/scvi/full_4m_genes.txt"]
     outputs: ["data/processed/gateway_hvg3003_4m.h5ad"]
   scvi_full_4m:
     description: "Train a full Gateway scVI latent atlas across all available cells for maximum atlas-scale reference completeness."
     command: "make scvi-full-4m"
     deferred: true
-    inputs: ["data/raw/gateway.h5ad", "configs/scvi_full_4m_genes.txt", "configs/gateway.yaml"]
+    inputs: ["data/raw/gateway.h5ad", "resources/scvi/full_4m_genes.txt", "configs/gateway.yaml"]
     outputs: ["data/processed/gateway_scvi_full_4m.h5ad", "results/models/gateway_scvi_full_4m"]
   scvi_full_4m_safe:
     description: "Train an all-cell Gateway scVI latent atlas with a reduced marker-preserving 1500-gene feature set for memory-constrained servers."
     command: "make scvi-full-4m-safe"
     deferred: true
-    inputs: ["data/raw/gateway.h5ad", "configs/scvi_full_4m_genes_1500.txt", "configs/gateway.yaml"]
+    inputs: ["data/raw/gateway.h5ad", "resources/scvi/full_4m_genes_1500.txt", "configs/gateway.yaml"]
     outputs: ["data/processed/gateway_scvi_full_4m_safe.h5ad", "results/models/gateway_scvi_full_4m_safe"]
   scvi_full_4m_reduced:
     description: "Train scVI on all Gateway cells after chunked reduction to the 3003-gene HVG/marker feature set."
@@ -302,7 +302,7 @@ commands:
     outputs:
       - "results/tables/scvi_embedding_claim_gates.tsv"
       - "results/tables/scvi_embedding_marker_concordance.tsv"
-      - "docs/scvi_embedding_comparison.md"
+      - "results/reports/scvi_embedding_comparison.md"
   scvi_lineage_basal_neural:
     description: "Train a lineage-focused scVI model for basal, progenitor, neural, secretory, and sustentacular compartments."
     command: "make scvi-lineage-basal-neural"
@@ -541,11 +541,6 @@ commands:
       - "results/tables/milor_lineage_matched_subset_export_summary.tsv"
       - "results/tables/milor_lineage_matched_subset_da.tsv"
       - "results/tables/milor_lineage_matched_subset_summary.tsv"
-  report:
-    description: "Regenerate Markdown report and summary figures from existing outputs."
-    command: "make report"
-    inputs: ["results/tables", "data/processed", "configs/gateway.yaml"]
-    outputs: ["results/reports/mvp_report.md", "results/figures/mvp_*.png"]
   manuscript_figures:
     description: "Build polished main-text manuscript figures from existing result tables."
     command: "make manuscript-figures"
@@ -602,7 +597,7 @@ commands:
       - "results/tables/manuscript_table_latent_neighborhood_gates.tsv"
       - "results/tables/manuscript_table_de_audit_summary.tsv"
       - "results/tables/manuscript_table_ndd_guardrails.tsv"
-      - "docs/publication_tables.md"
+      - "results/reports/publication_tables.md"
   manuscript_check:
     description: "Check manuscript citation keys, figure/table assets, and local TeX readiness."
     command: "make manuscript-check"
@@ -614,4 +609,4 @@ commands:
       - "scripts/check_manuscript_package.py"
     outputs:
       - "results/reports/manuscript_package_check.tsv"
-      - "docs/manuscript_package_check.md"
+      - "results/reports/manuscript_package_check.md"
