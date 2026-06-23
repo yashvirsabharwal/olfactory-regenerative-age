@@ -27,7 +27,7 @@ def render_publication_table_index(tables: dict[str, pd.DataFrame]) -> str:
     lines = [
         "# ORA Publication Table Bundle",
         "",
-        "Updated: 2026-06-22",
+        "Updated: 2026-06-23",
         "",
         "These compact tables are generated from the real ORA result artifacts and are intended for manuscript, extended-data, and supplement assembly.",
         "",

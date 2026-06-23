@@ -100,6 +100,108 @@ datasets:
       cell_type: ["leiden_name", "cell_type", "annotation", "cluster"]
     notes: "Do not use as human validation. Keep as optional cross-species marker/context support for OE support cells, stem cells, and viral-entry biology."
 
+  kim_2026_long_covid_olfactory_gex:
+    title: "Analysis of local mucosal immune dysregulation to guide pilot directed therapy for long-COVID olfactory loss [5 prime GEX]"
+    accession: "GSE290883"
+    bioproject: "PRJNA1230710"
+    source_url: "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE290883"
+    supplementary_url: "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE290nnn/GSE290883/suppl/GSE290883_RAW.tar"
+    status: "download_ready_context"
+    validation_use: "human olfactory-biopsy long-COVID/hyposmia single-cell context; not healthy-aging ORA validation"
+    species: "human"
+    tissue: "olfactory epithelium"
+    disease_context: ["long_covid_hyposmia", "normosmic_control"]
+    expected_level: "single_cell"
+    cohort_notes: "GEO reports olfactory biopsies from 3 long-COVID hyposmic and 3 normosmic control subjects."
+    data_notes: "5 prime gene-expression data; paired TCR data are listed separately as GSE290884."
+    path: "data/external/GSE290883_RAW.tar"
+    required_files:
+      expression: "data/external/GSE290883_RAW.tar"
+      metadata: "data/external/GSE290883_series_matrix.txt.gz"
+      feature_matrix: null
+    download_command: "curl -L -o data/external/GSE290883_RAW.tar https://ftp.ncbi.nlm.nih.gov/geo/series/GSE290nnn/GSE290883/suppl/GSE290883_RAW.tar"
+    required_columns:
+      donor_id: ["donor_id", "individual", "subject_id"]
+      age: ["age", "age_years"]
+      disease_group: ["disease_group", "condition", "diagnosis"]
+      cell_type: ["cell_type", "fine_cell_type", "annotation"]
+    notes: "Context/raw-adapter candidate only. The design addresses long-COVID olfactory loss, not healthy aging; do not use to promote primary ORA replication without new donor-level feature tests and guarded language."
+
+  kim_2026_long_covid_olfactory_tcr:
+    title: "Analysis of local mucosal immune dysregulation to guide pilot directed therapy for long-COVID olfactory loss [TCR-seq]"
+    accession: "GSE290884"
+    bioproject: "PRJNA1230710"
+    source_url: "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE290884"
+    supplementary_url: "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE290nnn/GSE290884/suppl/GSE290884_RAW.tar"
+    status: "download_ready_context"
+    validation_use: "paired TCR immune-context evidence for long-COVID olfactory loss; not ORA feature validation"
+    species: "human"
+    tissue: "olfactory epithelium"
+    disease_context: ["long_covid_hyposmia", "normosmic_control", "immune_context"]
+    expected_level: "single_cell_tcr"
+    cohort_notes: "Paired TCR-seq for the GSE290883 long-COVID olfactory biopsy cohort."
+    data_notes: "Immune repertoire context only; expression validation should use GSE290883."
+    path: "data/external/GSE290884_RAW.tar"
+    required_files:
+      expression: "data/external/GSE290884_RAW.tar"
+      metadata: "data/external/GSE290884_series_matrix.txt.gz"
+      feature_matrix: null
+    download_command: "curl -L -o data/external/GSE290884_RAW.tar https://ftp.ncbi.nlm.nih.gov/geo/series/GSE290nnn/GSE290884/suppl/GSE290884_RAW.tar"
+    required_columns:
+      donor_id: ["donor_id", "individual", "subject_id"]
+      age: ["age", "age_years"]
+      disease_group: ["disease_group", "condition", "diagnosis"]
+      cell_type: ["cell_type", "fine_cell_type", "annotation"]
+    notes: "Do not use as primary ORA validation. It can only support immune-context discussion if downloaded and interpreted with the paired GEX cohort."
+
+  janssens_2025_pd_hyposmia_brain:
+    title: "Rescuing early Parkinson-induced hyposmia prevents dopaminergic system failure [human]"
+    accession: "GSE235330"
+    source_url: "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE235330"
+    status: "download_ready_context"
+    validation_use: "PD hyposmia brain-region context; not olfactory epithelial ORA validation"
+    species: "human"
+    tissue: "brain regions: nucleus basalis of Meynert, nucleus accumbens, putamen"
+    disease_context: ["pd", "hyposmia", "brain_context"]
+    expected_level: "single_nucleus_brain"
+    cohort_notes: "GEO describes human brain-region single-cell/snRNA-seq and fly material, not olfactory epithelium."
+    data_notes: "Processed H5AD files are available through GEO supplementary links."
+    path: null
+    required_files:
+      expression: null
+      metadata: null
+      feature_matrix: null
+    required_columns:
+      donor_id: ["donor_id", "individual", "subject_id"]
+      age: ["age", "age_years"]
+      disease_group: ["disease_group", "condition", "diagnosis"]
+      cell_type: ["cell_type", "fine_cell_type", "annotation"]
+    notes: "Context only. Do not treat brain-region PD/hyposmia results as olfactory epithelial ORA validation."
+
+  cartas_2026_nasal_sirt3_abeta:
+    title: "Multi-omics characterization of SIRT3 metabolism and its adaptation to presence of amyloid-beta oligomers in nasal epithelial cells"
+    accession: "GSE324335"
+    source_url: "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE324335"
+    status: "cell_culture_context_only"
+    validation_use: "nasal epithelial Abeta/SIRT3 perturbation context; not donor-level ORA validation"
+    species: "human"
+    tissue: "immortalized human nasal epithelial cells"
+    disease_context: ["abeta", "nasal_epithelium", "cell_culture"]
+    expected_level: "bulk_rnaseq_cell_culture"
+    cohort_notes: "Immortalized nasal epithelial cell-culture perturbation study."
+    data_notes: "Bulk RNA-seq context only; no donor-level olfactory aging design."
+    path: null
+    required_files:
+      expression: null
+      metadata: null
+      feature_matrix: null
+    required_columns:
+      donor_id: ["donor_id", "individual", "subject_id"]
+      age: ["age", "age_years"]
+      disease_group: ["disease_group", "condition", "diagnosis"]
+      cell_type: ["cell_type", "fine_cell_type", "annotation"]
+    notes: "Context only. Do not use for ORA replication, disease diagnosis, or olfactory epithelial donor-level claims."
+
   danniballe_2026:
     title: "Alzheimer's olfactory biopsy validation"
     status: "metadata_pending"
