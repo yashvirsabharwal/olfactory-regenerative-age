@@ -154,7 +154,21 @@ def build_manifest(obs: pd.DataFrame, config: dict[str, Any], columns: ColumnMap
     manifest["has_age"] = manifest["age"].notna()
     manifest["is_healthy"] = manifest["disease_group"].eq("healthy")
     manifest["is_ndd"] = manifest["disease_group"].isin(["ad", "pd", "ndd"])
-    manifest["usable_for_ora_training"] = manifest["is_healthy"] & manifest["has_age"]
+    thresholds = config.get("cohorts", {})
+    min_total_cells = int(thresholds.get("min_total_cells", 0))
+    min_lineage_cells = int(thresholds.get("min_lineage_cells", thresholds.get("min_total_lineage_cells", 0)))
+    min_mature_neurons = int(thresholds.get("min_mature_neurons", 0))
+    manifest["passes_min_total_cells"] = manifest["total_cells"].ge(min_total_cells)
+    manifest["passes_min_lineage_cells"] = manifest["lineage_cells"].ge(min_lineage_cells)
+    manifest["passes_min_mature_neurons"] = manifest["mature_neurons"].ge(min_mature_neurons)
+    manifest["passes_primary_ora_training_rule"] = manifest["is_healthy"] & manifest["has_age"]
+    manifest["passes_strict_ora_training_rule"] = (
+        manifest["passes_primary_ora_training_rule"]
+        & manifest["passes_min_total_cells"]
+        & manifest["passes_min_lineage_cells"]
+        & manifest["passes_min_mature_neurons"]
+    )
+    manifest["usable_for_ora_training"] = manifest["passes_primary_ora_training_rule"]
     return manifest.sort_values(["donor_id", "sample_id"]).reset_index(drop=True)
 
 
@@ -162,10 +176,12 @@ def parse_age_series(values: pd.Series) -> pd.Series:
     """Parse numeric age from direct numeric or CELLxGENE development-stage strings."""
 
     numeric = pd.to_numeric(values, errors="coerce")
-    if numeric.notna().any():
-        return numeric
-    extracted = values.astype(str).str.extract(r"(\d+(?:\.\d+)?)\s*-\s*year", flags=re.IGNORECASE)[0]
-    return pd.to_numeric(extracted, errors="coerce")
+    extracted = values.astype("string").str.extract(
+        r"(?<!\d)(\d{1,3}(?:\.\d+)?)\s*(?:-\s*)?(?:years?|yrs?|yr)(?:\s*-\s*old|\s+old)?\b",
+        flags=re.IGNORECASE,
+    )[0]
+    extracted_numeric = pd.to_numeric(extracted, errors="coerce")
+    return numeric.where(numeric.notna(), extracted_numeric)
 
 
 def summarize_cohort(manifest: pd.DataFrame) -> pd.DataFrame:

@@ -18,10 +18,15 @@ from ora.external import (
     external_module_contrasts,
     external_validation_evidence_summary,
     feature_matrix_contract_summary,
+    gse184117_reanalysis_status,
     inspect_external_archive,
     parse_published_gene_lists,
     parse_geo_series_matrix_metadata,
+    public_data_exhaustion_matrix,
+    public_data_search_log,
     published_gene_list_coverage,
+    render_gse184117_reanalysis_markdown,
+    render_public_data_exhaustion_markdown,
     score_external_10x_marker_composition,
     score_external_10x_modules,
     validate_external_feature_matrix,
@@ -105,6 +110,107 @@ class ExternalValidationTests(unittest.TestCase):
         context = matrix[matrix["dataset_id"].eq("context")].iloc[0]
         self.assertEqual(context["validation_class"], "human_olfactory_context_adapter_candidate")
         self.assertEqual(context["adapter_status"], "download_available_missing_local_files")
+
+    def test_public_data_exhaustion_tables_render_from_config(self):
+        config = {
+            "public_data_exhaustion": {
+                "search_log": [
+                    {
+                        "search_date": "2026-06-24",
+                        "database_or_resource": "NCBI GEO",
+                        "query_or_filter": "olfactory AND Homo sapiens",
+                    }
+                ],
+                "candidates": [
+                    {
+                        "accession_or_dataset": "GSE184117",
+                        "source_url": "https://example.org/GSE184117",
+                        "tissue": "olfactory epithelium",
+                        "assay": "10x scRNA-seq",
+                        "species": "human",
+                        "validation_class": "direct_small_n_mapped",
+                        "inclusion_decision": "include guarded",
+                    }
+                ],
+            }
+        }
+
+        candidates = public_data_exhaustion_matrix(config)
+        search_log = public_data_search_log(config)
+        markdown = render_public_data_exhaustion_markdown(candidates, search_log)
+        self.assertEqual(candidates.shape[0], 1)
+        self.assertEqual(search_log.shape[0], 1)
+        self.assertIn("GSE184117", markdown)
+        self.assertIn("olfactory AND Homo sapiens", markdown)
+
+    def test_gse184117_reanalysis_status_records_checksums_and_limitations(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            raw = root / "raw.tar"
+            meta = root / "series.txt.gz"
+            raw.write_bytes(b"raw-archive")
+            meta.write_bytes(b"series")
+            (root / "results/tables").mkdir(parents=True)
+            (root / "data/processed").mkdir(parents=True)
+            (root / "results/figures").mkdir(parents=True)
+            pd.DataFrame(
+                {
+                    "role": ["matrix", "features", "barcodes"],
+                    "sample_guess": ["S1", "S1", "S1"],
+                }
+            ).to_csv(root / "results/tables/external_raw_inventory.tsv", sep="\t", index=False)
+            pd.DataFrame(
+                {
+                    "donor_id": ["D1", "D2"],
+                    "disease_group": ["healthy", "presbyosmia"],
+                    "usable_for_external_validation": [True, True],
+                }
+            ).to_csv(root / "results/tables/external_sample_metadata.tsv", sep="\t", index=False)
+            for path in [
+                "results/tables/external_10x_sample_qc.tsv",
+                "results/tables/external_10x_module_contrasts.tsv",
+                "results/tables/external_10x_marker_contrasts.tsv",
+                "results/tables/external_10x_mapping_qc.tsv",
+                "data/processed/gse184117_mapped_donor_features.tsv",
+                "results/tables/external_mapped_feature_concordance.tsv",
+                "results/tables/external_scanvi_mapping_qc.tsv",
+                "data/processed/gse184117_scanvi_donor_features.tsv",
+                "results/tables/external_scanvi_feature_concordance.tsv",
+                "results/tables/external_validation_evidence.tsv",
+            ]:
+                pd.DataFrame({"dataset_id": ["oliva_2022"], "concordance": ["concordant"]}).to_csv(
+                    root / path,
+                    sep="\t",
+                    index=False,
+                )
+            for path in [
+                "data/processed/gse184117_marker_mapped.h5ad",
+                "data/processed/gse184117_scanvi_mapped.h5ad",
+                "results/figures/extended_data_figure2_external_evidence.pdf",
+            ]:
+                (root / path).write_bytes(b"artifact")
+            config = {
+                "datasets": {
+                    "oliva_2022": {
+                        "required_files": {
+                            "expression": "raw.tar",
+                            "metadata": "series.txt.gz",
+                        }
+                    }
+                },
+                "outputs": {
+                    "external_raw_inventory_tsv": "results/tables/external_raw_inventory.tsv",
+                    "external_sample_metadata_tsv": "results/tables/external_sample_metadata.tsv",
+                },
+            }
+
+            status = gse184117_reanalysis_status(config, base_dir=root)
+            markdown = render_gse184117_reanalysis_markdown(status)
+
+        raw_row = status[status["step"].eq("raw_archive_checksum")].iloc[0]
+        self.assertEqual(raw_row["sha256"], "0e3592febff7514084263f017c7ffbbdbaa2ed59fda4512f407167abfa6a1856")
+        self.assertIn("small_n_limitation", set(status["step"]))
+        self.assertIn("3 healthy versus 3 presbyosmic", markdown)
 
     def test_inspect_external_archive_classifies_10x_members(self):
         with tempfile.TemporaryDirectory() as tmpdir:

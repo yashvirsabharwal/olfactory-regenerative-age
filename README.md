@@ -6,9 +6,9 @@ Primary source: **Gateway: patient olfactory neurons for large-scale discovery i
 
 ## Current Scope
 
-The implementation focuses on memory-safe metadata inspection, healthy-donor cohort definition, cell-state composition features, age associations, composition-only and module-augmented ORA modeling, frozen healthy-trained AD/PD projection, chunked average-expression module scoring, targeted curated-gene pseudobulk DE, donor-level covariate-adjusted pseudobulk DE, genome-wide edgeR and limma-voom DE summaries, GSE184117 raw 10x mapping, Gateway scANVI/scArches reference mapping, scaled and all-cell reduced scVI latent validation, full-scale Milo-style neighborhood analyses with edgeR and official-MiloR subset sensitivity, provenance, and manuscript-readiness tables. SOTA mechanistic upgrades such as external-atlas harmonization, foundation-model benchmarking, cross-tissue specificity, fate analysis, spatial validation, and regulatory drivers are tracked in `docs/sota_research_tracker.md`.
+The implementation focuses on memory-safe metadata inspection, healthy-donor cohort definition, cell-state composition features, age associations, composition-only and module-augmented ORA modeling, frozen healthy-trained AD/PD projection, chunked average-expression module scoring, targeted curated-gene pseudobulk DE, donor-level covariate-adjusted pseudobulk DE, genome-wide edgeR and limma-voom DE summaries, GSE184117 raw 10x mapping, Gateway scANVI/scArches reference mapping, scaled and all-cell reduced scVI latent validation, full-scale Milo-style neighborhood analyses with edgeR and official-MiloR subset sensitivity, provenance, foundation-model benchmarking, cross-tissue specificity, fate analysis, niche signaling, and regulatory-driver analyses. Current research status and remaining research tasks are tracked in `docs/project_status_and_remaining_work.md`.
 
-Research upgrades are tracked in `docs/sota_research_tracker.md`; journal-readiness gates, external-validation exhaustion, reproducibility packaging, and submission readiness are tracked in `docs/journal_acceptance_tracker.md`; claim boundaries are tracked in `docs/claim_ledger.md`.
+Research status and remaining research tasks are tracked in `docs/project_status_and_remaining_work.md`; claim boundaries are tracked in `docs/claim_ledger.md`.
 
 ## Quickstart
 

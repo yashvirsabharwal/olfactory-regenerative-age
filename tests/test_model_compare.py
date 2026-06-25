@@ -20,6 +20,7 @@ class ModelCompareTests(unittest.TestCase):
         self.assertEqual(ranked.iloc[0]["model"], "random_forest")
         self.assertTrue(bool(ranked.iloc[0]["is_best_overall"]))
         self.assertEqual(set(ranked["mae_rank_within_feature_set"]), {1, 2})
+        self.assertIn("backend_package", ranked.columns)
 
     def test_compare_feature_set_deltas_uses_augmented_minus_base(self):
         base = _summary({"ridge": 15.0, "random_forest": 14.2})
@@ -44,6 +45,9 @@ def _summary(mae_by_model: dict[str, float]) -> pd.DataFrame:
                 "rmse_mean": mae + 3.0,
                 "r2_mean": 0.1,
                 "spearman_r_mean": 0.3,
+                "backend_package": "scikit-learn",
+                "backend_version": "1.5.0",
+                "fallback_used": False,
             }
             for model, mae in mae_by_model.items()
         ]

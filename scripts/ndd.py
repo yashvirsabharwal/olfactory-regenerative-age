@@ -39,6 +39,7 @@ def _add_project(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser("project")
     parser.add_argument("--gateway-config", default="configs/gateway.yaml")
     parser.add_argument("--model-config", default="configs/models.yaml")
+    parser.add_argument("--allow-fallback", action="store_true")
     parser.add_argument("--features", default=None)
     parser.add_argument("--manifest", default=None)
     parser.add_argument("--scores-out", default=None)
@@ -49,6 +50,7 @@ def _add_project(subparsers: argparse._SubParsersAction) -> None:
 def _project(args: argparse.Namespace) -> None:
     gateway_config = load_config(args.gateway_config)
     model_config = load_config(args.model_config)
+    model_config["allow_fallback"] = bool(args.allow_fallback)
     outputs = gateway_config.get("outputs", {})
     features_path = args.features or outputs.get("ora_augmented_feature_matrix_tsv", "data/processed/ora_augmented_feature_matrix.tsv")
     manifest_path = args.manifest or outputs.get("manifest_tsv", "data/processed/cohort_manifest.tsv")
@@ -64,6 +66,7 @@ def _add_feature_sensitivity(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser("feature-sensitivity")
     parser.add_argument("--gateway-config", default="configs/gateway.yaml")
     parser.add_argument("--model-config", default="configs/models.yaml")
+    parser.add_argument("--allow-fallback", action="store_true")
     parser.add_argument("--manifest", default=None)
     parser.add_argument("--composition-features", default=None)
     parser.add_argument("--augmented-features", default=None)
@@ -79,6 +82,7 @@ def _add_feature_sensitivity(subparsers: argparse._SubParsersAction) -> None:
 def _feature_sensitivity(args: argparse.Namespace) -> None:
     gateway_config = load_config(args.gateway_config)
     model_config = load_config(args.model_config)
+    model_config["allow_fallback"] = bool(args.allow_fallback)
     outputs = gateway_config.get("outputs", {})
     manifest = pd.read_csv(args.manifest or outputs.get("manifest_tsv", "data/processed/cohort_manifest.tsv"), sep="\t")
     composition = _project_feature_set(

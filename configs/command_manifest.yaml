@@ -34,6 +34,283 @@ commands:
     command: "make age-associations"
     inputs: ["data/processed/donor_cell_state_features.tsv", "data/processed/cohort_manifest.tsv"]
     outputs: ["results/tables/age_cell_state_associations.tsv"]
+  compositional_age_model:
+    description: "Run donor-level CLR compositional age models with cohort sensitivities."
+    command: "make compositional-age-model"
+    inputs:
+      - "data/processed/donor_cell_state_counts.tsv"
+      - "data/processed/cohort_manifest.tsv"
+      - "results/tables/age_cell_state_associations.tsv"
+      - "configs/gateway.yaml"
+    outputs:
+      - "results/tables/compositional_age_model_summary.tsv"
+      - "results/tables/compositional_age_model_sensitivity.tsv"
+      - "results/figures/extended_data_compositional_model.pdf"
+      - "results/figures/extended_data_compositional_model.png"
+  negative_controls:
+    description: "Run age-shuffle, technical-only, yield-only, and covariate-explainability negative controls."
+    command: "make negative-controls"
+    inputs:
+      - "data/processed/ora_augmented_feature_matrix.tsv"
+      - "data/processed/cohort_manifest.tsv"
+      - "results/tables/augmented_donor_ora_scores.tsv"
+      - "results/tables/ora_augmented_candidate_repeated_cv_summary.tsv"
+      - "configs/models.yaml"
+      - "configs/gateway.yaml"
+    outputs:
+      - "results/tables/ora_negative_control_performance.tsv"
+      - "results/tables/ora_technical_baseline_comparison.tsv"
+      - "results/tables/ora_covariate_explainability.tsv"
+      - "results/figures/extended_data_negative_controls.pdf"
+      - "results/figures/extended_data_negative_controls.png"
+  feature_family_ablation:
+    description: "Run matched-split feature-family ablations across ORA composition, modules, scVI, pseudobulk PCs, technical-only, and null baselines."
+    command: "make feature-family-ablation"
+    inputs:
+      - "data/processed/ora_scvi_hybrid_feature_matrix.tsv"
+      - "data/processed/cohort_manifest.tsv"
+      - "data/processed/pseudobulk_genomewide_counts.tsv.gz"
+      - "data/processed/pseudobulk_genomewide_metadata.tsv"
+      - "configs/models.yaml"
+      - "configs/gateway.yaml"
+    outputs:
+      - "data/processed/feature_family_ablation"
+      - "results/tables/ora_feature_family_ablation_summary.tsv"
+      - "results/tables/ora_feature_family_ablation_deltas.tsv"
+      - "results/tables/ora_feature_family_ablation_feasibility.tsv"
+      - "results/tables/ora_feature_family_ablation_repeat_performance.tsv"
+      - "results/tables/ora_feature_family_ablation_scores.tsv"
+      - "results/figures/manuscript_figure_feature_ablation.pdf"
+      - "results/figures/manuscript_figure_feature_ablation.png"
+  leave_context_out:
+    description: "Train hybrid ORA/scVI models while holding out one donor context level at a time, recording skipped contexts and held-out performance."
+    command: "make leave-context-out"
+    inputs:
+      - "data/processed/ora_scvi_hybrid_feature_matrix.tsv"
+      - "data/processed/cohort_manifest.tsv"
+      - "configs/models.yaml"
+      - "configs/gateway.yaml"
+    outputs:
+      - "results/tables/ora_leave_context_out_performance.tsv"
+      - "results/tables/ora_leave_context_out_summary.tsv"
+      - "results/tables/ora_leave_context_out_scores.tsv"
+      - "results/tables/ora_leave_context_out_feature_stability.tsv"
+      - "results/tables/ora_leave_context_out_feasibility.tsv"
+  foundation_benchmark_subsets:
+    description: "Write fixed Gateway H5AD subsets, donor folds, and gene manifests for Geneformer, scGPT, scFoundation, and aging-clock-style benchmarks."
+    command: "make foundation-benchmark-subsets"
+    inputs:
+      - "data/raw/gateway.h5ad"
+      - "configs/gateway.yaml"
+      - "configs/models.yaml"
+      - "docs/foundation_model_benchmark_plan.md"
+    outputs:
+      - "data/processed/foundation_benchmark_lineage_subset.h5ad"
+      - "data/processed/foundation_benchmark_epithelial_subset.h5ad"
+      - "data/processed/foundation_benchmark_allcell_subset.h5ad"
+      - "results/tables/foundation_benchmark_subset_manifest.tsv"
+      - "results/tables/foundation_benchmark_donor_splits.tsv"
+      - "results/tables/foundation_benchmark_gene_manifest.tsv"
+      - "resources/foundation_benchmark/gateway_gene_symbols.txt"
+      - "resources/foundation_benchmark/gateway_gene_ids.txt"
+  aging_clock_baseline:
+    description: "Run leakage-safe fold-internal pseudobulk expression-PC age models as the aging-clock-style baseline."
+    command: "make aging-clock-baseline"
+    inputs:
+      - "data/processed/pseudobulk_genomewide_counts.tsv.gz"
+      - "data/processed/pseudobulk_genomewide_metadata.tsv"
+      - "data/processed/cohort_manifest.tsv"
+      - "configs/models.yaml"
+      - "docs/foundation_model_benchmark_plan.md"
+    outputs:
+      - "results/tables/aging_clock_baseline_feasibility.tsv"
+      - "results/tables/aging_clock_baseline_performance.tsv"
+      - "results/tables/aging_clock_baseline_repeat_performance.tsv"
+      - "results/tables/aging_clock_baseline_scores.tsv"
+      - "results/tables/aging_clock_baseline_feature_stability.tsv"
+      - "results/tables/aging_clock_baseline_model_comparison.tsv"
+  foundation_model_benchmark:
+    description: "Extract local Geneformer donor embeddings, run repeated donor-level age models, and summarize deferred scGPT/scFoundation benchmark status."
+    command: "make foundation-model-benchmark"
+    inputs:
+      - "data/processed/foundation_benchmark_lineage_subset.h5ad"
+      - "resources/foundation_models/geneformer_v1_10m/Geneformer-V1-10M/config.json"
+      - "resources/foundation_models/geneformer_v1_10m/Geneformer-V1-10M/model.safetensors"
+      - "resources/foundation_models/geneformer_v1_10m/geneformer/gene_dictionaries_30m/token_dictionary_gc30M.pkl"
+      - "resources/foundation_models/geneformer_v1_10m/geneformer/gene_dictionaries_30m/gene_median_dictionary_gc30M.pkl"
+      - "data/processed/cohort_manifest.tsv"
+      - "configs/models.yaml"
+      - "docs/foundation_model_benchmark_plan.md"
+    outputs:
+      - "data/processed/geneformer_donor_features.tsv"
+      - "results/tables/geneformer_embedding_qc.tsv"
+      - "results/tables/foundation_model_gene_coverage.tsv"
+      - "results/tables/foundation_model_runtime.tsv"
+      - "results/tables/geneformer_repeated_cv_performance.tsv"
+      - "results/tables/geneformer_age_model_summary.tsv"
+      - "results/tables/geneformer_scores.tsv"
+      - "results/tables/geneformer_feature_stability.tsv"
+      - "results/tables/foundation_model_benchmark.tsv"
+  cross_tissue_specificity:
+    description: "Build the M6 cross-tissue comparator plan and first-pass ORA feature specificity classification."
+    command: "make cross-tissue-specificity"
+    inputs:
+      - "data/processed/ora_augmented_feature_matrix.tsv"
+      - "data/processed/cohort_manifest.tsv"
+      - "results/tables/ora_augmented_candidate_repeated_cv_feature_stability.tsv"
+      - "results/tables/ora_feature_interpretation.tsv"
+      - "configs/external_datasets.yaml"
+    outputs:
+      - "docs/cross_tissue_specificity_plan.md"
+      - "results/tables/cross_tissue_candidate_matrix.tsv"
+      - "results/tables/ora_cross_tissue_feature_classification.tsv"
+      - "results/tables/ora_cross_tissue_specificity.tsv"
+      - "results/figures/extended_data_cross_tissue_specificity.pdf"
+      - "results/figures/extended_data_cross_tissue_specificity.png"
+  cross_tissue_age_effects:
+    description: "Estimate donor-level age effects in selected public CELLxGENE nasal/bronchial/lung comparator datasets."
+    command: "make cross-tissue-age-effects"
+    inputs:
+      - "configs/cross_tissue_age_effects.yaml"
+      - "configs/gene_sets.yaml"
+      - "configs/regeneration_gene_sets.yaml"
+      - "results/tables/ora_cross_tissue_feature_classification.tsv"
+      - "data/external/cellxgene/e3cc5b85-62ec-4add-bee3-73c8fd11e59d.h5ad"
+      - "data/external/cellxgene/d2bc2703-a9b5-4949-b85d-61da7b9961b1.h5ad"
+      - "data/external/cellxgene/3de0ad6d-4378-4f62-b37b-ec0b75a50d94.h5ad"
+    outputs:
+      - "docs/cross_tissue_age_effects.md"
+      - "results/tables/cross_tissue_cellxgene_asset_inventory.tsv"
+      - "data/processed/cross_tissue_cellxgene_donor_features.tsv"
+      - "results/tables/cross_tissue_cellxgene_module_coverage.tsv"
+      - "results/tables/cross_tissue_age_effects.tsv"
+      - "results/tables/ora_cross_tissue_age_effect_summary.tsv"
+  spatial_validation_plan:
+    description: "Build public spatial-data triage, ORA marker panel, and histology/spatial validation design."
+    command: "make spatial-validation-plan"
+    inputs:
+      - "configs/external_datasets.yaml"
+      - "configs/spatial_validation_markers.yaml"
+    outputs:
+      - "docs/spatial_perturbation_validation_plan.md"
+      - "results/tables/spatial_validation_candidate_matrix.tsv"
+      - "results/tables/spatial_validation_marker_panel.tsv"
+      - "results/tables/spatial_validation_readout_plan.tsv"
+      - "results/tables/spatial_validation_search_log.tsv"
+  perturbation_validation_plan:
+    description: "Build public perturbation/organoid/ALI candidate triage and minimum experimental validation design."
+    command: "make perturbation-validation-plan"
+    inputs:
+      - "configs/perturbation_validation_candidates.yaml"
+    outputs:
+      - "docs/perturbation_validation_plan.md"
+      - "results/tables/perturbation_validation_candidate_matrix.tsv"
+      - "results/tables/perturbation_validation_search_log.tsv"
+      - "results/tables/perturbation_minimum_experiment_design.tsv"
+  perturbation_gse309325_organoid:
+    description: "Score GSE309325 human nasal/olfactory organoid SARS-CoV-2 perturbation modules."
+    command: "make perturbation-gse309325-organoid"
+    inputs:
+      - "data/external/GSE309325_RAW.tar"
+      - "configs/gene_sets.yaml"
+      - "configs/regeneration_gene_sets.yaml"
+    outputs:
+      - "docs/gse309325_organoid_adapter_status.md"
+      - "results/tables/gse309325_organoid_sample_qc.tsv"
+      - "results/tables/gse309325_organoid_module_scores.tsv"
+      - "results/tables/gse309325_organoid_module_coverage.tsv"
+      - "results/tables/gse309325_organoid_module_contrasts.tsv"
+  regeneration_axis_feature_map:
+    description: "Build the M5.1 regeneration-axis controlled-vocabulary feature map and theme summary."
+    command: "make regeneration-axis-feature-map"
+    inputs:
+      - "data/processed/ora_augmented_feature_matrix.tsv"
+      - "data/processed/cohort_manifest.tsv"
+      - "results/tables/ora_augmented_candidate_repeated_cv_feature_stability.tsv"
+      - "results/tables/ora_cross_tissue_feature_classification.tsv"
+    outputs:
+      - "resources/feature_maps/regeneration_axis_feature_map.tsv"
+      - "results/tables/regeneration_axis_feature_map.tsv"
+      - "results/tables/regeneration_axis_theme_summary.tsv"
+      - "results/figures/manuscript_figure_regeneration_axis.pdf"
+      - "results/figures/manuscript_figure_regeneration_axis.png"
+  regeneration_modules:
+    description: "Score M5.2 curated OE regeneration pathway modules on Gateway cells and donor summaries."
+    command: "make regeneration-modules"
+    inputs:
+      - "data/raw/gateway.h5ad"
+      - "configs/gateway.yaml"
+      - "configs/regeneration_gene_sets.yaml"
+    outputs:
+      - "results/tables/regeneration_module_score_summary.tsv"
+      - "results/tables/regeneration_module_gene_coverage.tsv"
+      - "data/processed/regeneration_donor_module_features.tsv"
+  regeneration_module_analysis:
+    description: "Test curated regeneration modules for age association and ORA-feature correlations."
+    command: "make regeneration-module-analysis"
+    inputs:
+      - "configs/regeneration_gene_sets.yaml"
+      - "data/processed/regeneration_donor_module_features.tsv"
+      - "results/tables/regeneration_module_gene_coverage.tsv"
+      - "data/processed/cohort_manifest.tsv"
+      - "data/processed/ora_augmented_feature_matrix.tsv"
+      - "results/tables/regeneration_axis_feature_map.tsv"
+    outputs:
+      - "results/tables/regeneration_module_age_associations.tsv"
+      - "results/tables/regeneration_module_ora_correlations.tsv"
+  regulatory_driver_analysis:
+    description: "Score curated regulatory-driver target programs from genomewide pseudobulk and rank age/ORA driver hypotheses."
+    command: "make regulatory-driver-analysis"
+    inputs:
+      - "configs/regulatory_driver_gene_sets.yaml"
+      - "data/processed/pseudobulk_genomewide_counts.tsv.gz"
+      - "data/processed/pseudobulk_genomewide_metadata.tsv"
+      - "data/processed/cohort_manifest.tsv"
+      - "results/tables/ora_augmented_candidate_repeated_cv_scores.tsv"
+    outputs:
+      - "docs/regulatory_driver_feasibility.md"
+      - "results/tables/regulatory_driver_activity.tsv"
+      - "results/tables/regulatory_driver_donor_activity.tsv"
+      - "results/tables/regulatory_driver_gene_coverage.tsv"
+      - "results/tables/regulatory_driver_map.tsv"
+      - "results/tables/regulatory_driver_age_associations.tsv"
+      - "results/tables/regulatory_driver_ora_correlations.tsv"
+      - "results/figures/extended_data_regulatory_drivers.pdf"
+      - "results/figures/extended_data_regulatory_drivers.png"
+  niche_signaling_analysis:
+    description: "Score curated ligand-receptor niche interactions by donor, sender group, and receiver group, then test age and ORA associations."
+    command: "make niche-signaling-analysis"
+    inputs:
+      - "configs/niche_ligand_receptor_pairs.yaml"
+      - "data/processed/pseudobulk_genomewide_counts.tsv.gz"
+      - "data/processed/pseudobulk_genomewide_metadata.tsv"
+      - "data/processed/cohort_manifest.tsv"
+      - "results/tables/ora_augmented_candidate_repeated_cv_scores.tsv"
+    outputs:
+      - "docs/niche_signaling_feasibility.md"
+      - "results/tables/niche_ligand_receptor_donor_scores.tsv"
+      - "results/tables/niche_ligand_receptor_gene_coverage.tsv"
+      - "results/tables/niche_ligand_receptor_age_associations.tsv"
+      - "results/tables/niche_ligand_receptor_ora_associations.tsv"
+      - "results/tables/niche_driver_priority_table.tsv"
+      - "results/figures/extended_data_niche_signaling.pdf"
+      - "results/figures/extended_data_niche_signaling.png"
+  regeneration_dynamics:
+    description: "Audit fate-method input feasibility and run an exploratory DPT pilot on the basal-to-neuronal lineage embedding."
+    command: "make regeneration-dynamics"
+    inputs:
+      - "data/raw/gateway.h5ad"
+      - "data/processed/gateway_scvi_lineage_basal_neural_100k.h5ad"
+      - "data/processed/foundation_benchmark_lineage_subset.h5ad"
+      - "data/processed/gateway_scvi_full_4m_reduced.h5ad"
+    outputs:
+      - "results/tables/regeneration_dynamics_input_audit.tsv"
+      - "results/tables/regeneration_dynamics_feasibility.tsv"
+      - "results/reports/regeneration_dynamics_feasibility.md"
+      - "results/tables/regeneration_dynamics_summary.tsv"
+      - "results/tables/regeneration_dynamics_cell_scores.tsv"
+      - "results/figures/extended_data_regeneration_dynamics.pdf"
+      - "results/figures/extended_data_regeneration_dynamics.png"
   model_ora:
     description: "Train donor-split ORA models on healthy donors."
     command: "make model-ora"
@@ -59,6 +336,18 @@ commands:
     command: "make model-ora-candidate-repeated"
     inputs: ["data/processed/ora_augmented_feature_matrix.tsv", "data/processed/cohort_manifest.tsv", "configs/models.yaml"]
     outputs: ["results/tables/ora_augmented_candidate_repeated_cv_performance.tsv", "results/tables/ora_augmented_candidate_repeated_cv_summary.tsv", "results/tables/ora_augmented_candidate_repeated_cv_scores.tsv", "results/tables/ora_augmented_candidate_repeated_cv_feature_stability.tsv"]
+  environment_report:
+    description: "Record Python/R runtime, lock files, full pip freeze, and smoke-test status."
+    command: "make environment-report"
+    inputs: ["pyproject.toml", "environment.yml", "scripts/build_environment_report.py"]
+    outputs:
+      - "results/reports/environment_report.tsv"
+      - "results/reports/environment_report.md"
+      - "results/reports/environment_smoke_tests.tsv"
+      - "requirements/python-base-lock.txt"
+      - "requirements/python-latent-lock.txt"
+      - "requirements/python-full-freeze.txt"
+      - "environments/r-bioconductor.yml"
   feature_interpretation:
     description: "Map stable ORA features to broad regenerative, neuronal, immune, secretory, and stress themes."
     command: "make feature-interpretation"
@@ -164,6 +453,14 @@ commands:
     command: "make external-candidate-matrix"
     inputs: ["configs/external_datasets.yaml"]
     outputs: ["results/tables/external_candidate_matrix.tsv"]
+  external_public_data_exhaustion:
+    description: "Build public-data exhaustion matrix and search log for external validation candidates."
+    command: "make external-public-data-exhaustion"
+    inputs: ["configs/external_datasets.yaml"]
+    outputs:
+      - "results/tables/public_data_exhaustion.tsv"
+      - "results/tables/public_data_search_log.tsv"
+      - "results/reports/public_data_exhaustion.md"
   external_gse184117_inventory:
     description: "Download and inventory the GSE184117 raw 10x-style validation archive."
     command: "make download-gse184117 && make inspect-gse184117"
@@ -209,6 +506,27 @@ commands:
     command: "make external-evidence"
     inputs: ["configs/external_datasets.yaml", "results/tables/external_validation_summary.tsv", "results/tables/external_sample_metadata.tsv", "results/tables/external_10x_module_contrasts.tsv", "results/tables/external_10x_marker_contrasts.tsv", "data/processed/gse184117_mapped_donor_features.tsv", "data/processed/gse184117_scanvi_donor_features.tsv"]
     outputs: ["results/tables/external_validation_evidence.tsv"]
+  external_gse184117_status:
+    description: "Record GSE184117 raw archive checksums, reanalysis artifact completion, evidence classification, and small-n limitation."
+    command: "make external-gse184117-status"
+    inputs:
+      - "configs/external_datasets.yaml"
+      - "data/external/GSE184117_RAW.tar"
+      - "data/external/GSE184117_series_matrix.txt.gz"
+      - "results/tables/external_raw_inventory.tsv"
+      - "results/tables/external_sample_metadata.tsv"
+      - "results/tables/external_10x_sample_qc.tsv"
+      - "results/tables/external_10x_module_contrasts.tsv"
+      - "results/tables/external_10x_marker_contrasts.tsv"
+      - "data/processed/gse184117_marker_mapped.h5ad"
+      - "results/tables/external_mapped_feature_concordance.tsv"
+      - "data/processed/gse184117_scanvi_mapped.h5ad"
+      - "results/tables/external_scanvi_feature_concordance.tsv"
+      - "results/tables/external_validation_evidence.tsv"
+      - "results/figures/extended_data_figure2_external_evidence.pdf"
+    outputs:
+      - "results/reports/gse184117_reanalysis_status.tsv"
+      - "results/reports/gse184117_reanalysis_status.md"
   latent_space_audit:
     description: "Audit local H5AD and CELLxGENE portal embeddings before trajectory/neighborhood work."
     command: "make latent-space-audit"
@@ -303,6 +621,44 @@ commands:
       - "results/tables/scvi_embedding_claim_gates.tsv"
       - "results/tables/scvi_embedding_marker_concordance.tsv"
       - "results/reports/scvi_embedding_comparison.md"
+  scvi_donor_embedding_baseline:
+    description: "Aggregate full scVI cell embeddings into donor/global and donor-by-cell-state features, then benchmark age prediction against ORA feature sets."
+    command: "make scvi-donor-embedding-baseline"
+    inputs:
+      - "data/processed/gateway_scvi_full_4m_reduced.h5ad"
+      - "data/processed/cohort_manifest.tsv"
+      - "results/tables/ora_repeated_cv_summary.tsv"
+      - "results/tables/ora_augmented_candidate_repeated_cv_summary.tsv"
+      - "configs/models.yaml"
+    outputs:
+      - "data/processed/scvi_donor_embedding_features.tsv"
+      - "results/tables/scvi_donor_embedding_feature_qc.tsv"
+      - "results/tables/scvi_donor_embedding_repeated_cv_performance.tsv"
+      - "results/tables/scvi_donor_embedding_age_model_summary.tsv"
+      - "results/tables/scvi_donor_embedding_scores.tsv"
+      - "results/tables/scvi_donor_embedding_feature_stability.tsv"
+      - "results/tables/scvi_donor_embedding_state_importance.tsv"
+      - "results/tables/scvi_donor_embedding_model_comparison.tsv"
+  ora_scvi_hybrid_benchmark:
+    description: "Combine ORA composition/module features with full scVI donor embeddings and benchmark whether the hybrid age model improves beyond either feature set alone."
+    command: "make scvi-hybrid-benchmark"
+    inputs:
+      - "data/processed/ora_augmented_feature_matrix.tsv"
+      - "data/processed/scvi_donor_embedding_features.tsv"
+      - "data/processed/cohort_manifest.tsv"
+      - "results/tables/ora_repeated_cv_summary.tsv"
+      - "results/tables/ora_augmented_candidate_repeated_cv_summary.tsv"
+      - "results/tables/scvi_donor_embedding_age_model_summary.tsv"
+      - "configs/models.yaml"
+    outputs:
+      - "data/processed/ora_scvi_hybrid_feature_matrix.tsv"
+      - "results/tables/ora_scvi_hybrid_repeated_cv_performance.tsv"
+      - "results/tables/ora_scvi_hybrid_age_model_summary.tsv"
+      - "results/tables/ora_scvi_hybrid_scores.tsv"
+      - "results/tables/ora_scvi_hybrid_feature_stability.tsv"
+      - "results/tables/ora_scvi_hybrid_scvi_state_importance.tsv"
+      - "results/tables/ora_scvi_hybrid_feature_family_importance.tsv"
+      - "results/tables/ora_scvi_hybrid_model_comparison.tsv"
   scvi_lineage_basal_neural:
     description: "Train a lineage-focused scVI model for basal, progenitor, neural, secretory, and sustentacular compartments."
     command: "make scvi-lineage-basal-neural"
@@ -597,3 +953,96 @@ commands:
     outputs:
       - "results/reports/manuscript_package_check.tsv"
       - "results/reports/manuscript_package_check.md"
+  release_manifest:
+    description: "Build release artifact manifest with artifact categories, checksums, commands, and archive URI placeholders."
+    command: "make release-manifest"
+    inputs:
+      - "configs/command_manifest.yaml"
+      - "configs/gateway.yaml"
+      - "scripts/build_release_manifest.py"
+      - "src/ora/release.py"
+    outputs:
+      - "results/reports/release_artifact_manifest.tsv"
+      - "results/reports/release_artifact_manifest.md"
+  archive_review_package:
+    description: "Summarize required artifacts into reviewer-access archive actions and blockers."
+    command: "make archive-review-package"
+    inputs:
+      - "results/reports/release_artifact_manifest.tsv"
+      - "configs/gateway.yaml"
+      - "scripts/build_archive_review_package.py"
+      - "src/ora/archive.py"
+    outputs:
+      - "results/reports/archive_review_package.tsv"
+      - "results/reports/archive_review_package.md"
+  local_light_profile:
+    description: "Fast local reviewer/collaborator check covering lint, tests, external summaries, manuscript tables/figures, package checks, and provenance."
+    command: "make local-light"
+    inputs:
+      - "Makefile"
+      - "docs/rerun_profiles.md"
+      - "configs/gateway.yaml"
+      - "configs/external_datasets.yaml"
+      - "results/tables"
+    outputs:
+      - "results/reports/public_data_exhaustion.md"
+      - "results/reports/gse184117_reanalysis_status.md"
+      - "results/reports/publication_tables.md"
+      - "results/reports/manuscript_package_check.md"
+      - "results/reports/output_provenance.tsv"
+  local_medium_profile:
+    description: "Local donor-level refresh of cohort processing, ORA models, compositional/negative-control analyses, NDD guardrails, external evidence, and local-light checks."
+    command: "make local-medium"
+    inputs:
+      - "data/raw/gateway.h5ad"
+      - "data/external/GSE184117_RAW.tar"
+      - "data/external/GSE184117_series_matrix.txt.gz"
+      - "configs/gateway.yaml"
+      - "configs/models.yaml"
+      - "configs/external_datasets.yaml"
+    outputs:
+      - "data/processed/cohort_manifest.tsv"
+      - "data/processed/ora_feature_matrix.tsv"
+      - "data/processed/ora_augmented_feature_matrix.tsv"
+      - "results/tables/ora_repeated_cv_summary.tsv"
+      - "results/tables/ora_negative_control_performance.tsv"
+      - "results/tables/external_validation_evidence.tsv"
+      - "results/tables/manuscript_table_ndd_guardrails.tsv"
+  remote_heavy_profile:
+    description: "Remote full-scale latent and neighborhood refresh for all-cell scVI, Milo-style full/matched lineage analyses, edgeR parity, and MiloR subset sensitivity."
+    command: "make remote-heavy"
+    deferred: true
+    inputs:
+      - "data/raw/gateway.h5ad"
+      - "resources/scvi/full_4m_genes.txt"
+      - "data/processed/cohort_manifest.tsv"
+      - "docs/rerun_profiles.md"
+    outputs:
+      - "data/processed/gateway_hvg3003_4m.h5ad"
+      - "data/processed/gateway_scvi_full_4m_reduced.h5ad"
+      - "results/models/gateway_scvi_full_4m_reduced"
+      - "results/tables/scvi_embedding_claim_gates.tsv"
+      - "results/tables/milo_full_4m_lineage_summary.tsv"
+      - "results/tables/milo_full_4m_lineage_matched_summary.tsv"
+      - "results/tables/milo_full_4m_lineage_edger_parity_summary.tsv"
+      - "results/tables/milor_lineage_subset_summary.tsv"
+  submission_freeze_profile:
+    description: "Final non-TeX submission freeze over environment, release/archive reports, external status, publication tables, manuscript figures/checks, and provenance."
+    command: "make submission-freeze"
+    inputs:
+      - "Makefile"
+      - "configs/gateway.yaml"
+      - "configs/command_manifest.yaml"
+      - "configs/external_datasets.yaml"
+      - "docs/rerun_profiles.md"
+      - "results/tables"
+      - "results/figures"
+    outputs:
+      - "results/reports/environment_report.md"
+      - "results/reports/release_artifact_manifest.md"
+      - "results/reports/archive_review_package.md"
+      - "results/reports/gse184117_reanalysis_status.md"
+      - "results/reports/public_data_exhaustion.md"
+      - "results/reports/publication_tables.md"
+      - "results/reports/manuscript_package_check.md"
+      - "results/reports/output_provenance.tsv"

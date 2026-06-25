@@ -18,6 +18,37 @@ class SensitivityTests(unittest.TestCase):
         )
         self.assertEqual(filtered["donor_id"].tolist(), ["d2"])
 
+    def test_filter_manifest_for_scenario_handles_lineage_and_training_rules(self):
+        manifest = pd.DataFrame(
+            {
+                "donor_id": ["d1", "d2", "d3"],
+                "lineage_cells": [10, 100, 1000],
+                "mature_neurons": [2, 60, 10],
+                "passes_strict_ora_training_rule": [False, True, "False"],
+            }
+        )
+
+        lineage = filter_manifest_for_scenario(
+            manifest,
+            {"scenario": "min_lineage_cells__100", "filter_type": "min_lineage_cells", "filter_value": 100},
+        )
+        mature = filter_manifest_for_scenario(
+            manifest,
+            {"scenario": "min_mature_neurons__50", "filter_type": "min_mature_neurons", "filter_value": 50},
+        )
+        strict = filter_manifest_for_scenario(
+            manifest,
+            {
+                "scenario": "strict_ora_training_rule",
+                "filter_type": "training_rule_column",
+                "filter_value": "passes_strict_ora_training_rule",
+            },
+        )
+
+        self.assertEqual(lineage["donor_id"].tolist(), ["d2", "d3"])
+        self.assertEqual(mature["donor_id"].tolist(), ["d2"])
+        self.assertEqual(strict["donor_id"].tolist(), ["d2"])
+
     def test_filter_manifest_handles_compound_and_yield_extremes(self):
         manifest = pd.DataFrame(
             {
@@ -61,6 +92,9 @@ class SensitivityTests(unittest.TestCase):
                 "collection_method": ["brush", "device"] * 4,
                 "site": ["toy"] * 8,
                 "total_cells": [1000] * 8,
+                "lineage_cells": [100] * 8,
+                "mature_neurons": [60] * 8,
+                "passes_strict_ora_training_rule": [True] * 8,
             }
         )
         features = pd.DataFrame(
@@ -73,17 +107,24 @@ class SensitivityTests(unittest.TestCase):
         result = run_ora_sensitivity(
             features,
             manifest,
-            {"outer_cv_folds": 2, "random_seed": 1, "missingness_max_fraction": 1.0},
+            {
+                "outer_cv_folds": 2,
+                "random_seed": 1,
+                "missingness_max_fraction": 1.0,
+                "model_names": ["ridge", "random_forest"],
+            },
             min_cell_thresholds=[500],
             min_train_donors=4,
         )
 
         self.assertIn("baseline", set(result.scenarios["scenario"]))
         self.assertIn("chemistry__v2", set(result.scenarios["scenario"]))
+        self.assertIn("strict_ora_training_rule", set(result.scenarios["scenario"]))
         skipped = result.scenarios.set_index("scenario").loc["chemistry__v2", "status"]
         self.assertEqual(skipped, "too_few_training_donors")
         self.assertFalse(result.performance.empty)
         self.assertIn("scenario", result.performance.columns)
+        self.assertTrue({"backend", "backend_package", "fallback_used"}.issubset(result.performance.columns))
 
 
 if __name__ == "__main__":

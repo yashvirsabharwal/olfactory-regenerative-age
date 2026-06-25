@@ -35,6 +35,31 @@ def default_ora_scenarios(manifest: pd.DataFrame, min_cell_thresholds: list[int]
                 "filter_value": int(threshold),
             }
         )
+    if "lineage_cells" in manifest:
+        for threshold in [50, 500]:
+            scenarios.append(
+                {
+                    "scenario": f"min_lineage_cells__{threshold}",
+                    "filter_type": "min_lineage_cells",
+                    "filter_value": int(threshold),
+                }
+            )
+    if "mature_neurons" in manifest:
+        scenarios.append(
+            {
+                "scenario": "min_mature_neurons__50",
+                "filter_type": "min_mature_neurons",
+                "filter_value": 50,
+            }
+        )
+    if "passes_strict_ora_training_rule" in manifest:
+        scenarios.append(
+            {
+                "scenario": "strict_ora_training_rule",
+                "filter_type": "training_rule_column",
+                "filter_value": "passes_strict_ora_training_rule",
+            }
+        )
     if {"chemistry", "collection_method"}.issubset(manifest.columns):
         scenarios.append(
             {
@@ -132,6 +157,17 @@ def filter_manifest_for_scenario(manifest: pd.DataFrame, scenario: dict[str, obj
     if filter_type == "min_total_cells":
         total_cells = pd.to_numeric(manifest.get("total_cells"), errors="coerce").fillna(0)
         return manifest[total_cells >= int(value)].copy()
+    if filter_type == "min_lineage_cells":
+        lineage_cells = pd.to_numeric(manifest.get("lineage_cells"), errors="coerce").fillna(0)
+        return manifest[lineage_cells >= int(value)].copy()
+    if filter_type == "min_mature_neurons":
+        mature_neurons = pd.to_numeric(manifest.get("mature_neurons"), errors="coerce").fillna(0)
+        return manifest[mature_neurons >= int(value)].copy()
+    if filter_type == "training_rule_column":
+        column = str(value)
+        if column not in manifest:
+            return manifest.iloc[0:0].copy()
+        return manifest[_boolean_series(manifest[column])].copy()
     if filter_type == "exclude_yield_extremes":
         total_cells = pd.to_numeric(manifest.get("total_cells"), errors="coerce")
         if total_cells.notna().sum() < 4:
@@ -159,3 +195,9 @@ def _count_group(manifest: pd.DataFrame, group: str) -> int:
     if "disease_group" not in manifest:
         return 0
     return int(manifest.loc[manifest["disease_group"].astype(str).eq(group), "donor_id"].nunique())
+
+
+def _boolean_series(series: pd.Series) -> pd.Series:
+    if pd.api.types.is_bool_dtype(series):
+        return series.fillna(False).astype(bool)
+    return series.astype(str).str.strip().str.lower().isin({"true", "1", "yes", "y", "t"})

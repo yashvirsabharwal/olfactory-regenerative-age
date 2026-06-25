@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from importlib import metadata as importlib_metadata
 from typing import Any
 import warnings
 
@@ -26,6 +27,11 @@ TECHNICAL_EXACT = {
     "is_ndd",
     "is_training_donor",
     "usable_for_ora_training",
+    "passes_min_total_cells",
+    "passes_min_lineage_cells",
+    "passes_min_mature_neurons",
+    "passes_primary_ora_training_rule",
+    "passes_strict_ora_training_rule",
     "lineage_cells",
     "mature_neurons",
 }
@@ -45,6 +51,18 @@ MODEL_ORDER = [
     "catboost",
     "boosted_ensemble",
 ]
+
+
+@dataclass(frozen=True)
+class BackendInfo:
+    backend: str
+    backend_package: str
+    backend_version: str
+    fallback_used: bool = False
+    fallback_reason: str = ""
+
+
+FitResult = tuple[np.ndarray, np.ndarray, BackendInfo]
 
 
 @dataclass
@@ -118,6 +136,127 @@ def model_names_from_config(model_config: dict[str, Any] | None = None) -> list[
     return list(MODEL_ORDER)
 
 
+def _backend_info(
+    backend: str,
+    package: str,
+    *,
+    fallback_used: bool = False,
+    fallback_reason: str = "",
+) -> BackendInfo:
+    return BackendInfo(
+        backend=backend,
+        backend_package=package,
+        backend_version=_package_version(package),
+        fallback_used=fallback_used,
+        fallback_reason=fallback_reason,
+    )
+
+
+def _package_version(package: str) -> str:
+    try:
+        return importlib_metadata.version(package)
+    except importlib_metadata.PackageNotFoundError:
+        return "not_installed"
+
+
+def _allow_fallback(model_config: dict[str, Any]) -> bool:
+    return bool(model_config.get("allow_fallback", False))
+
+
+def _forced_missing_backend(model_config: dict[str, Any], *names: str) -> bool:
+    forced = {str(name) for name in model_config.get("_force_missing_backends", [])}
+    return bool(forced.intersection(names))
+
+
+def _join_unique(values: list[object] | pd.Series) -> str:
+    output: list[str] = []
+    for value in values:
+        if value is None or pd.isna(value):
+            continue
+        text = str(value)
+        if not text or text == "nan" or text in output:
+            continue
+        output.append(text)
+    return ";".join(output)
+
+
+def _combine_backend_info(backend: str, infos: list[BackendInfo]) -> BackendInfo:
+    if not infos:
+        return _backend_info(backend, "unknown")
+    fallback_reasons = [info.fallback_reason for info in infos if info.fallback_reason]
+    return BackendInfo(
+        backend=backend,
+        backend_package=_join_unique([info.backend_package for info in infos]),
+        backend_version=_join_unique([info.backend_version for info in infos]),
+        fallback_used=any(info.fallback_used for info in infos),
+        fallback_reason=_join_unique(fallback_reasons),
+    )
+
+
+def _backend_columns(backend_info: BackendInfo | None) -> dict[str, object]:
+    if backend_info is None:
+        backend_info = _backend_info("unknown", "unknown")
+    return {
+        "backend": backend_info.backend,
+        "backend_package": backend_info.backend_package,
+        "backend_version": backend_info.backend_version,
+        "fallback_used": bool(backend_info.fallback_used),
+        "fallback_reason": backend_info.fallback_reason,
+    }
+
+
+def _closed_form_fallback(
+    *,
+    model_name: str,
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    alpha: float,
+    importance_abs: bool = False,
+    reason: str,
+    model_config: dict[str, Any],
+) -> FitResult:
+    if not _allow_fallback(model_config):
+        raise RuntimeError(
+            f"{model_name} backend is unavailable. Install the required backend or pass "
+            f"`--allow-fallback` to use the deterministic closed-form ridge fallback. Reason: {reason}"
+        )
+    coef, intercept = _ridge_closed_form(x_train, y_train, alpha=alpha)
+    importance = np.abs(coef) if importance_abs else coef
+    info = _backend_info(
+        "closed_form_ridge_fallback",
+        "numpy",
+        fallback_used=True,
+        fallback_reason=f"{model_name}: {reason}",
+    )
+    return x_test @ coef + intercept, importance, info
+
+
+def _booster_fallback_or_raise(
+    *,
+    model_name: str,
+    reason: str,
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    model_config: dict[str, Any],
+) -> FitResult:
+    if not _allow_fallback(model_config):
+        raise RuntimeError(
+            f"{model_name} native backend failed. Install/fix the native backend or pass "
+            f"`--allow-fallback` to use the sklearn gradient boosting fallback. Reason: {reason}"
+        )
+    pred, importance, fallback_info = _fit_gradient_boosting_or_linear(x_train, y_train, x_test, model_config)
+    info = BackendInfo(
+        backend=f"{model_name}_fallback_to_{fallback_info.backend}",
+        backend_package=fallback_info.backend_package,
+        backend_version=fallback_info.backend_version,
+        fallback_used=True,
+        fallback_reason=_join_unique([f"{model_name}: {reason}", fallback_info.fallback_reason]),
+    )
+    return pred, importance, info
+
+
 def train_ora_models(
     features: pd.DataFrame,
     manifest: pd.DataFrame,
@@ -154,16 +293,20 @@ def train_ora_models(
     for model_name in model_names_from_config(model_config):
         pred = np.full(train.shape[0], np.nan, dtype=float)
         fold_importances = []
+        fold_backends = []
         for fold_id, (train_idx, test_idx) in enumerate(folds):
             prep = fit_preprocessor(train.iloc[train_idx][feature_cols])
             x_train = transform_preprocessor(train.iloc[train_idx][feature_cols], prep)
             x_test = transform_preprocessor(train.iloc[test_idx][feature_cols], prep)
             y_train = y[train_idx]
-            fold_pred, coefs = fit_model_predictions(model_name, x_train, y_train, x_test, model_config)
+            fold_pred, coefs, backend_info = fit_model_predictions(model_name, x_train, y_train, x_test, model_config)
             pred[test_idx] = fold_pred
+            fold_backends.append(backend_info)
             if coefs is not None:
                 fold_importances.append(pd.DataFrame({"feature": feature_cols, "importance": coefs, "fold": fold_id}))
-        performance_rows.append(_performance_row(model_name, y, pred))
+        performance_rows.append(
+            _performance_row(model_name, y, pred, _combine_backend_info(model_name, fold_backends))
+        )
         predictions.append(
             pd.DataFrame(
                 {
@@ -245,6 +388,11 @@ def summarize_repeated_performance(performance: pd.DataFrame) -> pd.DataFrame:
             "repeats": int(frame["repeat"].nunique()) if "repeat" in frame else 1,
             "n": int(frame["n"].median()) if "n" in frame else np.nan,
         }
+        for col in ["backend", "backend_package", "backend_version", "fallback_reason"]:
+            if col in frame:
+                row[col] = _join_unique(frame[col])
+        if "fallback_used" in frame:
+            row["fallback_used"] = bool(_boolean_series(frame["fallback_used"]).any())
         for metric in metrics:
             values = pd.to_numeric(frame.get(metric), errors="coerce").dropna().to_numpy(dtype=float)
             if values.size == 0:
@@ -318,8 +466,8 @@ def project_ora_models(
     y_train = train["age"].astype(float).to_numpy()
     rows = []
     for model_name in model_names_from_config(model_config):
-        pred, _ = fit_model_predictions(model_name, x_train, y_train, x_project, model_config)
-        frame = _projection_frame(project, model_name, pred, train.shape[0], len(feature_cols))
+        pred, _, backend_info = fit_model_predictions(model_name, x_train, y_train, x_project, model_config)
+        frame = _projection_frame(project, model_name, pred, train.shape[0], len(feature_cols), backend_info)
         rows.append(frame)
 
     predictions = pd.concat(rows, ignore_index=True)
@@ -457,11 +605,15 @@ def fit_model_predictions(
     y_train: np.ndarray,
     x_test: np.ndarray,
     model_config: dict[str, Any],
-) -> tuple[np.ndarray, np.ndarray]:
-    """Fit one named ORA model and return predictions plus feature weights/importances."""
+) -> FitResult:
+    """Fit one named ORA model and return predictions, feature weights, and backend metadata."""
 
     if model_name == "null_model":
-        return np.full(x_test.shape[0], float(np.mean(y_train))), np.zeros(x_train.shape[1])
+        return (
+            np.full(x_test.shape[0], float(np.mean(y_train))),
+            np.zeros(x_train.shape[1]),
+            _backend_info("mean_age_null_model", "numpy"),
+        )
     if model_name == "ridge":
         return _fit_ridge_or_linear(x_train, y_train, x_test, model_config)
     if model_name == "lasso":
@@ -494,8 +646,10 @@ def _fit_elastic_or_linear(
     y_train: np.ndarray,
     x_test: np.ndarray,
     model_config: dict[str, Any],
-) -> tuple[np.ndarray, np.ndarray]:
+) -> FitResult:
     try:
+        if _forced_missing_backend(model_config, "elastic_net", "sklearn", "scikit-learn"):
+            raise ModuleNotFoundError("forced missing scikit-learn backend")
         from sklearn.linear_model import ElasticNetCV  # type: ignore
 
         params = model_config.get("models", {}).get("elastic_net", {})
@@ -509,10 +663,17 @@ def _fit_elastic_or_linear(
             n_jobs=int(params.get("n_jobs", -1)),
         )
         model.fit(x_train, y_train)
-        return model.predict(x_test), np.asarray(model.coef_, dtype=float)
-    except ModuleNotFoundError:
-        coef, intercept = _ridge_closed_form(x_train, y_train)
-        return x_test @ coef + intercept, coef
+        return model.predict(x_test), np.asarray(model.coef_, dtype=float), _backend_info("sklearn_elastic_net_cv", "scikit-learn")
+    except ModuleNotFoundError as exc:
+        return _closed_form_fallback(
+            model_name="elastic_net",
+            x_train=x_train,
+            y_train=y_train,
+            x_test=x_test,
+            alpha=1.0,
+            reason=str(exc),
+            model_config=model_config,
+        )
 
 
 def _fit_ridge_or_linear(
@@ -520,17 +681,26 @@ def _fit_ridge_or_linear(
     y_train: np.ndarray,
     x_test: np.ndarray,
     model_config: dict[str, Any],
-) -> tuple[np.ndarray, np.ndarray]:
+) -> FitResult:
     try:
+        if _forced_missing_backend(model_config, "ridge", "sklearn", "scikit-learn"):
+            raise ModuleNotFoundError("forced missing scikit-learn backend")
         from sklearn.linear_model import RidgeCV  # type: ignore
 
         params = model_config.get("models", {}).get("ridge", {})
         model = RidgeCV(alphas=params.get("alphas", [0.1, 1.0, 10.0, 100.0]))
         model.fit(x_train, y_train)
-        return model.predict(x_test), np.asarray(model.coef_, dtype=float)
-    except ModuleNotFoundError:
-        coef, intercept = _ridge_closed_form(x_train, y_train, alpha=10.0)
-        return x_test @ coef + intercept, coef
+        return model.predict(x_test), np.asarray(model.coef_, dtype=float), _backend_info("sklearn_ridge_cv", "scikit-learn")
+    except ModuleNotFoundError as exc:
+        return _closed_form_fallback(
+            model_name="ridge",
+            x_train=x_train,
+            y_train=y_train,
+            x_test=x_test,
+            alpha=10.0,
+            reason=str(exc),
+            model_config=model_config,
+        )
 
 
 def _fit_lasso_or_linear(
@@ -538,8 +708,10 @@ def _fit_lasso_or_linear(
     y_train: np.ndarray,
     x_test: np.ndarray,
     model_config: dict[str, Any],
-) -> tuple[np.ndarray, np.ndarray]:
+) -> FitResult:
     try:
+        if _forced_missing_backend(model_config, "lasso", "sklearn", "scikit-learn"):
+            raise ModuleNotFoundError("forced missing scikit-learn backend")
         from sklearn.linear_model import LassoCV  # type: ignore
 
         params = model_config.get("models", {}).get("lasso", {})
@@ -552,10 +724,17 @@ def _fit_lasso_or_linear(
             n_jobs=int(params.get("n_jobs", -1)),
         )
         model.fit(x_train, y_train)
-        return model.predict(x_test), np.asarray(model.coef_, dtype=float)
-    except ModuleNotFoundError:
-        coef, intercept = _ridge_closed_form(x_train, y_train, alpha=25.0)
-        return x_test @ coef + intercept, coef
+        return model.predict(x_test), np.asarray(model.coef_, dtype=float), _backend_info("sklearn_lasso_cv", "scikit-learn")
+    except ModuleNotFoundError as exc:
+        return _closed_form_fallback(
+            model_name="lasso",
+            x_train=x_train,
+            y_train=y_train,
+            x_test=x_test,
+            alpha=25.0,
+            reason=str(exc),
+            model_config=model_config,
+        )
 
 
 def _fit_random_forest_or_linear(
@@ -563,8 +742,10 @@ def _fit_random_forest_or_linear(
     y_train: np.ndarray,
     x_test: np.ndarray,
     model_config: dict[str, Any],
-) -> tuple[np.ndarray, np.ndarray]:
+) -> FitResult:
     try:
+        if _forced_missing_backend(model_config, "random_forest", "sklearn", "scikit-learn"):
+            raise ModuleNotFoundError("forced missing scikit-learn backend")
         from sklearn.ensemble import RandomForestRegressor  # type: ignore
 
         params = model_config.get("models", {}).get("random_forest", {})
@@ -575,10 +756,18 @@ def _fit_random_forest_or_linear(
             n_jobs=-1,
         )
         model.fit(x_train, y_train)
-        return model.predict(x_test), np.asarray(model.feature_importances_, dtype=float)
-    except ModuleNotFoundError:
-        coef, intercept = _ridge_closed_form(x_train, y_train, alpha=10.0)
-        return x_test @ coef + intercept, np.abs(coef)
+        return model.predict(x_test), np.asarray(model.feature_importances_, dtype=float), _backend_info("sklearn_random_forest", "scikit-learn")
+    except ModuleNotFoundError as exc:
+        return _closed_form_fallback(
+            model_name="random_forest",
+            x_train=x_train,
+            y_train=y_train,
+            x_test=x_test,
+            alpha=10.0,
+            importance_abs=True,
+            reason=str(exc),
+            model_config=model_config,
+        )
 
 
 def _fit_extra_trees_or_linear(
@@ -586,8 +775,10 @@ def _fit_extra_trees_or_linear(
     y_train: np.ndarray,
     x_test: np.ndarray,
     model_config: dict[str, Any],
-) -> tuple[np.ndarray, np.ndarray]:
+) -> FitResult:
     try:
+        if _forced_missing_backend(model_config, "extra_trees", "sklearn", "scikit-learn"):
+            raise ModuleNotFoundError("forced missing scikit-learn backend")
         from sklearn.ensemble import ExtraTreesRegressor  # type: ignore
 
         params = model_config.get("models", {}).get("extra_trees", {})
@@ -600,10 +791,18 @@ def _fit_extra_trees_or_linear(
             n_jobs=-1,
         )
         model.fit(x_train, y_train)
-        return model.predict(x_test), np.asarray(model.feature_importances_, dtype=float)
-    except ModuleNotFoundError:
-        coef, intercept = _ridge_closed_form(x_train, y_train, alpha=10.0)
-        return x_test @ coef + intercept, np.abs(coef)
+        return model.predict(x_test), np.asarray(model.feature_importances_, dtype=float), _backend_info("sklearn_extra_trees", "scikit-learn")
+    except ModuleNotFoundError as exc:
+        return _closed_form_fallback(
+            model_name="extra_trees",
+            x_train=x_train,
+            y_train=y_train,
+            x_test=x_test,
+            alpha=10.0,
+            importance_abs=True,
+            reason=str(exc),
+            model_config=model_config,
+        )
 
 
 def _fit_gradient_boosting_or_linear(
@@ -611,8 +810,10 @@ def _fit_gradient_boosting_or_linear(
     y_train: np.ndarray,
     x_test: np.ndarray,
     model_config: dict[str, Any],
-) -> tuple[np.ndarray, np.ndarray]:
+) -> FitResult:
     try:
+        if _forced_missing_backend(model_config, "gradient_boosting", "sklearn", "scikit-learn"):
+            raise ModuleNotFoundError("forced missing scikit-learn backend")
         from sklearn.ensemble import GradientBoostingRegressor  # type: ignore
 
         params = model_config.get("models", {}).get("gradient_boosting", {})
@@ -625,10 +826,18 @@ def _fit_gradient_boosting_or_linear(
             random_state=int(model_config.get("random_seed", 42)),
         )
         model.fit(x_train, y_train)
-        return model.predict(x_test), np.asarray(model.feature_importances_, dtype=float)
-    except ModuleNotFoundError:
-        coef, intercept = _ridge_closed_form(x_train, y_train, alpha=10.0)
-        return x_test @ coef + intercept, np.abs(coef)
+        return model.predict(x_test), np.asarray(model.feature_importances_, dtype=float), _backend_info("sklearn_gradient_boosting", "scikit-learn")
+    except ModuleNotFoundError as exc:
+        return _closed_form_fallback(
+            model_name="gradient_boosting",
+            x_train=x_train,
+            y_train=y_train,
+            x_test=x_test,
+            alpha=10.0,
+            importance_abs=True,
+            reason=str(exc),
+            model_config=model_config,
+        )
 
 
 def _fit_hist_gradient_boosting_or_linear(
@@ -636,8 +845,10 @@ def _fit_hist_gradient_boosting_or_linear(
     y_train: np.ndarray,
     x_test: np.ndarray,
     model_config: dict[str, Any],
-) -> tuple[np.ndarray, np.ndarray]:
+) -> FitResult:
     try:
+        if _forced_missing_backend(model_config, "hist_gradient_boosting", "sklearn", "scikit-learn"):
+            raise ModuleNotFoundError("forced missing scikit-learn backend")
         from sklearn.inspection import permutation_importance  # type: ignore
         from sklearn.ensemble import HistGradientBoostingRegressor  # type: ignore
 
@@ -664,10 +875,18 @@ def _fit_hist_gradient_boosting_or_linear(
                 random_state=int(model_config.get("random_seed", 42)),
                 n_jobs=-1,
             ).importances_mean
-        return pred, np.asarray(importance, dtype=float)
-    except ModuleNotFoundError:
-        coef, intercept = _ridge_closed_form(x_train, y_train, alpha=10.0)
-        return x_test @ coef + intercept, np.abs(coef)
+        return pred, np.asarray(importance, dtype=float), _backend_info("sklearn_hist_gradient_boosting", "scikit-learn")
+    except ModuleNotFoundError as exc:
+        return _closed_form_fallback(
+            model_name="hist_gradient_boosting",
+            x_train=x_train,
+            y_train=y_train,
+            x_test=x_test,
+            alpha=10.0,
+            importance_abs=True,
+            reason=str(exc),
+            model_config=model_config,
+        )
 
 
 def _fit_tree_ensemble_or_linear(
@@ -675,19 +894,25 @@ def _fit_tree_ensemble_or_linear(
     y_train: np.ndarray,
     x_test: np.ndarray,
     model_config: dict[str, Any],
-) -> tuple[np.ndarray, np.ndarray]:
+) -> FitResult:
     preds = []
     importances = []
+    backend_infos = []
     for fitter in [
         _fit_random_forest_or_linear,
         _fit_extra_trees_or_linear,
         _fit_gradient_boosting_or_linear,
         _fit_hist_gradient_boosting_or_linear,
     ]:
-        pred, importance = fitter(x_train, y_train, x_test, model_config)
+        pred, importance, backend_info = fitter(x_train, y_train, x_test, model_config)
         preds.append(pred)
         importances.append(importance)
-    return np.mean(np.vstack(preds), axis=0), np.mean(np.vstack(importances), axis=0)
+        backend_infos.append(backend_info)
+    return (
+        np.mean(np.vstack(preds), axis=0),
+        np.mean(np.vstack(importances), axis=0),
+        _combine_backend_info("sklearn_tree_ensemble", backend_infos),
+    )
 
 
 def _fit_xgboost_or_tree(
@@ -695,8 +920,10 @@ def _fit_xgboost_or_tree(
     y_train: np.ndarray,
     x_test: np.ndarray,
     model_config: dict[str, Any],
-) -> tuple[np.ndarray, np.ndarray]:
+) -> FitResult:
     try:
+        if _forced_missing_backend(model_config, "xgboost"):
+            raise ModuleNotFoundError("forced missing xgboost backend")
         from xgboost import XGBRegressor  # type: ignore
 
         params = model_config.get("models", {}).get("xgboost", {})
@@ -715,9 +942,16 @@ def _fit_xgboost_or_tree(
             verbosity=0,
         )
         model.fit(x_train, y_train)
-        return model.predict(x_test), np.asarray(model.feature_importances_, dtype=float)
-    except Exception:
-        return _fit_gradient_boosting_or_linear(x_train, y_train, x_test, model_config)
+        return model.predict(x_test), np.asarray(model.feature_importances_, dtype=float), _backend_info("xgboost_xgb_regressor", "xgboost")
+    except Exception as exc:
+        return _booster_fallback_or_raise(
+            model_name="xgboost",
+            reason=str(exc),
+            x_train=x_train,
+            y_train=y_train,
+            x_test=x_test,
+            model_config=model_config,
+        )
 
 
 def _fit_lightgbm_or_tree(
@@ -725,8 +959,10 @@ def _fit_lightgbm_or_tree(
     y_train: np.ndarray,
     x_test: np.ndarray,
     model_config: dict[str, Any],
-) -> tuple[np.ndarray, np.ndarray]:
+) -> FitResult:
     try:
+        if _forced_missing_backend(model_config, "lightgbm"):
+            raise ModuleNotFoundError("forced missing lightgbm backend")
         from lightgbm import LGBMRegressor  # type: ignore
 
         params = model_config.get("models", {}).get("lightgbm", {})
@@ -747,9 +983,16 @@ def _fit_lightgbm_or_tree(
             warnings.filterwarnings("ignore", message="X does not have valid feature names.*")
             model.fit(x_train, y_train)
             pred = model.predict(x_test)
-        return pred, np.asarray(model.feature_importances_, dtype=float)
-    except Exception:
-        return _fit_gradient_boosting_or_linear(x_train, y_train, x_test, model_config)
+        return pred, np.asarray(model.feature_importances_, dtype=float), _backend_info("lightgbm_lgbm_regressor", "lightgbm")
+    except Exception as exc:
+        return _booster_fallback_or_raise(
+            model_name="lightgbm",
+            reason=str(exc),
+            x_train=x_train,
+            y_train=y_train,
+            x_test=x_test,
+            model_config=model_config,
+        )
 
 
 def _fit_catboost_or_tree(
@@ -757,8 +1000,10 @@ def _fit_catboost_or_tree(
     y_train: np.ndarray,
     x_test: np.ndarray,
     model_config: dict[str, Any],
-) -> tuple[np.ndarray, np.ndarray]:
+) -> FitResult:
     try:
+        if _forced_missing_backend(model_config, "catboost"):
+            raise ModuleNotFoundError("forced missing catboost backend")
         from catboost import CatBoostRegressor  # type: ignore
 
         params = model_config.get("models", {}).get("catboost", {})
@@ -774,9 +1019,16 @@ def _fit_catboost_or_tree(
             allow_writing_files=False,
         )
         model.fit(x_train, y_train)
-        return model.predict(x_test), np.asarray(model.get_feature_importance(), dtype=float)
-    except Exception:
-        return _fit_gradient_boosting_or_linear(x_train, y_train, x_test, model_config)
+        return model.predict(x_test), np.asarray(model.get_feature_importance(), dtype=float), _backend_info("catboost_regressor", "catboost")
+    except Exception as exc:
+        return _booster_fallback_or_raise(
+            model_name="catboost",
+            reason=str(exc),
+            x_train=x_train,
+            y_train=y_train,
+            x_test=x_test,
+            model_config=model_config,
+        )
 
 
 def _fit_boosted_ensemble_or_tree(
@@ -784,19 +1036,25 @@ def _fit_boosted_ensemble_or_tree(
     y_train: np.ndarray,
     x_test: np.ndarray,
     model_config: dict[str, Any],
-) -> tuple[np.ndarray, np.ndarray]:
+) -> FitResult:
     preds = []
     importances = []
+    backend_infos = []
     for fitter in [
         _fit_gradient_boosting_or_linear,
         _fit_xgboost_or_tree,
         _fit_lightgbm_or_tree,
         _fit_catboost_or_tree,
     ]:
-        pred, importance = fitter(x_train, y_train, x_test, model_config)
+        pred, importance, backend_info = fitter(x_train, y_train, x_test, model_config)
         preds.append(pred)
         importances.append(importance)
-    return np.mean(np.vstack(preds), axis=0), np.mean(np.vstack(importances), axis=0)
+        backend_infos.append(backend_info)
+    return (
+        np.mean(np.vstack(preds), axis=0),
+        np.mean(np.vstack(importances), axis=0),
+        _combine_backend_info("boosted_ensemble", backend_infos),
+    )
 
 
 def _ridge_closed_form(x: np.ndarray, y: np.ndarray, alpha: float = 1.0) -> tuple[np.ndarray, float]:
@@ -807,7 +1065,12 @@ def _ridge_closed_form(x: np.ndarray, y: np.ndarray, alpha: float = 1.0) -> tupl
     return coef, y_mean
 
 
-def _performance_row(model_name: str, y: np.ndarray, pred: np.ndarray) -> dict[str, float | str]:
+def _performance_row(
+    model_name: str,
+    y: np.ndarray,
+    pred: np.ndarray,
+    backend_info: BackendInfo | None = None,
+) -> dict[str, object]:
     valid = np.isfinite(y) & np.isfinite(pred)
     yv = y[valid]
     pv = pred[valid]
@@ -825,6 +1088,7 @@ def _performance_row(model_name: str, y: np.ndarray, pred: np.ndarray) -> dict[s
         "rmse": rmse,
         "r2": r2,
         "spearman_r": corr,
+        **_backend_columns(backend_info),
     }
 
 
@@ -853,6 +1117,7 @@ def _projection_frame(
     pred: np.ndarray,
     training_n: int,
     n_features: int,
+    backend_info: BackendInfo | None = None,
 ) -> pd.DataFrame:
     meta_cols = [
         "donor_id",
@@ -877,6 +1142,8 @@ def _projection_frame(
     frame["ora"] = pred
     frame["training_n"] = training_n
     frame["n_features"] = n_features
+    for col, value in _backend_columns(backend_info).items():
+        frame[col] = value
     if "disease_group" not in frame:
         frame["disease_group"] = "unknown"
     if "is_ndd" not in frame:

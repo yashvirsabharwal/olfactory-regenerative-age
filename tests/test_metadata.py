@@ -44,6 +44,11 @@ def config():
             "device": ["T", "device"],
             "brush": ["F", "brush"],
         },
+        "cohorts": {
+            "min_total_cells": 2,
+            "min_total_lineage_cells": 2,
+            "min_mature_neurons": 1,
+        },
     }
 
 
@@ -92,6 +97,15 @@ class MetadataTests(unittest.TestCase):
         self.assertEqual(trainable, {"d1"})
         self.assertEqual(manifest.loc[manifest["donor_id"].eq("d2"), "disease_group"].iloc[0], "ad")
         self.assertEqual(int(manifest.loc[manifest["donor_id"].eq("d1"), "mature_neurons"].iloc[0]), 1)
+        d1 = manifest[manifest["donor_id"].eq("d1")].iloc[0]
+        d3 = manifest[manifest["donor_id"].eq("d3")].iloc[0]
+        self.assertTrue(bool(d1["passes_min_total_cells"]))
+        self.assertTrue(bool(d1["passes_min_lineage_cells"]))
+        self.assertTrue(bool(d1["passes_min_mature_neurons"]))
+        self.assertTrue(bool(d1["passes_primary_ora_training_rule"]))
+        self.assertTrue(bool(d1["passes_strict_ora_training_rule"]))
+        self.assertFalse(bool(d3["passes_primary_ora_training_rule"]))
+        self.assertFalse(bool(d3["passes_strict_ora_training_rule"]))
 
     def test_disease_group_normalization(self):
         self.assertEqual(disease_group("Cognitively Normal", config()), "healthy")

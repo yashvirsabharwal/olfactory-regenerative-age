@@ -1,0 +1,137 @@
+metadata:
+  description: "Curated ligand-receptor priors for olfactory epithelial regenerative-aging niche hypotheses."
+  method_note: "Used by the local pseudobulk fallback. Heavy LR tools such as LIANA, NicheNet, CellPhoneDB, and CellChat remain optional validation follow-ups."
+  sender_groups:
+    - immune
+    - sustentacular
+    - respiratory_secretory
+    - hbc
+    - gbc_inp
+  receiver_groups:
+    - hbc
+    - gbc_inp
+    - immature_osn
+    - mature_osn
+    - sustentacular
+
+interactions:
+  il17_il17ra_rc:
+    family: "IL17"
+    ligand_genes: [IL17A, IL17F, IL17C]
+    receptor_genes: [IL17RA, IL17RC]
+    sender_groups: [immune, respiratory_secretory]
+    receiver_groups: [hbc, gbc_inp, sustentacular]
+    expected_age_direction: "positive"
+    source: "Inflammatory/metaplastic OE aging prior"
+    citation: "IL-17 age-related olfactory dysfunction/metaplasia literature; CellPhoneDB/NicheNet-style LR prior"
+    rationale: "Test whether IL-17-family inflammatory signaling into basal/progenitor or support epithelium tracks age/ORA."
+  tnf_tnfrsf1:
+    family: "TNF"
+    ligand_genes: [TNF, LTA]
+    receptor_genes: [TNFRSF1A, TNFRSF1B]
+    sender_groups: [immune, respiratory_secretory]
+    receiver_groups: [hbc, gbc_inp, immature_osn, sustentacular]
+    expected_age_direction: "positive"
+    source: "Inflammatory repair and NF-kB prior"
+    citation: "Regeneration module and regulatory-driver priors; CellPhoneDB/NicheNet-style LR prior"
+    rationale: "Test TNF/NF-kB niche pressure on regenerative and neuronal-lineage receivers."
+  ifn_ifnar_ifngr:
+    family: "IFN"
+    ligand_genes: [IFNA1, IFNA2, IFNB1, IFNG, IFNL1, IFNL2, IFNL3]
+    receptor_genes: [IFNAR1, IFNAR2, IFNGR1, IFNGR2, IFNLR1, IL10RB]
+    sender_groups: [immune, respiratory_secretory, sustentacular]
+    receiver_groups: [hbc, gbc_inp, immature_osn, mature_osn, sustentacular]
+    expected_age_direction: "context_dependent"
+    source: "Interferon response module prior"
+    citation: "Regeneration module prior; CellPhoneDB/NicheNet-style LR prior"
+    rationale: "Test whether interferon-family epithelial/immune signaling tracks age or ORA residuals."
+  il6_il6r:
+    family: "IL6"
+    ligand_genes: [IL6, LIF, OSM]
+    receptor_genes: [IL6R, IL6ST, LIFR, OSMR]
+    sender_groups: [immune, respiratory_secretory, sustentacular]
+    receiver_groups: [hbc, gbc_inp, sustentacular]
+    expected_age_direction: "positive"
+    source: "Inflammatory repair cytokine prior"
+    citation: "CellPhoneDB/NicheNet-style LR prior"
+    rationale: "Test IL6-family inflammatory repair signaling into basal/progenitor and support cells."
+  mif_cd74_cxcr:
+    family: "MIF"
+    ligand_genes: [MIF]
+    receptor_genes: [CD74, CXCR2, CXCR4, ACKR3]
+    sender_groups: [immune, respiratory_secretory, sustentacular]
+    receiver_groups: [hbc, gbc_inp, immature_osn, sustentacular]
+    expected_age_direction: "positive"
+    source: "Immune/stress niche prior"
+    citation: "CellPhoneDB/NicheNet-style LR prior"
+    rationale: "Test MIF/CD74-CXCR inflammatory stress signaling across regenerative lineages."
+  cxcl_cxcr:
+    family: "CXCL"
+    ligand_genes: [CXCL1, CXCL2, CXCL3, CXCL8, CXCL9, CXCL10, CXCL11, CXCL12, CXCL16]
+    receptor_genes: [CXCR1, CXCR2, CXCR3, CXCR4, CXCR6, ACKR3]
+    sender_groups: [immune, respiratory_secretory, sustentacular]
+    receiver_groups: [hbc, gbc_inp, immature_osn, sustentacular]
+    expected_age_direction: "positive"
+    source: "Chemokine inflammatory niche prior"
+    citation: "CellPhoneDB/NicheNet-style LR prior"
+    rationale: "Test chemokine niche signaling from inflammatory/support states into regeneration-associated receivers."
+  ccl_ccr:
+    family: "CCL"
+    ligand_genes: [CCL2, CCL3, CCL4, CCL5, CCL7, CCL8, CCL20]
+    receptor_genes: [CCR1, CCR2, CCR3, CCR4, CCR5, CCR6]
+    sender_groups: [immune, respiratory_secretory]
+    receiver_groups: [hbc, gbc_inp, immature_osn, sustentacular]
+    expected_age_direction: "positive"
+    source: "Chemokine inflammatory niche prior"
+    citation: "CellPhoneDB/NicheNet-style LR prior"
+    rationale: "Test CCL/CCR inflammatory recruitment and epithelial stress signaling around regenerative receivers."
+  egfr_ligands:
+    family: "EGFR"
+    ligand_genes: [AREG, EGF, TGFA, HBEGF, EREG, BTC]
+    receptor_genes: [EGFR, ERBB2, ERBB3, ERBB4]
+    sender_groups: [respiratory_secretory, sustentacular, hbc, gbc_inp]
+    receiver_groups: [hbc, gbc_inp, sustentacular]
+    expected_age_direction: "context_dependent"
+    source: "EGFR/AREG repair signaling prior"
+    citation: "Regeneration module prior; CellPhoneDB/NicheNet-style LR prior"
+    rationale: "Test epithelial repair signaling from support/secretory/basal states into HBC/INP receivers."
+  notch_delta_jagged:
+    family: "NOTCH"
+    ligand_genes: [JAG1, JAG2, DLL1, DLL3, DLL4]
+    receptor_genes: [NOTCH1, NOTCH2, NOTCH3]
+    sender_groups: [hbc, gbc_inp, sustentacular, respiratory_secretory]
+    receiver_groups: [hbc, gbc_inp, immature_osn]
+    expected_age_direction: "context_dependent"
+    source: "Notch lineage-control prior"
+    citation: "Notch OE regeneration literature; CellPhoneDB/NicheNet-style LR prior"
+    rationale: "Test Notch ligand-receptor signaling across basal/progenitor and early neuronal-lineage receivers."
+  wnt_fzd_lrp:
+    family: "WNT"
+    ligand_genes: [WNT3A, WNT4, WNT5A, WNT7A, WNT7B, WNT10A, WNT10B]
+    receptor_genes: [FZD1, FZD2, FZD3, FZD4, FZD5, FZD6, FZD7, LRP5, LRP6, ROR1, ROR2]
+    sender_groups: [hbc, gbc_inp, sustentacular, respiratory_secretory]
+    receiver_groups: [hbc, gbc_inp, immature_osn]
+    expected_age_direction: "context_dependent"
+    source: "Wnt/beta-catenin regeneration prior"
+    citation: "Wnt OE regeneration literature; CellPhoneDB/NicheNet-style LR prior"
+    rationale: "Test Wnt/FZD/LRP signaling across basal-to-neuronal regeneration states."
+  tgfb_tgfbr:
+    family: "TGFB"
+    ligand_genes: [TGFB1, TGFB2, TGFB3, INHBA]
+    receptor_genes: [TGFBR1, TGFBR2, TGFBR3, ACVR1B, ACVR2A, ACVR2B]
+    sender_groups: [immune, respiratory_secretory, sustentacular]
+    receiver_groups: [hbc, gbc_inp, immature_osn, sustentacular]
+    expected_age_direction: "positive"
+    source: "Fibrotic/senescence inflammatory niche prior"
+    citation: "CellPhoneDB/NicheNet-style LR prior"
+    rationale: "Test TGF-beta-family stress/senescence signaling into epithelial regenerative states."
+  il1_il1r:
+    family: "IL1"
+    ligand_genes: [IL1A, IL1B, IL36A, IL36B, IL36G]
+    receptor_genes: [IL1R1, IL1RAP, IL1RL1, IL36R]
+    sender_groups: [immune, respiratory_secretory]
+    receiver_groups: [hbc, gbc_inp, sustentacular]
+    expected_age_direction: "positive"
+    source: "Inflammatory epithelial stress prior"
+    citation: "CellPhoneDB/NicheNet-style LR prior"
+    rationale: "Test IL1-family inflammatory epithelial stress signaling around basal/progenitor states."

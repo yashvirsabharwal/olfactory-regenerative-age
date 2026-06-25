@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -27,7 +28,7 @@ def render_publication_table_index(tables: dict[str, pd.DataFrame]) -> str:
     lines = [
         "# ORA Publication Table Bundle",
         "",
-        "Updated: 2026-06-23",
+        f"Updated: {date.today().isoformat()}",
         "",
         "These compact tables are generated from the real ORA result artifacts and are intended for manuscript, extended-data, and supplement assembly.",
         "",
@@ -79,6 +80,10 @@ def _model_card_table(model_card: pd.DataFrame) -> pd.DataFrame:
         "role",
         "n",
         "repeats",
+        "backend",
+        "backend_package",
+        "backend_version",
+        "fallback_used",
         "mae_mean",
         "mae_ci_low",
         "mae_ci_high",

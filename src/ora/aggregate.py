@@ -107,9 +107,9 @@ def compute_lineage_ratios(
     output["ratio__activated_to_quiescent_hbc"] = groups.get("activated_hbc", 0) / (
         groups.get("quiescent_hbc", 0) + pseudocount
     )
-    output["ratio__hbc_to_inp"] = inp / (groups.get("activated_hbc", 0) + pseudocount)
+    output["ratio__inp_to_activated_hbc"] = inp / (groups.get("activated_hbc", 0) + pseudocount)
     output["ratio__inp_to_iosn"] = iosn / (inp + pseudocount)
-    output["ratio__iosn_to_mosn"] = mature / (iosn + pseudocount)
+    output["ratio__mature_mosn_to_iosn"] = mature / (iosn + pseudocount)
     output["ratio__stressed_to_mature_mosn"] = stressed / (mature + pseudocount)
     output["ratio__lineage_fraction"] = lineage / (total + pseudocount)
     return output.reset_index()

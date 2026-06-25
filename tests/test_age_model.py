@@ -11,6 +11,7 @@ from ora.age_model import (
     MODEL_ORDER,
     biological_feature_columns,
     donor_cv_folds,
+    fit_model_predictions,
     model_names_from_config,
     project_ora_models,
     train_ora_models,
@@ -29,15 +30,20 @@ class AgeModelTests(unittest.TestCase):
                 "has_age": [True],
                 "is_training_donor": [True],
                 "chemistry": ["v2"],
+                "passes_min_total_cells": [True],
+                "passes_min_lineage_cells": [True],
+                "passes_min_mature_neurons": [False],
+                "passes_primary_ora_training_rule": [True],
+                "passes_strict_ora_training_rule": [False],
                 "prop__hbc": [0.2],
                 "clr__mosn": [0.1],
-                "ratio__iosn_to_mosn": [0.3],
+                "ratio__mature_mosn_to_iosn": [0.3],
             }
         )
 
         cols = biological_feature_columns(features, {"exclude_from_biological_features": ["chemistry"]})
 
-        self.assertEqual(cols, ["prop__hbc", "clr__mosn", "ratio__iosn_to_mosn"])
+        self.assertEqual(cols, ["prop__hbc", "clr__mosn", "ratio__mature_mosn_to_iosn"])
 
     def test_cv_folds_are_donor_level_and_cover_all_rows(self):
         data = pd.DataFrame({"donor_id": [f"d{i}" for i in range(10)], "age": np.linspace(20, 80, 10)})
@@ -76,11 +82,18 @@ class AgeModelTests(unittest.TestCase):
             }
         )
 
-        result = train_ora_models(features, manifest, {"outer_cv_folds": 5, "random_seed": 1})
+        model_names = ["null_model", "ridge", "random_forest"]
+        result = train_ora_models(
+            features,
+            manifest,
+            {"outer_cv_folds": 5, "random_seed": 1, "model_names": model_names},
+        )
 
-        self.assertEqual(set(result.performance["model"]), set(MODEL_ORDER))
+        self.assertEqual(set(result.performance["model"]), set(model_names))
         self.assertEqual(set(result.predictions["donor_id"]), set(donors[:10]))
         self.assertTrue(result.predictions["oraa"].notna().all())
+        self.assertTrue({"backend", "backend_package", "backend_version", "fallback_used"}.issubset(result.performance.columns))
+        self.assertFalse(result.performance["fallback_used"].astype(bool).any())
 
     def test_model_names_from_config_supports_subset_and_enabled_flags(self):
         self.assertEqual(model_names_from_config({"model_names": ["xgboost", "random_forest"]}), ["random_forest", "xgboost"])
@@ -124,11 +137,17 @@ class AgeModelTests(unittest.TestCase):
         result = train_ora_models_repeated(
             features,
             manifest,
-            {"outer_cv_folds": 3, "outer_cv_repeats": 2, "random_seed": 1},
+            {
+                "outer_cv_folds": 3,
+                "outer_cv_repeats": 2,
+                "random_seed": 1,
+                "model_names": ["null_model", "ridge", "random_forest"],
+            },
         )
 
-        self.assertEqual(set(result.performance_summary["model"]), set(MODEL_ORDER))
+        self.assertEqual(set(result.performance_summary["model"]), {"null_model", "ridge", "random_forest"})
         self.assertTrue({"mae_mean", "mae_ci_low", "mae_ci_high"}.issubset(result.performance_summary.columns))
+        self.assertTrue({"backend", "backend_package", "backend_version", "fallback_used"}.issubset(result.performance_summary.columns))
         self.assertEqual(result.repeat_performance["repeat"].nunique(), 2)
         self.assertFalse(result.feature_stability.empty)
         self.assertTrue({"selection_fraction", "mean_importance"}.issubset(result.feature_stability.columns))
@@ -163,7 +182,11 @@ class AgeModelTests(unittest.TestCase):
             }
         )
 
-        result = project_ora_models(features, manifest, {"outer_cv_folds": 5, "random_seed": 1})
+        result = project_ora_models(
+            features,
+            manifest,
+            {"outer_cv_folds": 5, "random_seed": 1, "model_names": ["ridge", "random_forest"]},
+        )
         ndd = result.predictions[result.predictions["disease_group"].isin(["ad", "pd"])]
         missing_age_healthy = result.predictions[result.predictions["donor_id"].eq("d13")]
 
@@ -172,7 +195,35 @@ class AgeModelTests(unittest.TestCase):
         self.assertFalse(missing_age_healthy["is_training_donor"].astype(bool).any())
         self.assertTrue(ndd["ora"].notna().all())
         self.assertTrue(ndd["oraa"].notna().all())
+        self.assertTrue({"backend", "backend_package", "backend_version", "fallback_used"}.issubset(result.predictions.columns))
         self.assertIn("ad", set(result.summary["disease_group"]))
+
+    def test_native_booster_fallback_requires_explicit_opt_in(self):
+        x_train = np.arange(60, dtype=float).reshape(20, 3)
+        y_train = np.linspace(35, 80, 20)
+        x_test = np.arange(12, dtype=float).reshape(4, 3)
+
+        with self.assertRaises(RuntimeError):
+            fit_model_predictions(
+                "xgboost",
+                x_train,
+                y_train,
+                x_test,
+                {"_force_missing_backends": ["xgboost"]},
+            )
+
+        pred, importance, backend = fit_model_predictions(
+            "xgboost",
+            x_train,
+            y_train,
+            x_test,
+            {"_force_missing_backends": ["xgboost"], "allow_fallback": True},
+        )
+
+        self.assertEqual(pred.shape[0], x_test.shape[0])
+        self.assertEqual(importance.shape[0], x_train.shape[1])
+        self.assertTrue(backend.fallback_used)
+        self.assertIn("xgboost", backend.fallback_reason)
 
 
 if __name__ == "__main__":

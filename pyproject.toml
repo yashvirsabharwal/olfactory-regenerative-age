@@ -58,3 +58,4 @@ pythonpath = ["src"]
 [tool.ruff]
 line-length = 100
 src = ["src", "scripts", "tests"]
+extend-exclude = ["resources/foundation_models"]

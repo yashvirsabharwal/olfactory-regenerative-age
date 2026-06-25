@@ -1,0 +1,95 @@
+metadata:
+  updated: "2026-06-25"
+  goal: "Orthogonal spatial/histology validation of ORA regenerative-aging tissue-state features."
+  primary_claim_gate: "Localization and abundance of ORA-linked regenerative, neuronal, support, immune, stress, and niche programs across adult olfactory epithelium."
+
+panels:
+  - panel_id: hbc_quiescent_reserve
+    theme: basal_reserve
+    compartment: basal_layer
+    priority: 1
+    expected_age_direction: positive_or_context_dependent
+    markers: [TP63, KRT5, KRT14, KRT15, COL17A1, ITGA6]
+    readout: "Basal-layer HBC area fraction and TP63/KRT5/KRT14 coexpression density."
+    rationale: "Tests whether ORA basal/HBC features reflect spatially localized reserve basal states."
+  - panel_id: activated_hbc_inp
+    theme: activated_regeneration
+    compartment: basal_to_intermediate_layer
+    priority: 1
+    expected_age_direction: context_dependent
+    markers: [SOX2, ASCL1, NEUROG1, NEUROD1, HES6, INSM1, MKI67, TOP2A, EGFR, KRT6A, KRT17]
+    readout: "Activated HBC/GBC/INP density, proliferation fraction, and distance from HBC layer."
+    rationale: "Tests whether regenerative activation and early neurogenic transition are spatially preserved or depleted with age."
+  - panel_id: immature_osn
+    theme: immature_neuronal_lineage
+    compartment: neuronal_layer
+    priority: 1
+    expected_age_direction: negative
+    markers: [GAP43, DCX, STMN2, TUBB3, NCAM1, ELAVL4]
+    readout: "Immature OSN density and immature-to-mature OSN spatial ratio."
+    rationale: "Direct orthogonal test of ORA immature-neuron module decline."
+  - panel_id: mature_osn_transduction
+    theme: mature_neuronal_lineage
+    compartment: neuronal_layer
+    priority: 1
+    expected_age_direction: negative
+    markers: [OMP, ADCY3, GNAL, GNG13, CNGA2, CNGB1, PDE1C, ANO2, RTP1, RTP2]
+    readout: "Mature OSN density and transduction-marker intensity in olfactory epithelial regions."
+    rationale: "Direct orthogonal test of mature OSN/transduction loss."
+  - panel_id: sustentacular_barrier_detox
+    theme: support_barrier_detox
+    compartment: apical_support_layer
+    priority: 2
+    expected_age_direction: context_dependent
+    markers: [SOX9, KRT18, CYP2A13, UGT2A1, GPX3, ALDH1A1, NQO1, HMOX1]
+    readout: "Sustentacular/support-cell density, detox module intensity, and epithelial-region specificity."
+    rationale: "Tests support-cell and detoxification components of the ORA axis."
+  - panel_id: respiratory_metaplasia
+    theme: respiratory_metaplasia
+    compartment: respiratory_or_metaplastic_epithelium
+    priority: 1
+    expected_age_direction: positive
+    markers: [FOXJ1, TPPP3, PIFO, MUC5AC, MUC5B, SPDEF, SCGB1A1, AGR2, KRT8, KRT19, CEACAM5]
+    readout: "Respiratory/ciliated/goblet metaplasia area fraction and boundary with olfactory regions."
+    rationale: "Tests whether ORA airway/nasal-shared features localize to respiratory metaplasia rather than olfactory-lineage regeneration."
+  - panel_id: immune_inflammatory
+    theme: immune_inflammatory
+    compartment: lamina_propria_and_epithelial_infiltrate
+    priority: 1
+    expected_age_direction: context_dependent
+    markers: [PTPRC, LST1, TYROBP, AIF1, C1QA, C1QB, CD3D, CD8A, NKG7, MS4A1, CXCL8, CXCL10]
+    readout: "Immune-cell density, epithelial infiltration, and proximity to HBC/INP and metaplastic regions."
+    rationale: "Tests whether immune ORA components are local inflammatory neighborhoods or global tissue composition."
+  - panel_id: stress_senescence_sasp
+    theme: stress_senescence
+    compartment: epithelial_and_immune_regions
+    priority: 1
+    expected_age_direction: positive
+    markers: [CDKN1A, CDKN2A, TP53, IL6, CXCL8, MMP1, MMP3, SERPINE1, CCL2, IGFBP7, DDIT3]
+    readout: "SASP/stress intensity by compartment and spatial overlap with metaplasia, immune, and basal regions."
+    rationale: "Tests whether stress/senescence ORA signals have localized epithelial or inflammatory sources."
+  - panel_id: niche_ligand_receptor
+    theme: niche_signaling
+    compartment: sender_receiver_microenvironments
+    priority: 2
+    expected_age_direction: context_dependent
+    markers: [IL17RA, IL17RC, TNF, TNFRSF1A, IFIT1, IFIT3, CXCL10, AREG, EGFR, JAG1, NOTCH1, WNT7B, FZD7, TGFB1, TGFBR2]
+    readout: "Ligand/receptor co-localization and sender-receiver proximity across immune, secretory, HBC, and INP regions."
+    rationale: "Spatial stress test for curated LR hypotheses; not causal without perturbation."
+
+readouts:
+  - readout_id: compartment_area_fraction
+    metric: "Marker-defined compartment area fraction per section and donor."
+    model: "Donor-level robust linear model against age, adjusted for sex, site, batch, and section quality when available."
+  - readout_id: cell_density
+    metric: "Marker-positive cell density per epithelial length or tissue area."
+    model: "Age-bin comparison plus continuous age association; donor remains the unit of inference."
+  - readout_id: module_intensity
+    metric: "Mean marker/module intensity within annotated olfactory, respiratory, basal, neuronal, and lamina-propria regions."
+    model: "Region-stratified mixed model with donor random intercept only if multiple sections per donor are present."
+  - readout_id: spatial_proximity
+    metric: "Nearest-neighbor distance or local enrichment between immune/sender cells and basal/INP/OSN receiver regions."
+    model: "Permutation-calibrated spatial enrichment within sections, then donor-level age association."
+  - readout_id: maturation_gradient
+    metric: "Basal-to-apical ordering of HBC, INP, immature OSN, and mature OSN markers."
+    model: "Gradient score per olfactory epithelial segment, then donor-level age association."

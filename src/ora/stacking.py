@@ -9,6 +9,11 @@ import numpy as np
 import pandas as pd
 
 from .age_model import (
+    BackendInfo,
+    _allow_fallback,
+    _backend_info,
+    _combine_backend_info,
+    _forced_missing_backend,
     _performance_row,
     add_oraa,
     donor_cv_folds,
@@ -63,8 +68,9 @@ def run_stacked_ora(
         repeat_config["random_seed"] = base_seed + repeat
         outer_folds = donor_cv_folds(train, repeat_config)
         pred = np.full(train.shape[0], np.nan, dtype=float)
+        repeat_backends: list[BackendInfo] = []
         for outer_fold, (outer_train_idx, outer_test_idx) in enumerate(outer_folds):
-            meta_train = _inner_oof_base_predictions(
+            meta_train, inner_backends = _inner_oof_base_predictions(
                 train=train,
                 feature_cols=feature_cols,
                 y=y,
@@ -74,8 +80,13 @@ def run_stacked_ora(
                 inner_folds=inner_folds,
                 random_seed=base_seed + repeat * 1000 + outer_fold,
             )
-            meta_model = _fit_meta_model(meta_train, y[outer_train_idx], meta_alphas=meta_alphas)
-            meta_test = _outer_base_predictions(
+            meta_model = _fit_meta_model(
+                meta_train,
+                y[outer_train_idx],
+                meta_alphas=meta_alphas,
+                model_config=repeat_config,
+            )
+            meta_test, outer_backends = _outer_base_predictions(
                 train=train,
                 feature_cols=feature_cols,
                 y=y,
@@ -85,6 +96,9 @@ def run_stacked_ora(
                 model_config=repeat_config,
             )
             pred[outer_test_idx] = _predict_meta(meta_model, meta_test)
+            repeat_backends.extend(inner_backends)
+            repeat_backends.extend(outer_backends)
+            repeat_backends.append(meta_model["backend_info"])
             for model, weight in zip(base_models, meta_model["coef"], strict=True):
                 weight_rows.append(
                     {
@@ -105,7 +119,12 @@ def run_stacked_ora(
                 }
             )
 
-        row = _performance_row("stacked_ensemble", y, pred)
+        row = _performance_row(
+            "stacked_ensemble",
+            y,
+            pred,
+            _combine_backend_info("stacked_ensemble", repeat_backends),
+        )
         row["repeat"] = repeat
         performance_rows.append(row)
         prediction = pd.DataFrame(
@@ -141,7 +160,7 @@ def _inner_oof_base_predictions(
     model_config: dict[str, Any],
     inner_folds: int,
     random_seed: int,
-) -> np.ndarray:
+) -> tuple[np.ndarray, list[BackendInfo]]:
     inner_data = train.iloc[outer_train_idx].reset_index(drop=True)
     inner_y = y[outer_train_idx]
     inner_config = dict(model_config)
@@ -149,16 +168,24 @@ def _inner_oof_base_predictions(
     inner_config["random_seed"] = random_seed
     folds = donor_cv_folds(inner_data, inner_config)
     output = np.full((inner_data.shape[0], len(base_models)), np.nan, dtype=float)
+    backend_infos: list[BackendInfo] = []
     for model_idx, model_name in enumerate(base_models):
         for inner_train_idx, inner_valid_idx in folds:
             prep = fit_preprocessor(inner_data.iloc[inner_train_idx][feature_cols])
             x_train = transform_preprocessor(inner_data.iloc[inner_train_idx][feature_cols], prep)
             x_valid = transform_preprocessor(inner_data.iloc[inner_valid_idx][feature_cols], prep)
-            fold_pred, _ = fit_model_predictions(model_name, x_train, inner_y[inner_train_idx], x_valid, inner_config)
+            fold_pred, _, backend_info = fit_model_predictions(
+                model_name,
+                x_train,
+                inner_y[inner_train_idx],
+                x_valid,
+                inner_config,
+            )
             output[inner_valid_idx, model_idx] = fold_pred
+            backend_infos.append(backend_info)
     if np.isnan(output).any():
         raise ValueError("Inner OOF base predictions contain missing values.")
-    return output
+    return output, backend_infos
 
 
 def _outer_base_predictions(
@@ -170,20 +197,37 @@ def _outer_base_predictions(
     outer_test_idx: np.ndarray,
     base_models: list[str],
     model_config: dict[str, Any],
-) -> np.ndarray:
+) -> tuple[np.ndarray, list[BackendInfo]]:
     output = np.full((outer_test_idx.size, len(base_models)), np.nan, dtype=float)
+    backend_infos: list[BackendInfo] = []
     for model_idx, model_name in enumerate(base_models):
         prep = fit_preprocessor(train.iloc[outer_train_idx][feature_cols])
         x_train = transform_preprocessor(train.iloc[outer_train_idx][feature_cols], prep)
         x_test = transform_preprocessor(train.iloc[outer_test_idx][feature_cols], prep)
-        pred, _ = fit_model_predictions(model_name, x_train, y[outer_train_idx], x_test, model_config)
+        pred, _, backend_info = fit_model_predictions(
+            model_name,
+            x_train,
+            y[outer_train_idx],
+            x_test,
+            model_config,
+        )
         output[:, model_idx] = pred
-    return output
+        backend_infos.append(backend_info)
+    return output, backend_infos
 
 
-def _fit_meta_model(x: np.ndarray, y: np.ndarray, *, meta_alphas: list[float] | None = None) -> dict[str, object]:
+def _fit_meta_model(
+    x: np.ndarray,
+    y: np.ndarray,
+    *,
+    meta_alphas: list[float] | None = None,
+    model_config: dict[str, Any] | None = None,
+) -> dict[str, object]:
     alphas = meta_alphas or [0.1, 1.0, 10.0, 100.0]
+    model_config = model_config or {}
     try:
+        if _forced_missing_backend(model_config, "stacking_meta", "sklearn", "scikit-learn"):
+            raise ModuleNotFoundError("forced missing scikit-learn backend")
         from sklearn.linear_model import RidgeCV  # type: ignore
 
         model = RidgeCV(alphas=alphas)
@@ -192,14 +236,26 @@ def _fit_meta_model(x: np.ndarray, y: np.ndarray, *, meta_alphas: list[float] | 
             "coef": np.asarray(model.coef_, dtype=float),
             "intercept": float(model.intercept_),
             "alpha": float(model.alpha_),
+            "backend_info": _backend_info("sklearn_stacking_meta_ridge_cv", "scikit-learn"),
         }
-    except ModuleNotFoundError:
+    except ModuleNotFoundError as exc:
+        if not _allow_fallback(model_config):
+            raise RuntimeError(
+                "stacked_ensemble meta-regressor backend is unavailable. Install scikit-learn "
+                f"or pass `--allow-fallback`. Reason: {exc}"
+            ) from exc
         design = np.column_stack([np.ones(x.shape[0]), x])
         coef, *_ = np.linalg.lstsq(design, y, rcond=None)
         return {
             "coef": np.asarray(coef[1:], dtype=float),
             "intercept": float(coef[0]),
             "alpha": np.nan,
+            "backend_info": _backend_info(
+                "closed_form_stacking_meta_fallback",
+                "numpy",
+                fallback_used=True,
+                fallback_reason=f"stacked_ensemble_meta: {exc}",
+            ),
         }
 
 

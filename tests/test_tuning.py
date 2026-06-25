@@ -61,6 +61,8 @@ class NestedTuningTests(unittest.TestCase):
         self.assertFalse(result.tuning_trace.empty)
         self.assertFalse(result.selected_params.empty)
         self.assertIn("mae_mean", result.performance_summary.columns)
+        self.assertTrue({"backend", "backend_package", "fallback_used"}.issubset(result.performance.columns))
+        self.assertTrue({"backend", "backend_package", "fallback_used"}.issubset(result.performance_summary.columns))
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import gzip
+import hashlib
 import re
 import tarfile
 from pathlib import Path
@@ -132,6 +133,363 @@ def external_candidate_matrix(config: dict[str, Any], base_dir: str | Path = "."
         "notes",
     ]
     return pd.DataFrame(rows, columns=columns)
+
+
+def public_data_exhaustion_matrix(config: dict[str, Any]) -> pd.DataFrame:
+    """Return the public-data exhaustion candidate matrix from config."""
+
+    rows = []
+    for row in config.get("public_data_exhaustion", {}).get("candidates", []):
+        if not isinstance(row, dict):
+            continue
+        rows.append(
+            {
+                "accession_or_dataset": row.get("accession_or_dataset", ""),
+                "source_url": row.get("source_url", ""),
+                "tissue": row.get("tissue", ""),
+                "assay": row.get("assay", ""),
+                "species": row.get("species", ""),
+                "donor_or_sample_count": row.get("donor_or_sample_count", ""),
+                "age_availability": row.get("age_availability", ""),
+                "smell_phenotype_availability": row.get("smell_phenotype_availability", ""),
+                "counts_availability": row.get("counts_availability", ""),
+                "labels_availability": row.get("labels_availability", ""),
+                "validation_class": row.get("validation_class", ""),
+                "inclusion_decision": row.get("inclusion_decision", ""),
+                "notes": row.get("notes", ""),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def public_data_search_log(config: dict[str, Any]) -> pd.DataFrame:
+    """Return the public-data exhaustion search log from config."""
+
+    rows = []
+    for row in config.get("public_data_exhaustion", {}).get("search_log", []):
+        if not isinstance(row, dict):
+            continue
+        rows.append(
+            {
+                "search_date": row.get("search_date", ""),
+                "database_or_resource": row.get("database_or_resource", ""),
+                "query_or_filter": row.get("query_or_filter", ""),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def render_public_data_exhaustion_markdown(candidates: pd.DataFrame, search_log: pd.DataFrame) -> str:
+    """Render a compact reviewer-facing public-data exhaustion report."""
+
+    lines = [
+        "# Public Data Exhaustion Report",
+        "",
+        "This report supports M3.3 by documenting public dataset searches for independent ORA validation.",
+        "",
+        "## Conclusion",
+        "",
+        "No stronger public independent donor-level human olfactory epithelial healthy-aging sc/snRNA dataset was identified. `GSE184117` remains the most direct public validation target, while newer olfactory disease/smell-loss datasets are useful as mapped or contextual evidence.",
+        "",
+        "## Candidate Summary",
+        "",
+        "| Dataset | Tissue | Assay | Species | Validation class | Inclusion decision |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for _, row in candidates.iterrows():
+        dataset = row.get("accession_or_dataset", "")
+        url = row.get("source_url", "")
+        label = f"[{dataset}]({url})" if url else dataset
+        lines.append(
+            "| "
+            f"{label} | {row.get('tissue', '')} | {row.get('assay', '')} | {row.get('species', '')} | "
+            f"{row.get('validation_class', '')} | {row.get('inclusion_decision', '')} |"
+        )
+    lines.extend(["", "## Search Log", "", "| Date | Resource | Query/filter |", "| --- | --- | --- |"])
+    for _, row in search_log.iterrows():
+        lines.append(
+            f"| {row.get('search_date', '')} | {row.get('database_or_resource', '')} | `{row.get('query_or_filter', '')}` |"
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def gse184117_reanalysis_status(config: dict[str, Any], base_dir: str | Path = ".") -> pd.DataFrame:
+    """Summarize GSE184117 raw-10x reanalysis artifacts, checksums, and limitations."""
+
+    root = Path(base_dir)
+    outputs = config.get("outputs", {})
+    spec = config.get("datasets", {}).get("oliva_2022", {})
+    required_files = spec.get("required_files", {}) if isinstance(spec, dict) else {}
+    rows = [
+        _external_reanalysis_file_row(
+            "raw_archive_checksum",
+            "source_archive",
+            required_files.get("expression") or spec.get("path") or "data/external/GSE184117_RAW.tar",
+            root,
+            required=True,
+            compute_checksum=True,
+            summary="GSE184117 supplementary 10x MTX/TSV tar archive.",
+        ),
+        _external_reanalysis_file_row(
+            "series_matrix_checksum",
+            "source_metadata",
+            required_files.get("metadata") or "data/external/GSE184117_series_matrix.txt.gz",
+            root,
+            required=True,
+            compute_checksum=True,
+            summary="GSE184117 GEO series-matrix sample metadata.",
+        ),
+    ]
+
+    artifact_specs = [
+        (
+            "raw_archive_inventory",
+            "table",
+            outputs.get("external_raw_inventory_tsv", "results/tables/external_raw_inventory.tsv"),
+            "Inventory of matrix/features/barcodes members inside the raw archive.",
+        ),
+        (
+            "sample_metadata",
+            "table",
+            outputs.get("external_sample_metadata_tsv", "results/tables/external_sample_metadata.tsv"),
+            "Parsed donor/sample metadata and usable biopsy flags.",
+        ),
+        (
+            "sample_qc",
+            "table",
+            outputs.get("external_10x_sample_qc_tsv", "results/tables/external_10x_sample_qc.tsv"),
+            "Per-sample raw 10x cell/gene/count QC.",
+        ),
+        (
+            "module_contrasts",
+            "table",
+            outputs.get("external_10x_module_contrasts_tsv", "results/tables/external_10x_module_contrasts.tsv"),
+            "Sample-level curated-module presbyosmia versus healthy contrasts.",
+        ),
+        (
+            "marker_contrasts",
+            "table",
+            outputs.get("external_10x_marker_contrasts_tsv", "results/tables/external_10x_marker_contrasts.tsv"),
+            "Marker-panel composition contrasts.",
+        ),
+        (
+            "marker_mapped_anndata",
+            "h5ad",
+            outputs.get("external_10x_mapped_h5ad", "data/processed/gse184117_marker_mapped.h5ad"),
+            "Marker-reference mapped AnnData object.",
+        ),
+        (
+            "marker_mapping_qc",
+            "table",
+            outputs.get("external_10x_mapping_qc_tsv", "results/tables/external_10x_mapping_qc.tsv"),
+            "Marker-reference mapping QC.",
+        ),
+        (
+            "marker_mapped_donor_features",
+            "table",
+            outputs.get("external_10x_mapped_donor_features_tsv", "data/processed/gse184117_mapped_donor_features.tsv"),
+            "Marker-reference donor-level ORA-compatible feature matrix.",
+        ),
+        (
+            "marker_mapped_concordance",
+            "table",
+            outputs.get("external_mapped_feature_concordance_tsv", "results/tables/external_mapped_feature_concordance.tsv"),
+            "Direction concordance between marker-reference external shifts and Gateway age associations.",
+        ),
+        (
+            "scanvi_mapped_anndata",
+            "h5ad",
+            outputs.get("external_scanvi_mapped_h5ad", "data/processed/gse184117_scanvi_mapped.h5ad"),
+            "scANVI/scArches mapped query AnnData object.",
+        ),
+        (
+            "scanvi_mapping_qc",
+            "table",
+            outputs.get("external_scanvi_mapping_qc_tsv", "results/tables/external_scanvi_mapping_qc.tsv"),
+            "scANVI/scArches mapping QC.",
+        ),
+        (
+            "scanvi_donor_features",
+            "table",
+            outputs.get("external_scanvi_donor_features_tsv", "data/processed/gse184117_scanvi_donor_features.tsv"),
+            "scANVI/scArches donor-level ORA-compatible feature matrix.",
+        ),
+        (
+            "scanvi_feature_concordance",
+            "table",
+            outputs.get("external_scanvi_feature_concordance_tsv", "results/tables/external_scanvi_feature_concordance.tsv"),
+            "Direction concordance between scANVI/scArches external shifts and Gateway age associations.",
+        ),
+        (
+            "external_validation_evidence",
+            "table",
+            outputs.get("external_validation_evidence_tsv", "results/tables/external_validation_evidence.tsv"),
+            "Claim-gated external validation evidence ledger.",
+        ),
+        (
+            "external_validation_figure",
+            "figure",
+            outputs.get("external_evidence_figure_pdf", "results/figures/extended_data_figure2_external_evidence.pdf"),
+            "Extended-data external validation figure panel.",
+        ),
+    ]
+    for step, artifact_kind, path, summary in artifact_specs:
+        rows.append(
+            _external_reanalysis_file_row(
+                step,
+                artifact_kind,
+                path,
+                root,
+                required=True,
+                compute_checksum=False,
+                summary=summary,
+            )
+        )
+
+    rows.append(
+        {
+            "step": "small_n_limitation",
+            "artifact_kind": "limitation",
+            "path": "",
+            "required_for_m3_2": True,
+            "status": "documented",
+            "size_bytes": "",
+            "sha256": "",
+            "n_rows": "",
+            "summary": "GSE184117 evidence remains guarded because the usable biopsy comparison is n=3 healthy versus n=3 presbyosmic donors.",
+        }
+    )
+    return pd.DataFrame(
+        rows,
+        columns=["step", "artifact_kind", "path", "required_for_m3_2", "status", "size_bytes", "sha256", "n_rows", "summary"],
+    )
+
+
+def render_gse184117_reanalysis_markdown(status: pd.DataFrame) -> str:
+    """Render a reviewer-facing GSE184117 reanalysis completion report."""
+
+    missing = status[status["required_for_m3_2"].astype(bool) & ~status["status"].isin(["complete", "documented"])]
+    lines = [
+        "# GSE184117 Raw 10x Reanalysis Status",
+        "",
+        "This report supports M3.2 by recording the raw archive checksums, generated artifacts, evidence classification, and small-n limitation.",
+        "",
+        f"Required items complete/documented: {int(status.shape[0] - missing.shape[0])}/{int(status.shape[0])}.",
+        "",
+        "## Source Checksums",
+        "",
+        "| Step | Path | SHA-256 | Size bytes |",
+        "| --- | --- | --- | --- |",
+    ]
+    for _, row in status[status["artifact_kind"].isin(["source_archive", "source_metadata"])].iterrows():
+        lines.append(
+            f"| {row['step']} | `{row['path']}` | `{row['sha256']}` | {row['size_bytes']} |"
+        )
+    lines.extend(["", "## Completion Checklist", "", "| Step | Status | Rows | Summary |", "| --- | --- | --- | --- |"])
+    for _, row in status.iterrows():
+        lines.append(
+            f"| {row['step']} | {row['status']} | {row['n_rows']} | {row['summary']} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Interpretation",
+            "",
+            "The available public data support a guarded mapped external-validation statement only. The raw 10x data, metadata parsing, module scoring, marker scoring, marker-reference mapping, scANVI/scArches mapping, concordance tables, evidence ledger, and external-evidence figure are present, but the usable comparison is only 3 healthy versus 3 presbyosmic biopsy donors.",
+            "",
+        ]
+    )
+    if not missing.empty:
+        lines.extend(["## Missing Required Items", "", "| Step | Path | Status |", "| --- | --- | --- |"])
+        for _, row in missing.iterrows():
+            lines.append(f"| {row['step']} | `{row['path']}` | {row['status']} |")
+        lines.append("")
+    return "\n".join(lines)
+
+
+def _external_reanalysis_file_row(
+    step: str,
+    artifact_kind: str,
+    path_value: str | Path | None,
+    root: Path,
+    *,
+    required: bool,
+    compute_checksum: bool,
+    summary: str,
+) -> dict[str, Any]:
+    raw_path = "" if path_value is None else str(path_value)
+    path = (root / raw_path).resolve() if raw_path else None
+    exists = bool(path and path.exists())
+    n_rows: int | str = ""
+    if exists and artifact_kind == "table" and path is not None:
+        n_rows = _external_reanalysis_table_rows(path)
+        summary = _external_reanalysis_table_summary(step, path, summary)
+    elif exists and step == "external_validation_figure":
+        summary = f"{summary} Present as final external-validation panel."
+
+    return {
+        "step": step,
+        "artifact_kind": artifact_kind,
+        "path": raw_path,
+        "required_for_m3_2": required,
+        "status": "complete" if exists else "missing",
+        "size_bytes": int(path.stat().st_size) if exists and path is not None else "",
+        "sha256": _sha256_file(path) if exists and compute_checksum and path is not None else "",
+        "n_rows": n_rows,
+        "summary": summary,
+    }
+
+
+def _external_reanalysis_table_rows(path: Path) -> int | str:
+    try:
+        return int(pd.read_csv(path, sep="\t").shape[0])
+    except Exception:
+        return ""
+
+
+def _external_reanalysis_table_summary(step: str, path: Path, default: str) -> str:
+    try:
+        frame = pd.read_csv(path, sep="\t")
+    except Exception:
+        return default
+    if frame.empty:
+        return f"{default} Table is empty."
+    if step == "raw_archive_inventory" and "role" in frame:
+        roles = ",".join(sorted(frame["role"].dropna().astype(str).unique()))
+        samples = _count_unique(frame, "sample_guess")
+        return f"{default} Members={frame.shape[0]}; samples={samples}; roles={roles}."
+    if step == "sample_metadata" and "usable_for_external_validation" in frame:
+        usable = frame[frame["usable_for_external_validation"].astype(bool)]
+        counts = usable.get("disease_group", pd.Series(dtype=str)).astype(str).value_counts().to_dict()
+        return f"{default} Usable biopsy samples={usable.shape[0]}; disease groups={counts}."
+    if step == "sample_qc" and {"n_cells", "n_genes"}.issubset(frame.columns):
+        return f"{default} Samples={frame.shape[0]}; total cells={int(frame['n_cells'].sum())}; median genes={float(frame['n_genes'].median()):.0f}."
+    if step in {"module_contrasts", "marker_contrasts"} and "direction" in frame:
+        counts = frame["direction"].astype(str).value_counts().to_dict()
+        return f"{default} Rows={frame.shape[0]}; directions={counts}."
+    if step in {"marker_mapping_qc", "scanvi_mapping_qc"} and "mapped_fraction" in frame:
+        return f"{default} Samples={frame.shape[0]}; mean mapped fraction={float(frame['mapped_fraction'].mean()):.3f}."
+    if step in {"marker_mapped_donor_features", "scanvi_donor_features"}:
+        feature_count = len([col for col in frame.columns if str(col).startswith(("prop__", "clr__", "ratio__", "module_score__"))])
+        donor_count = _count_unique(frame, "donor_id")
+        return f"{default} Donors={donor_count}; feature columns={feature_count}."
+    if step in {"marker_mapped_concordance", "scanvi_feature_concordance"} and "concordance" in frame:
+        counts = frame["concordance"].astype(str).value_counts().to_dict()
+        return f"{default} Rows={frame.shape[0]}; concordance={counts}."
+    if step == "external_validation_evidence" and "dataset_id" in frame:
+        subset = frame[frame["dataset_id"].astype(str).eq("oliva_2022")]
+        strengths = ",".join(subset.get("validation_strength", pd.Series(dtype=str)).dropna().astype(str).unique())
+        return f"{default} Oliva/GSE184117 evidence rows={subset.shape[0]}; strengths={strengths}."
+    return f"{default} Rows={frame.shape[0]}."
+
+
+def _sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(chunk_size), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def inspect_external_archive(archive_path: str | Path, dataset_id: str = "external") -> pd.DataFrame:

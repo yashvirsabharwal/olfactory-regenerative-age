@@ -80,6 +80,7 @@ def _add_train(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--features", default="data/processed/ora_feature_matrix.tsv")
     parser.add_argument("--manifest", default="data/processed/cohort_manifest.tsv")
     parser.add_argument("--config", default="configs/models.yaml")
+    parser.add_argument("--allow-fallback", action="store_true")
     parser.add_argument("--performance-out", default="results/tables/ora_model_performance.tsv")
     parser.add_argument("--scores-out", default="results/tables/donor_ora_scores.tsv")
     parser.add_argument("--importance-out", default="results/tables/ora_feature_importance.tsv")
@@ -87,10 +88,12 @@ def _add_train(subparsers: argparse._SubParsersAction) -> None:
 
 
 def _train(args: argparse.Namespace) -> None:
+    model_config = load_config(args.config)
+    model_config["allow_fallback"] = bool(args.allow_fallback)
     result = train_ora_models(
         pd.read_csv(args.features, sep="\t"),
         pd.read_csv(args.manifest, sep="\t"),
-        load_config(args.config),
+        model_config,
     )
     result.performance.to_csv(ensure_parent(args.performance_out), sep="\t", index=False)
     result.predictions.to_csv(ensure_parent(args.scores_out), sep="\t", index=False)
@@ -108,6 +111,7 @@ def _add_repeated(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--gateway-config", default="configs/gateway.yaml")
     parser.add_argument("--repeats", type=int, default=None)
     parser.add_argument("--models", nargs="*", default=None)
+    parser.add_argument("--allow-fallback", action="store_true")
     parser.add_argument("--repeat-performance-out", default=None)
     parser.add_argument("--summary-out", default=None)
     parser.add_argument("--scores-out", default=None)
@@ -117,6 +121,7 @@ def _add_repeated(subparsers: argparse._SubParsersAction) -> None:
 
 def _repeated(args: argparse.Namespace) -> None:
     model_config = load_config(args.model_config)
+    model_config["allow_fallback"] = bool(args.allow_fallback)
     if args.models:
         model_config["model_names"] = args.models
     outputs = load_config(args.gateway_config).get("outputs", {})
@@ -200,6 +205,7 @@ def _add_permutation_null(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--gateway-config", default="configs/gateway.yaml")
     parser.add_argument("--observed-summary", default=None)
     parser.add_argument("--models", nargs="+", default=DEFAULT_PERMUTATION_MODELS)
+    parser.add_argument("--allow-fallback", action="store_true")
     parser.add_argument("--n-permutations", type=int, default=100)
     parser.add_argument("--repeats", type=int, default=2)
     parser.add_argument("--random-seed", type=int, default=20260615)
@@ -211,6 +217,7 @@ def _add_permutation_null(subparsers: argparse._SubParsersAction) -> None:
 
 def _permutation_null(args: argparse.Namespace) -> None:
     model_config = load_config(args.model_config)
+    model_config["allow_fallback"] = bool(args.allow_fallback)
     model_config["model_names"] = args.models
     outputs = load_config(args.gateway_config).get("outputs", {})
     result = run_permutation_null(
@@ -255,6 +262,7 @@ def _nested_tuning(args: argparse.Namespace) -> None:
     if not args.allow_fallback:
         _require_native_backends(args.models)
     model_config = load_config(args.model_config)
+    model_config["allow_fallback"] = bool(args.allow_fallback)
     model_config["model_names"] = args.models
     outputs = load_config(args.gateway_config).get("outputs", {})
     result = run_nested_tuning(
@@ -303,11 +311,13 @@ def _add_stacking(subparsers: argparse._SubParsersAction) -> None:
 def _stacking(args: argparse.Namespace) -> None:
     if not args.allow_fallback:
         _require_native_backends(args.base_models)
+    model_config = load_config(args.model_config)
+    model_config["allow_fallback"] = bool(args.allow_fallback)
     outputs = load_config(args.gateway_config).get("outputs", {})
     result = run_stacked_ora(
         pd.read_csv(args.features, sep="\t"),
         pd.read_csv(args.manifest, sep="\t"),
-        load_config(args.model_config),
+        model_config,
         base_models=args.base_models,
         repeats=args.repeats,
         inner_folds=args.inner_folds,
@@ -358,6 +368,7 @@ def _add_sensitivity(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("--min-cell-thresholds", nargs="*", type=int, default=[500, 1000, 5000, 10000])
     parser.add_argument("--min-train-donors", type=int, default=20)
     parser.add_argument("--models", nargs="*", default=None)
+    parser.add_argument("--allow-fallback", action="store_true")
     parser.add_argument("--scenarios-out", default=None)
     parser.add_argument("--performance-out", default=None)
     parser.add_argument("--scores-out", default=None)
@@ -366,6 +377,7 @@ def _add_sensitivity(subparsers: argparse._SubParsersAction) -> None:
 
 def _sensitivity(args: argparse.Namespace) -> None:
     model_config = load_config(args.model_config)
+    model_config["allow_fallback"] = bool(args.allow_fallback)
     if args.models:
         model_config["model_names"] = args.models
     outputs = load_config(args.gateway_config).get("outputs", {})

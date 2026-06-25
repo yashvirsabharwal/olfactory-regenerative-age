@@ -17,6 +17,10 @@ class ManuscriptTests(unittest.TestCase):
                 "model": ["catboost", "xgboost"],
                 "n": [187, 187],
                 "repeats": [20, 20],
+                "backend": ["catboost_regressor", "xgboost_xgb_regressor"],
+                "backend_package": ["catboost", "xgboost"],
+                "backend_version": ["1.2.8", "2.1.0"],
+                "fallback_used": [False, False],
                 "mae_mean": [14.08, 14.15],
                 "mae_ci_low": [13.6, 13.7],
                 "mae_ci_high": [14.5, 14.7],
@@ -37,6 +41,8 @@ class ManuscriptTests(unittest.TestCase):
 
         best = card[card["model"].eq("catboost")].iloc[0]
         self.assertEqual(best["role"], "preferred_benchmark")
+        self.assertEqual(best["backend_package"], "catboost")
+        self.assertFalse(bool(best["fallback_used"]))
         self.assertEqual(best["permutation_p_mae"], 0.02)
         self.assertIn("module gain is modest", best["limitations"])
 

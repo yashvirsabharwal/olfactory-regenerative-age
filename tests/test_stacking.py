@@ -51,6 +51,8 @@ class StackingTests(unittest.TestCase):
         self.assertTrue(result.predictions["oraa"].notna().all())
         self.assertTrue({"ridge", "null_model", "intercept"}.issubset(set(result.meta_weights["base_model"])))
         self.assertIn("mae_mean", result.performance_summary.columns)
+        self.assertTrue({"backend", "backend_package", "fallback_used"}.issubset(result.performance.columns))
+        self.assertTrue({"backend", "backend_package", "fallback_used"}.issubset(result.performance_summary.columns))
 
     def test_run_stacked_ora_requires_base_models(self):
         with self.assertRaises(ValueError):

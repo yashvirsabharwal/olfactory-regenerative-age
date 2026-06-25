@@ -13,6 +13,7 @@ import pandas as pd
 
 from .age_model import (
     _boolean_series,
+    _combine_backend_info,
     _performance_row,
     add_oraa,
     biological_feature_columns,
@@ -94,6 +95,7 @@ def run_nested_tuning(
             if max_candidates is not None:
                 candidates = candidates[: max(1, int(max_candidates))]
             pred = np.full(train.shape[0], np.nan, dtype=float)
+            fold_backends = []
             for outer_fold, (outer_train_idx, outer_test_idx) in enumerate(outer_folds):
                 selected, candidate_trace = tune_outer_fold(
                     train=train,
@@ -126,10 +128,17 @@ def run_nested_tuning(
                 prep = fit_preprocessor(train.iloc[outer_train_idx][feature_cols])
                 x_train = transform_preprocessor(train.iloc[outer_train_idx][feature_cols], prep)
                 x_test = transform_preprocessor(train.iloc[outer_test_idx][feature_cols], prep)
-                fold_pred, _ = fit_model_predictions(model_name, x_train, y[outer_train_idx], x_test, selected_config)
+                fold_pred, _, backend_info = fit_model_predictions(
+                    model_name,
+                    x_train,
+                    y[outer_train_idx],
+                    x_test,
+                    selected_config,
+                )
                 pred[outer_test_idx] = fold_pred
+                fold_backends.append(backend_info)
 
-            row = _performance_row(model_name, y, pred)
+            row = _performance_row(model_name, y, pred, _combine_backend_info(model_name, fold_backends))
             row["repeat"] = repeat
             performance_rows.append(row)
             prediction = pd.DataFrame(
@@ -206,7 +215,13 @@ def tune_outer_fold(
             prep = fit_preprocessor(inner_data.iloc[inner_train_idx][feature_cols])
             x_train = transform_preprocessor(inner_data.iloc[inner_train_idx][feature_cols], prep)
             x_valid = transform_preprocessor(inner_data.iloc[inner_valid_idx][feature_cols], prep)
-            pred, _ = fit_model_predictions(model_name, x_train, inner_y[inner_train_idx], x_valid, candidate_config)
+            pred, _, _ = fit_model_predictions(
+                model_name,
+                x_train,
+                inner_y[inner_train_idx],
+                x_valid,
+                candidate_config,
+            )
             metrics.append(_metric_row(inner_y[inner_valid_idx], pred))
         metrics_frame = pd.DataFrame(metrics)
         row = {

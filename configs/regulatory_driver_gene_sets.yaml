@@ -1,0 +1,139 @@
+score:
+  method: "pseudobulk_mean_log1p_cpm"
+
+gene_sets:
+  tp63_hbc_identity:
+    driver: "TP63"
+    driver_class: "transcription_factor"
+    target_theme: "basal_quiescence"
+    expected_age_direction: "positive"
+    source: "HBC stem-cell literature"
+    citation: "PMID:21677159;PMID:27560601;PMID:37260223;PMID:42228282"
+    description: "TP63 horizontal basal cell identity target program"
+    genes: [TP63, KRT5, KRT14, KRT15, COL17A1, ITGA6]
+  sox2_basal_repair:
+    driver: "SOX2"
+    driver_class: "transcription_factor"
+    target_theme: "basal_activation"
+    expected_age_direction: "context_dependent"
+    source: "OE basal activation and repair literature"
+    citation: "PMID:37260223;PMID:42228282"
+    description: "SOX2-associated basal repair/progenitor target program"
+    genes: [SOX2, EGFR, KRT6A, KRT6B, KRT17, AREG, JUN, FOS]
+  ascl1_neurogenic:
+    driver: "ASCL1"
+    driver_class: "transcription_factor"
+    target_theme: "neural_progenitor"
+    expected_age_direction: "negative"
+    source: "OE single-cell trajectory literature"
+    citation: "PMID:28506465;PMID:29934351;PMID:42228282"
+    description: "ASCL1 neurogenic progenitor target program"
+    genes: [ASCL1, NEUROG1, NEUROD1, HES6, INSM1, E2F1, MKI67, TOP2A]
+  neurod_neuronal_maturation:
+    driver: "NEUROD1"
+    driver_class: "transcription_factor"
+    target_theme: "immature_osn"
+    expected_age_direction: "negative"
+    source: "OE neurogenic trajectory literature"
+    citation: "PMID:28506465;PMID:38903957"
+    description: "Neuronal differentiation and immature OSN target program"
+    genes: [NEUROD1, GAP43, DCX, STMN2, TUBB3, NCAM1, ELAVL4]
+  olf_transduction_maturation:
+    driver: "OMP/ADCY3"
+    driver_class: "maturation_program"
+    target_theme: "mature_osn"
+    expected_age_direction: "negative"
+    source: "OE maturation marker literature"
+    citation: "PMID:28506465;PMID:29934351;PMID:38903957"
+    description: "Mature OSN transduction target program"
+    genes: [OMP, ADCY3, GNAL, GNG13, CNGA2, PDE1C, ANO2, RTP1, RTP2]
+  hes_notch_fate:
+    driver: "NOTCH/HES"
+    driver_class: "pathway_tf"
+    target_theme: "basal_activation"
+    expected_age_direction: "context_dependent"
+    source: "Notch OE progenitor fate literature"
+    citation: "PMID:29739871;PMID:33390928;PMID:42228282"
+    description: "Notch/HES progenitor fate-control target program"
+    genes: [NOTCH1, NOTCH2, HES1, HES5, HEY1, DLL1, JAG1, RBPJ, LFNG]
+  wnt_beta_catenin:
+    driver: "WNT/CTNNB1"
+    driver_class: "pathway_tf"
+    target_theme: "neural_progenitor"
+    expected_age_direction: "context_dependent"
+    source: "Wnt-responsive OE progenitor literature"
+    citation: "PMID:24920630;PMID:21486944;PMID:42228282"
+    description: "Wnt/beta-catenin progenitor target program"
+    genes: [WNT3A, WNT5A, WNT7B, CTNNB1, LEF1, TCF7L2, AXIN2, LGR5, RSPO1, FZD7]
+  yap_tead_repair:
+    driver: "YAP/TEAD"
+    driver_class: "pathway_tf"
+    target_theme: "basal_activation"
+    expected_age_direction: "context_dependent"
+    source: "YAP-HBC regeneration literature"
+    citation: "PMID:35148842;PMID:42228282"
+    description: "YAP/TEAD epithelial repair target program"
+    genes: [YAP1, WWTR1, TEAD1, TEAD2, TEAD3, TEAD4, CCN1, ANKRD1, AMOTL2]
+  egfr_ap1_repair:
+    driver: "EGFR/AP-1"
+    driver_class: "pathway_tf"
+    target_theme: "basal_activation"
+    expected_age_direction: "context_dependent"
+    source: "EGFR/AREG repair literature"
+    citation: "PMID:37260223;PMID:42228282"
+    description: "EGFR/AP-1 repair-response target program"
+    genes: [EGFR, AREG, EREG, HBEGF, TGFA, ERBB2, ERBB3, MAPK1, MAPK3, DUSP6, FOS, JUN]
+  nfkb_il17_tnf:
+    driver: "NF-kB/IL17/TNF"
+    driver_class: "pathway_tf"
+    target_theme: "immune_inflammatory"
+    expected_age_direction: "positive"
+    source: "Age-related OE inflammation and metaplasia literature"
+    citation: "PMID:41461651;PMID:42228282"
+    description: "NF-kB/IL-17/TNF inflammatory target program"
+    genes: [IL17RA, IL17RC, TNF, TNFRSF1A, NFKB1, NFKBIA, RELA, IL6, CXCL8, CXCL1, CXCL2, CCL20, PTGS2]
+  stat_irf_interferon:
+    driver: "STAT/IRF"
+    driver_class: "pathway_tf"
+    target_theme: "immune_inflammatory"
+    expected_age_direction: "positive"
+    source: "Inflammatory aging and OE regeneration review literature"
+    citation: "PMID:41461651;PMID:42228282"
+    description: "Interferon/STAT/IRF target program"
+    genes: [IFIT1, IFIT2, IFIT3, ISG15, MX1, MX2, OAS1, OAS2, STAT1, IRF7, IFI6, IFI27, CXCL10]
+  nrf2_detox:
+    driver: "NFE2L2/NRF2"
+    driver_class: "pathway_tf"
+    target_theme: "sustentacular_barrier_detox"
+    expected_age_direction: "context_dependent"
+    source: "Human OE barrier/detox review literature"
+    citation: "PMID:38903957;PMID:42228282"
+    description: "NRF2 oxidative-stress and detoxification target program"
+    genes: [NFE2L2, KEAP1, HMOX1, NQO1, GCLC, GCLM, GPX2, PRDX1, TXN, SOD1, SOD2, ALDH1A1, CYP2A6, UGT2A1, GSTM1]
+  foxj1_ciliogenesis:
+    driver: "FOXJ1"
+    driver_class: "transcription_factor"
+    target_theme: "respiratory_metaplasia_ciliated_goblet"
+    expected_age_direction: "positive"
+    source: "Human injured-OE and respiratory metaplasia marker literature"
+    citation: "PMID:41461651;PMID:38903957"
+    description: "Ciliated respiratory metaplasia target program"
+    genes: [FOXJ1, TPPP3, PIFO, DNAAF1, KRT8, KRT19]
+  spdef_goblet:
+    driver: "SPDEF"
+    driver_class: "transcription_factor"
+    target_theme: "respiratory_metaplasia_ciliated_goblet"
+    expected_age_direction: "positive"
+    source: "Human injured-OE and respiratory metaplasia marker literature"
+    citation: "PMID:41461651;PMID:38903957"
+    description: "Goblet/secretory metaplasia target program"
+    genes: [SPDEF, MUC5AC, MUC5B, AGR2, CEACAM5, FOXQ1, SCGB1A1]
+  tp53_senescence:
+    driver: "TP53/CDKN"
+    driver_class: "stress_program"
+    target_theme: "stress_senescence"
+    expected_age_direction: "positive"
+    source: "OE aging-regeneration limitation and inflammatory metaplasia literature"
+    citation: "PMID:29934351;PMID:41461651;PMID:42228282"
+    description: "TP53/CDKN senescence and SASP target program"
+    genes: [TP53, CDKN1A, CDKN2A, IL6, CXCL8, MMP1, MMP3, SERPINE1, CCL2, IGFBP7]

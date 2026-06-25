@@ -20,9 +20,14 @@ from ora.external import (
     external_marker_age_concordance,
     external_validation_evidence_summary,
     feature_matrix_contract_summary,
+    gse184117_reanalysis_status,
     inspect_external_archive,
     parse_geo_series_matrix_metadata,
+    public_data_exhaustion_matrix,
+    public_data_search_log,
     published_gene_list_coverage,
+    render_gse184117_reanalysis_markdown,
+    render_public_data_exhaustion_markdown,
     score_external_10x_marker_composition,
     score_external_10x_modules,
     validate_external_feature_matrix,
@@ -45,6 +50,8 @@ def main() -> None:
     _add_candidate_matrix(subparsers)
     _add_evidence(subparsers)
     _add_validate_feature_matrix(subparsers)
+    _add_public_data_exhaustion(subparsers)
+    _add_gse184117_status(subparsers)
     args = parser.parse_args()
     args.func(args)
 
@@ -325,6 +332,71 @@ def _candidate_matrix(args: argparse.Namespace) -> None:
     matrix = external_candidate_matrix(config)
     matrix.to_csv(ensure_parent(out), sep="\t", index=False)
     print(f"Wrote external candidate matrix: {out} ({matrix.shape[0]} datasets)")
+
+
+def _add_public_data_exhaustion(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser("public-data-exhaustion")
+    parser.add_argument("--external-config", default="configs/external_datasets.yaml")
+    parser.add_argument("--candidates-out", default=None)
+    parser.add_argument("--search-log-out", default=None)
+    parser.add_argument("--markdown-out", default=None)
+    parser.set_defaults(func=_public_data_exhaustion)
+
+
+def _public_data_exhaustion(args: argparse.Namespace) -> None:
+    config = load_config(args.external_config)
+    outputs = config.get("outputs", {})
+    candidates_out = args.candidates_out or outputs.get(
+        "public_data_exhaustion_tsv",
+        "results/tables/public_data_exhaustion.tsv",
+    )
+    search_log_out = args.search_log_out or outputs.get(
+        "public_data_search_log_tsv",
+        "results/tables/public_data_search_log.tsv",
+    )
+    markdown_out = args.markdown_out or outputs.get(
+        "public_data_exhaustion_md",
+        "results/reports/public_data_exhaustion.md",
+    )
+    candidates = public_data_exhaustion_matrix(config)
+    search_log = public_data_search_log(config)
+    candidates.to_csv(ensure_parent(candidates_out), sep="\t", index=False)
+    search_log.to_csv(ensure_parent(search_log_out), sep="\t", index=False)
+    ensure_parent(markdown_out).write_text(
+        render_public_data_exhaustion_markdown(candidates, search_log),
+        encoding="utf-8",
+    )
+    direct = int(candidates["validation_class"].astype(str).str.contains("direct", case=False, na=False).sum())
+    print(f"Wrote public data exhaustion matrix: {candidates_out} ({candidates.shape[0]} datasets; {direct} direct)")
+    print(f"Wrote public data search log: {search_log_out} ({search_log.shape[0]} searches)")
+    print(f"Wrote public data exhaustion report: {markdown_out}")
+
+
+def _add_gse184117_status(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser("gse184117-status")
+    parser.add_argument("--external-config", default="configs/external_datasets.yaml")
+    parser.add_argument("--out", default=None)
+    parser.add_argument("--markdown-out", default=None)
+    parser.set_defaults(func=_gse184117_status)
+
+
+def _gse184117_status(args: argparse.Namespace) -> None:
+    config = load_config(args.external_config)
+    outputs = config.get("outputs", {})
+    out = args.out or outputs.get(
+        "gse184117_reanalysis_status_tsv",
+        "results/reports/gse184117_reanalysis_status.tsv",
+    )
+    markdown_out = args.markdown_out or outputs.get(
+        "gse184117_reanalysis_status_md",
+        "results/reports/gse184117_reanalysis_status.md",
+    )
+    status = gse184117_reanalysis_status(config)
+    status.to_csv(ensure_parent(out), sep="\t", index=False)
+    ensure_parent(markdown_out).write_text(render_gse184117_reanalysis_markdown(status), encoding="utf-8")
+    complete = int(status["status"].isin(["complete", "documented"]).sum())
+    print(f"Wrote GSE184117 reanalysis status: {out} ({complete}/{status.shape[0]} complete/documented)")
+    print(f"Wrote GSE184117 reanalysis report: {markdown_out}")
 
 
 def _add_evidence(subparsers: argparse._SubParsersAction) -> None:

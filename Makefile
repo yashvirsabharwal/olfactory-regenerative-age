@@ -15,9 +15,19 @@ MILO_MATCHED_MIN_DONORS ?= 12
 MILOR_SUBSET_CELLS ?= 100000
 MILOR_MATCHED_SUBSET_CELLS ?= 75000
 MILOR_RSCRIPT ?= $(HOME)/bin/micromamba run -p $(HOME)/micromamba-envs/ora-milor Rscript
+SCVI_DONOR_H5AD ?= data/processed/gateway_scvi_full_4m_reduced.h5ad
+SCVI_DONOR_MODELS ?= hist_gradient_boosting xgboost catboost boosted_ensemble
+FOUNDATION_BENCHMARK_H5AD ?= data/raw/gateway.h5ad
+FOUNDATION_PYTHON ?= .venv_foundation/bin/python
+GENEFORMER_H5AD ?= data/processed/foundation_benchmark_lineage_subset.h5ad
+GENEFORMER_MAX_CELLS ?= 24000
+GENEFORMER_BATCH_SIZE ?= 64
+FOUNDATION_LINEAGE_CELLS ?= 120000
+FOUNDATION_EPITHELIAL_CELLS ?= 180000
+FOUNDATION_ALLCELL_CELLS ?= 250000
 REMOTE_FULL_SCVI_ACTION ?= help
 
-.PHONY: setup test download-gateway download-info download-gse184117 inspect-gse184117 external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-scanvi-reference-map external-scanvi-feature-concordance external-mapped-feature-concordance external-marker-age-concordance external-candidate-matrix external-evidence inspect cohort aggregate features features-augmented age-associations model-ora model-ora-diagnostics model-ora-repeated model-ora-augmented model-ora-candidate-repeated ora-feature-set-comparison ora-permutation-null ora-nested-tuning ora-stacking feature-interpretation project-ndd project-ndd-feature-sensitivity project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation manuscript manuscript-check manuscript-figures publication-tables modules published-gene-modules external-validation external-feature-harmonization latent-space-audit latent-space-recompute-plan latent-space-plan scvi-pilot scvi-pilot-validation scvi-scaled-250k scvi-scaled-250k-seed23 scvi-scaled-validation scvi-scaled-comparison scvi-embedding-claim-gates scvi-scaled-500k scvi-scaled-1m scvi-reduced-4m scvi-full-4m scvi-full-4m-safe scvi-full-4m-reduced scvi-full-validation scvi-lineage-basal-neural scvi-lineage-validation pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-genomewide-edger pseudobulk-genomewide-edger-matched pseudobulk-genomewide-limma pseudobulk-genomewide-limma-matched pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-audit-matched pseudobulk-covariate-de ora-sensitivity ora-sensitivity-rf model-card output-provenance all-summary remote-full-scvi milo milo-lineage milo-secretory milo-full-4m milo-full-4m-lineage milo-full-4m-secretory milo-full-4m-matched milo-full-4m-lineage-matched milo-full-4m-secretory-matched milo-full-4m-lineage-programs milo-full-4m-lineage-matched-programs milo-full-4m-lineage-age-bins milo-full-4m-lineage-matched-age-bins milo-full-4m-lineage-edger-parity milo-full-4m-lineage-matched-edger-parity milor-lineage-subset-parity milor-lineage-matched-subset-parity clean
+.PHONY: setup test download-gateway download-info download-gse184117 inspect-gse184117 external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-gse184117-status external-scanvi-reference-map external-scanvi-feature-concordance external-mapped-feature-concordance external-marker-age-concordance external-candidate-matrix external-public-data-exhaustion external-evidence inspect cohort aggregate features features-augmented age-associations compositional-age-model negative-controls feature-family-ablation leave-context-out foundation-benchmark-subsets geneformer-donor-features geneformer-age-model foundation-model-benchmark aging-clock-baseline cross-tissue-specificity cross-tissue-age-effects spatial-validation-plan perturbation-validation-plan perturbation-gse309325-organoid regeneration-axis-feature-map regeneration-modules regeneration-module-analysis regulatory-driver-analysis niche-signaling-analysis regeneration-dynamics model-ora model-ora-diagnostics model-ora-repeated model-ora-augmented model-ora-candidate-repeated ora-feature-set-comparison ora-permutation-null ora-nested-tuning ora-stacking feature-interpretation project-ndd project-ndd-feature-sensitivity project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation manuscript manuscript-check manuscript-figures publication-tables modules published-gene-modules external-validation external-feature-harmonization latent-space-audit latent-space-recompute-plan latent-space-plan scvi-pilot scvi-pilot-validation scvi-scaled-250k scvi-scaled-250k-seed23 scvi-scaled-validation scvi-scaled-comparison scvi-embedding-claim-gates scvi-donor-features scvi-donor-age-model scvi-donor-comparison scvi-donor-embedding-baseline scvi-hybrid-features scvi-hybrid-age-model scvi-hybrid-comparison scvi-hybrid-benchmark scvi-scaled-500k scvi-scaled-1m scvi-reduced-4m scvi-full-4m scvi-full-4m-safe scvi-full-4m-reduced scvi-full-validation scvi-lineage-basal-neural scvi-lineage-validation pseudobulk pseudobulk-genomewide pseudobulk-genomewide-qc pseudobulk-genomewide-edger pseudobulk-genomewide-edger-matched pseudobulk-genomewide-limma pseudobulk-genomewide-limma-matched pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-summary-matched pseudobulk-covariate-de ora-sensitivity ora-sensitivity-rf model-card output-provenance release-manifest environment-report archive-review-package local-light local-medium remote-heavy submission-freeze all-summary remote-full-scvi milo milo-lineage milo-secretory milo-full-4m milo-full-4m-lineage milo-full-4m-secretory milo-full-4m-matched milo-full-4m-lineage-matched milo-full-4m-secretory-matched milo-full-4m-lineage-programs milo-full-4m-lineage-matched-programs milo-full-4m-lineage-age-bins milo-full-4m-lineage-matched-age-bins milo-full-4m-lineage-edger-parity milo-full-4m-lineage-matched-edger-parity milor-lineage-subset-parity milor-lineage-matched-subset-parity clean
 
 setup:
 	$(PYTHON) -m pip install -e ".[dev]"
@@ -48,6 +58,9 @@ external-gse184117-markers:
 external-gse184117-mapped:
 	$(PYTHON) scripts/external.py build-mapped --archive data/external/GSE184117_RAW.tar --metadata data/external/GSE184117_series_matrix.txt.gz --dataset-id oliva_2022
 
+external-gse184117-status:
+	$(PYTHON) scripts/external.py gse184117-status --external-config configs/external_datasets.yaml
+
 external-scanvi-reference-map:
 	$(PYTHON) scripts/run_scanvi_reference_mapping.py --reference-h5ad data/processed/gateway_scvi_stratified_250k.h5ad --query-h5ad data/processed/gse184117_marker_mapped.h5ad --model-dir results/models/gateway_scanvi_reference --query-out data/processed/gse184117_scanvi_mapped.h5ad --qc-out results/tables/external_scanvi_mapping_qc.tsv --donor-features-out data/processed/gse184117_scanvi_donor_features.tsv --metadata-out results/tables/gateway_scanvi_reference_metadata.tsv --overwrite-model
 
@@ -77,6 +90,66 @@ features-augmented:
 
 age-associations:
 	$(PYTHON) scripts/modeling.py age-associations --features data/processed/donor_cell_state_features.tsv --manifest data/processed/cohort_manifest.tsv --config configs/gateway.yaml
+
+compositional-age-model:
+	$(PYTHON) scripts/run_compositional_age_model.py --config configs/gateway.yaml
+
+negative-controls:
+	$(PYTHON) scripts/run_negative_controls.py --gateway-config configs/gateway.yaml --model-config configs/models.yaml
+
+feature-family-ablation: scvi-hybrid-features
+	$(PYTHON) scripts/run_feature_family_ablation.py --features data/processed/ora_scvi_hybrid_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --model-config configs/models.yaml --gateway-config configs/gateway.yaml --models hist_gradient_boosting xgboost catboost boosted_ensemble --repeats 10 --n-permutations 20 --permutation-repeats 1
+
+leave-context-out: scvi-hybrid-features
+	$(PYTHON) scripts/run_leave_context_out.py --features data/processed/ora_scvi_hybrid_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --model-config configs/models.yaml --gateway-config configs/gateway.yaml --models hist_gradient_boosting xgboost catboost boosted_ensemble --repeats 10 --min-train-donors 40 --min-test-donors 5
+
+foundation-benchmark-subsets:
+	$(PYTHON) scripts/foundation_benchmark.py subsets --h5ad $(FOUNDATION_BENCHMARK_H5AD) --lineage-cells $(FOUNDATION_LINEAGE_CELLS) --epithelial-cells $(FOUNDATION_EPITHELIAL_CELLS) --allcell-cells $(FOUNDATION_ALLCELL_CELLS) --overwrite
+
+geneformer-donor-features:
+	$(FOUNDATION_PYTHON) scripts/run_geneformer_benchmark.py --h5ad $(GENEFORMER_H5AD) --max-cells $(GENEFORMER_MAX_CELLS) --batch-size $(GENEFORMER_BATCH_SIZE)
+
+geneformer-age-model: geneformer-donor-features
+	$(PYTHON) scripts/modeling.py repeated --features data/processed/geneformer_donor_features.tsv --manifest data/processed/cohort_manifest.tsv --model-config configs/models.yaml --gateway-config configs/gateway.yaml --models hist_gradient_boosting xgboost catboost boosted_ensemble --repeat-performance-out results/tables/geneformer_repeated_cv_performance.tsv --summary-out results/tables/geneformer_age_model_summary.tsv --scores-out results/tables/geneformer_scores.tsv --feature-stability-out results/tables/geneformer_feature_stability.tsv --repeats 10
+
+foundation-model-benchmark: geneformer-age-model
+	$(PYTHON) scripts/foundation_benchmark.py compare --geneformer-summary results/tables/geneformer_age_model_summary.tsv --runtime results/tables/foundation_model_runtime.tsv --out results/tables/foundation_model_benchmark.tsv
+
+aging-clock-baseline:
+	$(PYTHON) scripts/run_aging_clock_baseline.py
+
+cross-tissue-specificity:
+	$(PYTHON) scripts/run_cross_tissue_specificity.py
+
+cross-tissue-age-effects: cross-tissue-specificity
+	$(PYTHON) scripts/run_cross_tissue_age_effects.py
+
+spatial-validation-plan:
+	$(PYTHON) scripts/run_spatial_validation_plan.py
+
+perturbation-validation-plan:
+	$(PYTHON) scripts/run_perturbation_validation_plan.py
+
+perturbation-gse309325-organoid:
+	$(PYTHON) scripts/run_gse309325_organoid_adapter.py
+
+regeneration-axis-feature-map:
+	$(PYTHON) scripts/run_regeneration_axis.py
+
+regeneration-modules:
+	$(PYTHON) scripts/data.py modules --config configs/gateway.yaml --gene-sets configs/regeneration_gene_sets.yaml --summary-out results/tables/regeneration_module_score_summary.tsv --coverage-out results/tables/regeneration_module_gene_coverage.tsv --donor-features-out data/processed/regeneration_donor_module_features.tsv
+
+regeneration-module-analysis: regeneration-modules
+	$(PYTHON) scripts/run_regeneration_module_analysis.py
+
+regulatory-driver-analysis:
+	$(PYTHON) scripts/run_regulatory_driver_analysis.py
+
+niche-signaling-analysis:
+	$(PYTHON) scripts/run_niche_signaling_analysis.py
+
+regeneration-dynamics:
+	$(PYTHON) scripts/run_regeneration_dynamics.py
 
 model-ora:
 	$(PYTHON) scripts/modeling.py train --features data/processed/ora_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --config configs/models.yaml
@@ -185,6 +258,31 @@ scvi-scaled-comparison:
 scvi-embedding-claim-gates:
 	$(PYTHON) scripts/compare_scvi_embeddings.py --validation full_4m_reduced results/tables/scvi_full_4m_reduced_validation.tsv --validation stratified_250k_seed13 results/tables/scvi_scaled_250k_validation.tsv --validation stratified_250k_seed23 results/tables/scvi_scaled_250k_seed23_validation.tsv --validation lineage_basal_neural_100k results/tables/scvi_lineage_basal_neural_validation.tsv --summary-out results/tables/scvi_embedding_claim_gates.tsv --markers-out results/tables/scvi_embedding_marker_concordance.tsv --note-out results/reports/scvi_embedding_comparison.md
 
+scvi-donor-features:
+	$(PYTHON) scripts/scvi_donor_embedding.py features --h5ad $(SCVI_DONOR_H5AD) --features-out data/processed/scvi_donor_embedding_features.tsv --qc-out results/tables/scvi_donor_embedding_feature_qc.tsv
+
+scvi-donor-age-model: scvi-donor-features
+	$(PYTHON) scripts/modeling.py repeated --features data/processed/scvi_donor_embedding_features.tsv --manifest data/processed/cohort_manifest.tsv --model-config configs/models.yaml --gateway-config configs/gateway.yaml --models $(SCVI_DONOR_MODELS) --repeat-performance-out results/tables/scvi_donor_embedding_repeated_cv_performance.tsv --summary-out results/tables/scvi_donor_embedding_age_model_summary.tsv --scores-out results/tables/scvi_donor_embedding_scores.tsv --feature-stability-out results/tables/scvi_donor_embedding_feature_stability.tsv --repeats 10
+	$(PYTHON) scripts/scvi_donor_embedding.py state-importance --feature-stability results/tables/scvi_donor_embedding_feature_stability.tsv --out results/tables/scvi_donor_embedding_state_importance.tsv
+
+scvi-donor-comparison: scvi-donor-age-model
+	$(PYTHON) scripts/scvi_donor_embedding.py compare --summary composition results/tables/ora_repeated_cv_summary.tsv --summary composition_plus_modules results/tables/ora_augmented_candidate_repeated_cv_summary.tsv --summary scvi_donor_embedding results/tables/scvi_donor_embedding_age_model_summary.tsv --out results/tables/scvi_donor_embedding_model_comparison.tsv
+
+scvi-donor-embedding-baseline: scvi-donor-comparison
+
+scvi-hybrid-features: features-augmented scvi-donor-features
+	$(PYTHON) scripts/scvi_donor_embedding.py hybrid-features --ora-features data/processed/ora_augmented_feature_matrix.tsv --scvi-features data/processed/scvi_donor_embedding_features.tsv --out data/processed/ora_scvi_hybrid_feature_matrix.tsv
+
+scvi-hybrid-age-model: scvi-hybrid-features
+	$(PYTHON) scripts/modeling.py repeated --features data/processed/ora_scvi_hybrid_feature_matrix.tsv --manifest data/processed/cohort_manifest.tsv --model-config configs/models.yaml --gateway-config configs/gateway.yaml --models $(SCVI_DONOR_MODELS) --repeat-performance-out results/tables/ora_scvi_hybrid_repeated_cv_performance.tsv --summary-out results/tables/ora_scvi_hybrid_age_model_summary.tsv --scores-out results/tables/ora_scvi_hybrid_scores.tsv --feature-stability-out results/tables/ora_scvi_hybrid_feature_stability.tsv --repeats 10
+	$(PYTHON) scripts/scvi_donor_embedding.py state-importance --feature-stability results/tables/ora_scvi_hybrid_feature_stability.tsv --out results/tables/ora_scvi_hybrid_scvi_state_importance.tsv
+	$(PYTHON) scripts/scvi_donor_embedding.py family-importance --feature-stability results/tables/ora_scvi_hybrid_feature_stability.tsv --out results/tables/ora_scvi_hybrid_feature_family_importance.tsv
+
+scvi-hybrid-comparison: scvi-hybrid-age-model
+	$(PYTHON) scripts/scvi_donor_embedding.py compare --summary composition results/tables/ora_repeated_cv_summary.tsv --summary composition_plus_modules results/tables/ora_augmented_candidate_repeated_cv_summary.tsv --summary scvi_donor_embedding results/tables/scvi_donor_embedding_age_model_summary.tsv --summary ora_scvi_hybrid results/tables/ora_scvi_hybrid_age_model_summary.tsv --out results/tables/ora_scvi_hybrid_model_comparison.tsv
+
+scvi-hybrid-benchmark: scvi-hybrid-comparison
+
 scvi-lineage-basal-neural:
 	$(PYTHON) scripts/run_scvi_latent.py --h5ad data/raw/gateway.h5ad --out data/processed/gateway_scvi_lineage_basal_neural_100k.h5ad --max-cells 100000 --sampling-strategy stratified --stratify-keys condition,fine_celltype,sex,flex_version,device_guided --include-fine-celltype-regex "basal|HBC|GBC|INP|OSN|neuro|globose|horizontal|microvillar|secretory|sustentacular" --n-top-genes 3000 --batch-key sample_id --categorical-covariates flex_version,device_guided,sex --hvg-flavor cell_ranger --hvg-batch-key flex_version --embedding-key X_scvi --max-epochs 50 --seed 17
 
@@ -202,6 +300,9 @@ external-validation:
 
 external-candidate-matrix:
 	$(PYTHON) scripts/external.py candidate-matrix --external-config configs/external_datasets.yaml
+
+external-public-data-exhaustion:
+	$(PYTHON) scripts/external.py public-data-exhaustion --external-config configs/external_datasets.yaml
 
 external-evidence:
 	$(PYTHON) scripts/external.py evidence --external-config configs/external_datasets.yaml
@@ -269,7 +370,85 @@ model-card:
 output-provenance:
 	$(PYTHON) scripts/reporting.py output-provenance --gateway-config configs/gateway.yaml --command-manifest configs/command_manifest.yaml
 
-all-summary: external-validation external-candidate-matrix external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-marker-age-concordance external-mapped-feature-concordance external-evidence model-ora-diagnostics ora-feature-set-comparison ora-permutation-null ora-nested-tuning ora-stacking feature-interpretation pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-limma-de-audit-matched project-ndd-feature-sensitivity project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation model-card latent-space-audit latent-space-recompute-plan output-provenance
+release-manifest:
+	$(PYTHON) scripts/build_release_manifest.py --config configs/gateway.yaml --command-manifest configs/command_manifest.yaml
+
+environment-report:
+	$(PYTHON) scripts/build_environment_report.py --config configs/gateway.yaml
+
+archive-review-package: release-manifest
+	$(PYTHON) scripts/build_archive_review_package.py --config configs/gateway.yaml
+
+local-light:
+	$(PYTHON) -m ruff check .
+	$(MAKE) test
+	$(MAKE) external-validation
+	$(MAKE) external-candidate-matrix
+	$(MAKE) external-public-data-exhaustion
+	$(MAKE) external-gse184117-status
+	$(MAKE) publication-tables
+	$(MAKE) manuscript-figures
+	$(MAKE) manuscript-check
+	$(MAKE) output-provenance
+
+local-medium:
+	$(MAKE) cohort
+	$(MAKE) aggregate
+	$(MAKE) features
+	$(MAKE) features-augmented
+	$(MAKE) age-associations
+	$(MAKE) compositional-age-model
+	$(MAKE) negative-controls
+	$(MAKE) model-ora-diagnostics
+	$(MAKE) model-ora-repeated
+	$(MAKE) model-ora-candidate-repeated
+	$(MAKE) ora-feature-set-comparison
+	$(MAKE) feature-family-ablation
+	$(MAKE) leave-context-out
+	$(MAKE) ora-permutation-null
+	$(MAKE) ora-nested-tuning
+	$(MAKE) ora-stacking
+	$(MAKE) feature-interpretation
+	$(MAKE) external-evidence
+	$(MAKE) project-ndd-feature-sensitivity
+	$(MAKE) project-ndd-uncertainty
+	$(MAKE) project-ndd-diagnostics
+	$(MAKE) project-ndd-label-permutation
+	$(MAKE) local-light
+
+remote-heavy:
+	$(MAKE) scvi-reduced-4m
+	$(MAKE) scvi-full-4m-reduced
+	$(MAKE) scvi-full-validation
+	$(MAKE) scvi-scaled-250k-seed23
+	$(MAKE) scvi-scaled-validation
+	$(MAKE) scvi-scaled-comparison
+	$(MAKE) scvi-embedding-claim-gates
+	$(MAKE) scvi-donor-embedding-baseline
+	$(MAKE) scvi-hybrid-benchmark
+	$(MAKE) milo-full-4m-lineage
+	$(MAKE) milo-full-4m-lineage-matched
+	$(MAKE) milo-full-4m-lineage-programs
+	$(MAKE) milo-full-4m-lineage-matched-programs
+	$(MAKE) milo-full-4m-lineage-age-bins
+	$(MAKE) milo-full-4m-lineage-matched-age-bins
+	$(MAKE) milo-full-4m-lineage-edger-parity
+	$(MAKE) milo-full-4m-lineage-matched-edger-parity
+	$(MAKE) milor-lineage-subset-parity
+	$(MAKE) milor-lineage-matched-subset-parity
+
+submission-freeze:
+	$(MAKE) environment-report
+	$(MAKE) release-manifest
+	$(MAKE) archive-review-package
+	$(MAKE) external-gse184117-status
+	$(MAKE) external-public-data-exhaustion
+	$(MAKE) publication-tables
+	$(MAKE) manuscript-figures
+	$(MAKE) manuscript-check
+	$(MAKE) output-provenance
+
+all-summary: external-validation external-candidate-matrix external-gse184117-modules external-gse184117-markers external-gse184117-mapped external-marker-age-concordance external-mapped-feature-concordance external-evidence model-ora-diagnostics ora-feature-set-comparison feature-family-ablation leave-context-out ora-permutation-null ora-nested-tuning ora-stacking feature-interpretation scvi-donor-comparison scvi-hybrid-comparison pseudobulk-genomewide-de-summary pseudobulk-genomewide-de-audit pseudobulk-genomewide-de-summary-matched pseudobulk-genomewide-de-audit-matched pseudobulk-genomewide-limma-de-summary pseudobulk-genomewide-limma-de-audit pseudobulk-genomewide-limma-de-summary-matched pseudobulk-genomewide-limma-de-audit-matched project-ndd-feature-sensitivity project-ndd-uncertainty project-ndd-diagnostics project-ndd-label-permutation model-card latent-space-audit latent-space-recompute-plan output-provenance
 
 remote-full-scvi:
 	tools/remote_full_scvi.sh $(REMOTE_FULL_SCVI_ACTION)

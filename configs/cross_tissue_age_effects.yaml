@@ -1,0 +1,26 @@
+settings:
+  min_donors: 4
+  min_cells_per_donor: 20
+  adult_min_age_years: 18
+  chunk_size: 20000
+  expression_scale: "CELLxGENE X as provided; no extra log transform"
+
+datasets:
+  - dataset_id: "e3cc5b85-62ec-4add-bee3-73c8fd11e59d"
+    collection_id: "af500bec-a5d6-4569-9f50-4314f2e7a011"
+    title: "Xu nasal scRNA-Seq Dataset"
+    tissue_class: "nasal"
+    h5ad_path: "data/external/cellxgene/e3cc5b85-62ec-4add-bee3-73c8fd11e59d.h5ad"
+    source_url: "https://cellxgene.cziscience.com/collections/af500bec-a5d6-4569-9f50-4314f2e7a011"
+  - dataset_id: "d2bc2703-a9b5-4949-b85d-61da7b9961b1"
+    collection_id: "af500bec-a5d6-4569-9f50-4314f2e7a011"
+    title: "Xu bronchial scRNA-Seq Dataset"
+    tissue_class: "bronchial"
+    h5ad_path: "data/external/cellxgene/d2bc2703-a9b5-4949-b85d-61da7b9961b1.h5ad"
+    source_url: "https://cellxgene.cziscience.com/collections/af500bec-a5d6-4569-9f50-4314f2e7a011"
+  - dataset_id: "3de0ad6d-4378-4f62-b37b-ec0b75a50d94"
+    collection_id: "625f6bf4-2f33-4942-962e-35243d284837"
+    title: "LungMAP human lungs across age groups"
+    tissue_class: "lung"
+    h5ad_path: "data/external/cellxgene/3de0ad6d-4378-4f62-b37b-ec0b75a50d94.h5ad"
+    source_url: "https://cellxgene.cziscience.com/collections/625f6bf4-2f33-4942-962e-35243d284837"
